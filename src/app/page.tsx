@@ -3,10 +3,17 @@ import { getProducts } from '@/lib/products';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import Image from 'next/image';
+import {
+    Carousel,
+    CarouselContent,
+    CarouselItem,
+    CarouselNext,
+    CarouselPrevious,
+  } from "@/components/ui/carousel";
 
 export default function Home() {
   const products = getProducts();
-  const featuredProducts = products.filter(p => p.featured).slice(0, 3);
+  const featuredProducts = products.filter(p => p.featured);
 
   return (
     <div className="space-y-16">
@@ -24,16 +31,30 @@ export default function Home() {
       </section>
 
       {/* Featured Products Section */}
-      <section id="featured" className="space-y-8">
+      <section id="featured" className="space-y-8 pt-8">
         <div className="text-center">
             <h2 className="text-4xl font-headline font-bold">Productos Destacados</h2>
             <p className="mt-2 text-muted-foreground">Nuestra selección especial, elegida para ti.</p>
         </div>
-        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-          {featuredProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        <Carousel 
+          opts={{
+            align: "start",
+            loop: true,
+          }}
+          className="w-full max-w-4xl mx-auto"
+        >
+          <CarouselContent>
+            {featuredProducts.map((product) => (
+              <CarouselItem key={product.id} className="md:basis-1/2 lg:basis-1/3">
+                <div className="p-1">
+                  <ProductCard product={product} />
+                </div>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          <CarouselPrevious className='hidden sm:flex' />
+          <CarouselNext className='hidden sm:flex' />
+        </Carousel>
       </section>
 
       {/* About Us Section */}
