@@ -10,6 +10,7 @@ const products: Product[] = [
     aiHint: 'scented candle',
     category: 'Hogar',
     stock: 25,
+    featured: true,
   },
   {
     id: '2',
@@ -20,6 +21,7 @@ const products: Product[] = [
     aiHint: 'ceramic mug',
     category: 'Cocina',
     stock: 15,
+    featured: true,
   },
   {
     id: '3',
@@ -30,6 +32,7 @@ const products: Product[] = [
     aiHint: 'hardcover notebook',
     category: 'Papelería',
     stock: 40,
+    featured: true,
   },
   {
     id: '4',

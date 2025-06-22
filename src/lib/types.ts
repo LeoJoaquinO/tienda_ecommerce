@@ -7,6 +7,7 @@ export type Product = {
   category: string;
   stock: number;
   aiHint?: string;
+  featured?: boolean;
 };
 
 export type CartItem = {

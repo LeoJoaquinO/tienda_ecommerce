@@ -8,7 +8,7 @@ import type { Product } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -17,7 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { PlusCircle, Edit, Trash2 } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, LogIn } from 'lucide-react';
 import {
     Dialog,
     DialogContent,
@@ -27,8 +27,6 @@ import {
     DialogFooter,
     DialogClose
   } from "@/components/ui/dialog"
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Terminal } from 'lucide-react';
 
 type ProductFormInputs = Omit<Product, 'id'>;
 
@@ -36,8 +34,23 @@ export default function AdminPage() {
   const [products, setProducts] = useState<Product[]>(getProducts());
   const [isEditing, setIsEditing] = useState<Product | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
 
   const { register, handleSubmit, reset, setValue } = useForm<ProductFormInputs>();
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Hardcoded credentials for demonstration
+    if (email === 'admin@joya.com' && password === 'password123') {
+        setIsAuthenticated(true);
+        setError('');
+    } else {
+        setError('Credenciales inválidas. Inténtalo de nuevo.');
+    }
+  }
 
   const handleEditClick = (product: Product) => {
     setIsEditing(product);
@@ -56,12 +69,10 @@ export default function AdminPage() {
 
   const onSubmit: SubmitHandler<ProductFormInputs> = (data) => {
     if (isEditing) {
-      // Update existing product
       setProducts(prev =>
         prev.map(p => (p.id === isEditing.id ? { ...p, ...data } : p))
       );
     } else {
-      // Add new product
       const newProduct: Product = {
         id: (Math.random() * 10000).toString(),
         ...data,
@@ -79,16 +90,39 @@ export default function AdminPage() {
       setIsDialogOpen(true);
   }
 
+  if (!isAuthenticated) {
+    return (
+        <div className="flex items-center justify-center min-h-[60vh]">
+            <Card className="w-full max-w-sm">
+                <CardHeader>
+                    <CardTitle className="text-2xl font-bold font-headline">Admin Login</CardTitle>
+                    <CardDescription>
+                        Ingresa a tu cuenta para gestionar productos.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handleLogin} className="space-y-4">
+                        <div className="space-y-2">
+                           <Input id="email" type="email" placeholder="email@ejemplo.com" required value={email} onChange={(e) => setEmail(e.target.value)} />
+                        </div>
+                        <div className="space-y-2">
+                           <Input id="password" type="password" required placeholder="Contraseña" value={password} onChange={(e) => setPassword(e.target.value)} />
+                        </div>
+                        {error && <p className="text-sm text-destructive">{error}</p>}
+                        <p className="text-xs text-muted-foreground">Hint: admin@joya.com / password123</p>
+                        <Button type="submit" className="w-full">
+                            <LogIn className="mr-2 h-4 w-4" />
+                            Iniciar Sesión
+                        </Button>
+                    </form>
+                </CardContent>
+            </Card>
+        </div>
+    )
+  }
+
   return (
     <div className="space-y-8">
-      <Alert>
-        <Terminal className="h-4 w-4" />
-        <AlertTitle>Modo de Demostración</AlertTitle>
-        <AlertDescription>
-          Los cambios realizados en esta página (agregar, editar, eliminar productos) son solo para fines de demostración y no se guardarán permanentemente.
-        </AlertDescription>
-      </Alert>
-
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold font-headline">Gestionar Productos</h1>
         <Button onClick={openNewProductDialog}>
