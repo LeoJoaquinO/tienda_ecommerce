@@ -80,9 +80,9 @@ export default function AdminPage() {
 
       <Alert variant="destructive">
         <AlertTriangle className="h-4 w-4" />
-        <AlertTitle>Modo Estático</AlertTitle>
+        <AlertTitle>Base de Datos No Conectada</AlertTitle>
         <AlertDescription>
-          La gestión de productos (crear, editar, eliminar) está desactivada porque la aplicación se está ejecutando en modo estático. Para habilitar estas funciones, la aplicación necesitaría un backend o una base de datos.
+          La gestión de productos (crear, editar, eliminar) está desactivada. Para habilitar estas funciones, la aplicación necesita ser conectada a una base de datos.
         </AlertDescription>
       </Alert>
       

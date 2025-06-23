@@ -19,6 +19,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
 
 const shippingSchema = z.object({
   name: z.string().min(2, "El nombre es requerido."),
@@ -35,6 +37,8 @@ export default function CheckoutPage() {
   const { cartItems, totalPrice, clearCart } = useCart();
   const router = useRouter();
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+
 
   const form = useForm<z.infer<typeof shippingSchema>>({
     resolver: zodResolver(shippingSchema),
@@ -44,17 +48,42 @@ export default function CheckoutPage() {
       address: "",
       city: "",
       postalCode: "",
+      paymentMethod: "mercado-pago",
     },
   });
 
-  function onSubmit(values: z.infer<typeof shippingSchema>) {
-    console.log("Order submitted:", values);
-    toast({
-        title: "¡Pedido Realizado!",
-        description: "Gracias por tu compra. Te hemos enviado un email con los detalles."
-    });
-    clearCart();
-    router.push('/');
+  async function onSubmit(values: z.infer<typeof shippingSchema>) {
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/create-preference', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(cartItems),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create payment preference');
+      }
+
+      const data = await response.json();
+      
+      // Clear cart before redirecting
+      clearCart();
+
+      // Redirect to Mercado Pago
+      router.push(data.init_point);
+
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Error",
+        description: "No se pudo crear la preferencia de pago. Inténtalo de nuevo.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+    }
   }
 
   if (cartItems.length === 0) {
@@ -75,20 +104,20 @@ export default function CheckoutPage() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField control={form.control} name="name" render={({ field }) => (
-                <FormItem><FormLabel>Nombre Completo</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel>Nombre Completo</FormLabel><FormControl><Input {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>
               )}/>
             <FormField control={form.control} name="email" render={({ field }) => (
-                <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>
               )}/>
             <FormField control={form.control} name="address" render={({ field }) => (
-                <FormItem><FormLabel>Dirección</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel>Dirección</FormLabel><FormControl><Input {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>
               )}/>
             <div className="grid grid-cols-2 gap-4">
               <FormField control={form.control} name="city" render={({ field }) => (
-                  <FormItem><FormLabel>Ciudad</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                  <FormItem><FormLabel>Ciudad</FormLabel><FormControl><Input {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>
                 )}/>
               <FormField control={form.control} name="postalCode" render={({ field }) => (
-                  <FormItem><FormLabel>Código Postal</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                  <FormItem><FormLabel>Código Postal</FormLabel><FormControl><Input {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>
                 )}/>
             </div>
             
@@ -99,16 +128,16 @@ export default function CheckoutPage() {
                     <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-col space-y-2">
                         {/* Mercado Pago and other payment methods here */}
                         <FormItem className="flex items-center space-x-3 space-y-0 p-4 border rounded-md has-[:checked]:border-primary">
-                            <FormControl><RadioGroupItem value="mercado-pago" /></FormControl>
+                            <FormControl><RadioGroupItem value="mercado-pago" disabled={isLoading} /></FormControl>
                             <FormLabel className="font-normal w-full">Mercado Pago</FormLabel>
                         </FormItem>
-                        <FormItem className="flex items-center space-x-3 space-y-0 p-4 border rounded-md has-[:checked]:border-primary">
-                            <FormControl><RadioGroupItem value="pago-facil" /></FormControl>
-                            <FormLabel className="font-normal w-full">Pago Fácil</FormLabel>
+                         <FormItem className="flex items-center space-x-3 space-y-0 p-4 border rounded-md has-[:checked]:border-primary opacity-50">
+                            <FormControl><RadioGroupItem value="pago-facil" disabled /></FormControl>
+                            <FormLabel className="font-normal w-full">Pago Fácil (No disponible)</FormLabel>
                         </FormItem>
-                        <FormItem className="flex items-center space-x-3 space-y-0 p-4 border rounded-md has-[:checked]:border-primary">
-                            <FormControl><RadioGroupItem value="rapipago" /></FormControl>
-                            <FormLabel className="font-normal w-full">Rapipago</FormLabel>
+                         <FormItem className="flex items-center space-x-3 space-y-0 p-4 border rounded-md has-[:checked]:border-primary opacity-50">
+                            <FormControl><RadioGroupItem value="rapipago" disabled /></FormControl>
+                            <FormLabel className="font-normal w-full">Rapipago (No disponible)</FormLabel>
                         </FormItem>
                     </RadioGroup>
                   </FormControl>
@@ -117,7 +146,10 @@ export default function CheckoutPage() {
               )}
             />
 
-            <Button type="submit" size="lg" className="w-full">Pagar ${totalPrice.toLocaleString('es-AR')}</Button>
+            <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Pagar con Mercado Pago ${totalPrice.toLocaleString('es-AR')}
+            </Button>
           </form>
         </Form>
       </div>
