@@ -10,6 +10,7 @@ import {
     CarouselNext,
     CarouselPrevious,
   } from "@/components/ui/carousel";
+import { Separator } from '@/components/ui/separator';
 
 export default function Home() {
   const products = getProducts();
@@ -18,7 +19,7 @@ export default function Home() {
   return (
     <div className="space-y-16">
       {/* Hero Section */}
-      <section className="text-center">
+      <section className="text-center py-12">
         <h1 className="text-5xl font-headline font-bold text-foreground sm:text-6xl lg:text-7xl">
           Elegancia Atemporal
         </h1>
@@ -30,8 +31,10 @@ export default function Home() {
         </Button>
       </section>
 
+      <Separator />
+
       {/* Featured Products Section */}
-      <section id="featured" className="space-y-8 pt-8">
+      <section id="featured" className="space-y-8 py-12 bg-secondary/50 rounded-lg">
         <div className="text-center">
             <h2 className="text-4xl font-headline font-bold">Productos Destacados</h2>
             <p className="mt-2 text-muted-foreground">Nuestra selección especial, elegida para ti.</p>
@@ -57,8 +60,10 @@ export default function Home() {
         </Carousel>
       </section>
 
+      <Separator />
+
       {/* About Us Section */}
-      <section className="grid md:grid-cols-2 gap-12 items-center bg-secondary p-8 md:p-12 rounded-lg">
+      <section className="grid md:grid-cols-2 gap-12 items-center p-8 md:p-12 rounded-lg">
         <div>
             <h2 className="text-4xl font-headline font-bold">Sobre Nosotros</h2>
             <p className="mt-4 text-muted-foreground leading-relaxed">

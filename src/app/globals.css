@@ -59,5 +59,8 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+    background-image: radial-gradient(hsl(var(--muted)) 1px, transparent 1px);
+    background-size: 1rem 1rem;
+    background-attachment: fixed;
   }
 }
