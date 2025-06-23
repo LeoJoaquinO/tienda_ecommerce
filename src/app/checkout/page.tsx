@@ -52,38 +52,29 @@ export default function CheckoutPage() {
     },
   });
 
+  // NOTE: This is a simulated checkout process for a static site.
+  // A real payment integration with Mercado Pago requires a server-side component
+  // to securely handle API keys. This functionality can be enabled if the
+  // application is deployed to a hosting provider that supports Node.js.
   async function onSubmit(values: z.infer<typeof shippingSchema>) {
     setIsLoading(true);
-    try {
-      const response = await fetch('/api/create-preference', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(cartItems),
-      });
 
-      if (!response.ok) {
-        throw new Error('Failed to create payment preference');
-      }
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    console.log("Form Submitted (Simulated):", values);
+    
+    toast({
+      title: "¡Gracias por tu compra!",
+      description: "Hemos recibido tu pedido. En breve recibirás una confirmación.",
+    });
 
-      const data = await response.json();
-      
-      // Clear cart before redirecting
-      clearCart();
-
-      // Redirect to Mercado Pago
-      router.push(data.init_point);
-
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: "Error",
-        description: "No se pudo crear la preferencia de pago. Inténtalo de nuevo.",
-        variant: "destructive",
-      });
-      setIsLoading(false);
-    }
+    clearCart();
+    
+    // Redirect to home page after a short delay
+    setTimeout(() => {
+        router.push('/');
+    }, 2000);
   }
 
   if (cartItems.length === 0) {
@@ -148,7 +139,7 @@ export default function CheckoutPage() {
 
             <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Pagar con Mercado Pago ${totalPrice.toLocaleString('es-AR')}
+              Finalizar Compra por ${totalPrice.toLocaleString('es-AR')}
             </Button>
           </form>
         </Form>
