@@ -1,13 +1,11 @@
 "use client";
 
 import { useState } from 'react';
-import { useForm, type SubmitHandler } from 'react-hook-form';
 import Image from 'next/image';
 import { getProducts } from '@/lib/products';
 import type { Product } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   Table,
@@ -17,29 +15,16 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { PlusCircle, Edit, Trash2, LogIn } from 'lucide-react';
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-    DialogFooter,
-    DialogClose
-  } from "@/components/ui/dialog"
+import { PlusCircle, Edit, Trash2, LogIn, AlertTriangle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-type ProductFormInputs = Omit<Product, 'id'>;
 
 export default function AdminPage() {
-  const [products, setProducts] = useState<Product[]>(getProducts());
-  const [isEditing, setIsEditing] = useState<Product | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [products] = useState<Product[]>(getProducts());
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-
-  const { register, handleSubmit, reset, setValue } = useForm<ProductFormInputs>();
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,44 +35,6 @@ export default function AdminPage() {
     } else {
         setError('Credenciales inválidas. Inténtalo de nuevo.');
     }
-  }
-
-  const handleEditClick = (product: Product) => {
-    setIsEditing(product);
-    setValue('name', product.name);
-    setValue('description', product.description);
-    setValue('price', product.price);
-    setValue('image', product.image);
-    setValue('category', product.category);
-    setValue('stock', product.stock);
-    setIsDialogOpen(true);
-  };
-  
-  const handleDelete = (productId: string) => {
-      setProducts(prev => prev.filter(p => p.id !== productId));
-  }
-
-  const onSubmit: SubmitHandler<ProductFormInputs> = (data) => {
-    if (isEditing) {
-      setProducts(prev =>
-        prev.map(p => (p.id === isEditing.id ? { ...p, ...data } : p))
-      );
-    } else {
-      const newProduct: Product = {
-        id: (Math.random() * 10000).toString(),
-        ...data,
-      };
-      setProducts(prev => [newProduct, ...prev]);
-    }
-    reset();
-    setIsEditing(null);
-    setIsDialogOpen(false);
-  };
-  
-  const openNewProductDialog = () => {
-      reset();
-      setIsEditing(null);
-      setIsDialogOpen(true);
   }
 
   if (!isAuthenticated) {
@@ -125,33 +72,19 @@ export default function AdminPage() {
     <div className="space-y-8">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold font-headline">Gestionar Productos</h1>
-        <Button onClick={openNewProductDialog}>
+        <Button disabled>
             <PlusCircle className="mr-2 h-4 w-4" />
             Añadir Producto
         </Button>
       </div>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[625px]">
-            <DialogHeader>
-                <DialogTitle>{isEditing ? 'Editar Producto' : 'Añadir Nuevo Producto'}</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                <Input placeholder="Nombre del Producto" {...register('name', { required: true })} />
-                <Textarea placeholder="Descripción" {...register('description', { required: true })} />
-                <Input type="number" placeholder="Precio" {...register('price', { required: true, valueAsNumber: true })} />
-                <Input placeholder="URL de la Imagen" {...register('image', { required: true })} />
-                <Input placeholder="Categoría" {...register('category', { required: true })} />
-                <Input type="number" placeholder="Stock" {...register('stock', { required: true, valueAsNumber: true })} />
-                <DialogFooter>
-                    <DialogClose asChild>
-                        <Button type="button" variant="secondary">Cancelar</Button>
-                    </DialogClose>
-                    <Button type="submit">{isEditing ? 'Guardar Cambios' : 'Añadir Producto'}</Button>
-                </DialogFooter>
-            </form>
-        </DialogContent>
-      </Dialog>
+      <Alert variant="destructive">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>Modo Estático</AlertTitle>
+        <AlertDescription>
+          La gestión de productos (crear, editar, eliminar) está desactivada porque la aplicación se está ejecutando en modo estático. Para habilitar estas funciones, la aplicación necesitaría un backend o una base de datos.
+        </AlertDescription>
+      </Alert>
       
       <Card>
         <CardContent className='p-0'>
@@ -183,10 +116,10 @@ export default function AdminPage() {
                   <TableCell>{product.stock}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                        <Button variant="outline" size="icon" onClick={() => handleEditClick(product)}>
+                        <Button variant="outline" size="icon" disabled>
                             <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="destructive" size="icon" onClick={() => handleDelete(product.id)}>
+                        <Button variant="destructive" size="icon" disabled>
                             <Trash2 className="h-4 w-4" />
                         </Button>
                     </div>
