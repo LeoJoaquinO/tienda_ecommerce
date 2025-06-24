@@ -2,6 +2,10 @@
 
 This guide provides all the steps needed to get your application code from your computer into a GitHub repository and then deploy it to a production VPS (Virtual Private Server), like the one you have with Don Web.
 
+This guide is structured in two parts:
+1.  **Part 1: Getting Your Code on GitHub.** This is how you'll manage your code and its versions securely.
+2.  **Part 2: Deploying to Your Don Web VPS.** This covers setting up your server, connecting your database, and launching your live store.
+
 ---
 
 ## Part 1: Getting Your Code on GitHub
@@ -135,12 +139,32 @@ Now, let's get your code from GitHub onto the server.
     ```
 5.  Save and exit nano by pressing `Ctrl+X`, then `Y`, then `Enter`.
 
-### Step 4: Set Up the Database
+### Step 4: Set Up the Database and Live Data
 
-Run the `database.sql` script to create your `products` table. It will ask for your database password.
-```bash
-mysql -h your_mysql_host -u your_mysql_username -p your_mysql_database_name < database.sql
-```
+Your project currently uses hardcoded sample data. Now, we'll set up your real database and switch the app to use it.
+
+1.  **Create the `products` table:** Run the `database.sql` script included in the project. It will ask for your database password.
+    ```bash
+    mysql -h your_mysql_host -u your_mysql_username -p your_mysql_database_name < database.sql
+    ```
+    This creates the table structure.
+
+2.  **Switch to Live Data Mode:** You need to edit one file to tell the app to use the database instead of the hardcoded data.
+    -   Open `src/lib/products.ts` with nano:
+        ```bash
+        nano src/lib/products.ts
+        ```
+    -   You will see commented-out sections of code labeled `--- Database Logic ---`.
+    -   **DELETE** or **COMMENT OUT** the hardcoded logic.
+    -   **UNCOMMENT** all the database logic sections.
+    -   The file should now be using `pool.query` to talk to your database.
+    -   Save and exit nano (`Ctrl+X`, `Y`, `Enter`).
+
+3.  **Delete Hardcoded Items and Create Real Ones:**
+    -   After switching to live data, your products table will be empty.
+    -   You can now launch the application (see Step 5) and go to the `/admin` page.
+    -   From the admin dashboard, you can now add, edit, and delete your real products. Every change will be saved directly to your MySQL database.
+
 
 ### Step 5: Build and Launch Your Application
 

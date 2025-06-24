@@ -12,20 +12,9 @@ import {
     CarouselPrevious,
   } from "@/components/ui/carousel";
 import { Separator } from '@/components/ui/separator';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
-
 
 export default async function Home() {
-    let products: Product[] = [];
-    let dbError: string | null = null;
-
-    try {
-        products = await getProducts();
-    } catch (error: any) {
-        dbError = error.message;
-    }
-
+    const products: Product[] = await getProducts();
     const featuredProducts = products.filter(p => p.featured);
 
     return (
@@ -42,17 +31,6 @@ export default async function Home() {
                     <Link href="/tienda">Ver Colección</Link>
                 </Button>
             </section>
-
-            {dbError && (
-                <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Error de Conexión con la Base de Datos</AlertTitle>
-                    <AlertDescription>
-                        <p>No se pudieron cargar los productos destacados. Por favor, asegúrate de que el servidor de la base de datos esté funcionando.</p>
-                        <p className="mt-2 text-xs font-mono"><strong>Mensaje técnico:</strong> {dbError}</p>
-                    </AlertDescription>
-                </Alert>
-            )}
 
             <Separator />
 
@@ -84,7 +62,7 @@ export default async function Home() {
                     </Carousel>
                 ) : (
                     <div className="text-center text-muted-foreground">
-                        {!dbError && <p>No hay productos destacados para mostrar.</p>}
+                        <p>No hay productos destacados para mostrar.</p>
                     </div>
                 )}
             </section>

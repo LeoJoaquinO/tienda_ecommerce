@@ -1,31 +1,44 @@
--- This script initializes the database for the Joya store.
--- It creates the 'products' table and inserts some sample data.
+-- This script sets up the `products` table for the Joya store.
+-- You can run this script on your MySQL server to create the necessary table structure.
+-- Example command: `mysql -u your_user -p your_database < database.sql`
 
--- Drop the table if it already exists to start fresh.
-DROP TABLE IF EXISTS products;
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+START TRANSACTION;
+SET time_zone = "+00:00";
 
--- Create the 'products' table.
-CREATE TABLE products (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `name` VARCHAR(255) NOT NULL,
-  `description` TEXT,
-  `price` DECIMAL(10, 2) NOT NULL,
-  `salePrice` DECIMAL(10, 2),
-  `image` VARCHAR(255) NOT NULL,
-  `aiHint` VARCHAR(100),
-  `category` VARCHAR(100),
-  `stock` INT NOT NULL DEFAULT 0,
-  `featured` BOOLEAN DEFAULT FALSE
-);
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8mb4 */;
 
--- Insert sample data into the 'products' table.
-INSERT INTO `products` (`name`, `description`, `price`, `salePrice`, `image`, `aiHint`, `category`, `stock`, `featured`) VALUES
-('Vela Aromática de Soja', 'Vela artesanal de cera de soja con fragancia a lavanda y romero. Perfecta para crear un ambiente relajante.', 3500.00, 2990.00, 'https://placehold.co/600x600', 'scented candle', 'Hogar', 25, TRUE),
-('Taza de Cerámica Hecha a Mano', 'Taza de cerámica con un diseño único pintado a mano. Ideal para tu café de la mañana.', 4200.00, NULL, 'https://placehold.co/600x600', 'ceramic mug', 'Cocina', 15, TRUE),
-('Cuaderno de Tapa Dura "Ideas"', 'Un cuaderno elegante con 100 hojas punteadas para que anotes todas tus ideas. Tapa dura y cierre elástico.', 2800.00, NULL, 'https://placehold.co/600x600', 'hardcover notebook', 'Papelería', 40, TRUE),
-('Maceta de Terracota Minimalista', 'Dale un toque de naturaleza a tu espacio con esta maceta de diseño simple y elegante.', 3900.00, 3500.00, 'https://placehold.co/600x600', 'plant pot', 'Hogar', 20, FALSE),
-('Bolsa de Tela "Eco-Friendly"', 'Bolsa de tela reutilizable con un diseño moderno. Ayuda al planeta con estilo.', 2500.00, NULL, 'https://placehold.co/600x600', 'tote bag', 'Accesorios', 50, FALSE),
-('Set de Posavasos de Madera', 'Protege tus superficies con este set de 4 posavasos de madera de acacia.', 3100.00, NULL, 'https://placehold.co/600x600', 'wood coasters', 'Cocina', 18, FALSE),
-('Lámina Decorativa "Abstracto"', 'Lámina para enmarcar con una composición abstracta en tonos cálidos. Medidas: 30x40cm.', 2200.00, 1900.00, 'https://placehold.co/600x600', 'abstract art', 'Decoración', 30, FALSE),
-('Infusor de Té de Acero Inoxidable', 'Disfruta de tu té en hebras favorito con este práctico y duradero infusor de acero.', 1800.00, NULL, 'https://placehold.co/600x600', 'tea infuser', 'Cocina', 28, FALSE);
+--
+-- Table structure for table `products`
+--
 
+CREATE TABLE `products` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
+  `description` text NOT NULL,
+  `price` decimal(10,2) NOT NULL,
+  `salePrice` decimal(10,2) DEFAULT NULL,
+  `image` varchar(2048) NOT NULL,
+  `category` varchar(100) NOT NULL,
+  `stock` int(11) NOT NULL DEFAULT '0',
+  `featured` tinyint(1) NOT NULL DEFAULT '0',
+  `aiHint` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- You can optionally add some initial products here if you want.
+-- For example:
+--
+-- INSERT INTO `products` (`name`, `description`, `price`, `salePrice`, `image`, `category`, `stock`, `featured`, `aiHint`) VALUES
+-- ('Anillo de Bodas Clásico', 'Un elegante y atemporal anillo de bodas de oro, perfecto para simbolizar vuestro amor eterno.', 750.00, 699.00, 'https://cdn.pixabay.com/photo/2018/08/16/19/56/wedding-rings-3611277_640.jpg', 'Anillos', 15, 1, 'gold rings'),
+-- ('Alianza de Compromiso', 'Una hermosa alianza de oro blanco para un compromiso inolvidable.', 980.00, NULL, 'https://cdn.pixabay.com/photo/2018/08/16/19/56/wedding-rings-3611277_640.jpg', 'Anillos', 10, 1, 'gold rings');
+
+COMMIT;
+
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
