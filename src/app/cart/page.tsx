@@ -22,7 +22,7 @@ export default function CartPage() {
                 <h2 className="text-2xl font-semibold">Tu carrito está vacío</h2>
                 <p className="text-muted-foreground">Parece que todavía no has añadido nada.</p>
                 <Button asChild className="mt-4">
-                    <Link href="/">Empezar a comprar</Link>
+                    <Link href="/tienda">Empezar a comprar</Link>
                 </Button>
             </CardContent>
         </Card>
@@ -42,7 +42,7 @@ export default function CartPage() {
                 </div>
                 <div className="flex-1 ml-4">
                   <Link href={`/products/${product.id}`} className="font-semibold hover:text-primary">{product.name}</Link>
-                  <p className="text-sm text-muted-foreground">${product.price.toLocaleString('es-AR')}</p>
+                  <p className="text-sm text-muted-foreground">${(product.salePrice ?? product.price).toLocaleString('es-AR')}</p>
                 </div>
                 <div className="flex items-center gap-4">
                   <Input

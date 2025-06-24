@@ -39,7 +39,6 @@ export default function CheckoutPage() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
-
   const form = useForm<z.infer<typeof shippingSchema>>({
     resolver: zodResolver(shippingSchema),
     defaultValues: {
@@ -52,29 +51,41 @@ export default function CheckoutPage() {
     },
   });
 
-  // NOTE: This is a simulated checkout process for a static site.
-  // A real payment integration with Mercado Pago requires a server-side component
-  // to securely handle API keys. This functionality can be enabled if the
-  // application is deployed to a hosting provider that supports Node.js.
   async function onSubmit(values: z.infer<typeof shippingSchema>) {
     setIsLoading(true);
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    console.log("Form Submitted (Simulated):", values);
-    
-    toast({
-      title: "¡Gracias por tu compra!",
-      description: "Hemos recibido tu pedido. En breve recibirás una confirmación.",
-    });
+    try {
+      const response = await fetch('/api/create-preference', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(cartItems),
+      });
 
-    clearCart();
-    
-    // Redirect to home page after a short delay
-    setTimeout(() => {
-        router.push('/');
-    }, 2000);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create payment preference.');
+      }
+
+      // Redirect to Mercado Pago checkout
+      if (data.init_point) {
+        clearCart();
+        router.push(data.init_point);
+      } else {
+        throw new Error('No init_point received from Mercado Pago.');
+      }
+
+    } catch (error) {
+      console.error('Checkout error:', error);
+      toast({
+        title: "Error en el Pago",
+        description: (error as Error).message || "No se pudo iniciar el proceso de pago. Inténtalo de nuevo.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+    }
   }
 
   if (cartItems.length === 0) {
@@ -139,7 +150,7 @@ export default function CheckoutPage() {
 
             <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Finalizar Compra por ${totalPrice.toLocaleString('es-AR')}
+              Pagar con Mercado Pago ${totalPrice.toLocaleString('es-AR')}
             </Button>
           </form>
         </Form>
@@ -160,7 +171,7 @@ export default function CheckoutPage() {
                                <p className="text-sm text-muted-foreground">Cantidad: {item.quantity}</p>
                             </div>
                         </div>
-                        <p className="font-medium">${(item.product.price * item.quantity).toLocaleString('es-AR')}</p>
+                        <p className="font-medium">${((item.product.salePrice ?? item.product.price) * item.quantity).toLocaleString('es-AR')}</p>
                     </div>
                 ))}
                 <div className="border-t pt-4 mt-4 space-y-2">

@@ -12,8 +12,8 @@ import {
   } from "@/components/ui/carousel";
 import { Separator } from '@/components/ui/separator';
 
-export default function Home() {
-  const products = getProducts();
+export default async function Home() {
+  const products = await getProducts();
   const featuredProducts = products.filter(p => p.featured);
 
   return (
@@ -27,7 +27,7 @@ export default function Home() {
           Descubre piezas únicas que cuentan una historia. Joyería artesanal para el alma moderna.
         </p>
         <Button asChild size="lg" className="mt-8">
-            <Link href="#featured">Ver Colección</Link>
+            <Link href="/tienda">Ver Colección</Link>
         </Button>
       </section>
 

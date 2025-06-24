@@ -3,9 +3,9 @@ import { getProducts } from '@/lib/products';
 import { Separator } from '@/components/ui/separator';
 import { Percent } from 'lucide-react';
 
-export default function TiendaPage() {
-  const products = getProducts();
-  const offerProducts = products.filter(p => p.salePrice);
+export default async function TiendaPage() {
+  const products = await getProducts();
+  const offerProducts = products.filter(p => p.salePrice && p.salePrice > 0);
 
   return (
     <div className="space-y-12">

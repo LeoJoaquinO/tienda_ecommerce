@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { getProducts } from '@/lib/products';
 import type { Product } from '@/lib/types';
@@ -15,12 +15,231 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { PlusCircle, Edit, Trash2, LogIn, AlertTriangle } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { PlusCircle, Edit, Trash2, LogIn, Loader2 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { addProductAction, updateProductAction, deleteProductAction } from '@/app/actions';
+import { useToast } from '@/hooks/use-toast';
+
+function ProductForm({ product, onFinished }: { product?: Product, onFinished: () => void }) {
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const { toast } = useToast();
+
+    const action = product ? updateProductAction.bind(null, product.id) : addProductAction;
+
+    async function handleAction(formData: FormData) {
+        setIsSubmitting(true);
+        const result = await action(formData);
+        if (result?.error) {
+            toast({
+                title: 'Error',
+                description: result.error,
+                variant: 'destructive',
+            });
+        } else {
+            toast({
+                title: 'Éxito',
+                description: result.message,
+            });
+            onFinished();
+        }
+        setIsSubmitting(false);
+    }
+    
+    return (
+        <form action={handleAction} className="space-y-4">
+            <div>
+                <Label htmlFor="name">Nombre</Label>
+                <Input id="name" name="name" defaultValue={product?.name} required />
+            </div>
+            <div>
+                <Label htmlFor="description">Descripción</Label>
+                <Textarea id="description" name="description" defaultValue={product?.description} required />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <Label htmlFor="price">Precio</Label>
+                    <Input id="price" name="price" type="number" step="0.01" defaultValue={product?.price} required />
+                </div>
+                <div>
+                    <Label htmlFor="salePrice">Precio de Oferta</Label>
+                    <Input id="salePrice" name="salePrice" type="number" step="0.01" defaultValue={product?.salePrice ?? ''} />
+                </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <Label htmlFor="stock">Stock</Label>
+                    <Input id="stock" name="stock" type="number" defaultValue={product?.stock} required />
+                </div>
+                <div>
+                    <Label htmlFor="category">Categoría</Label>
+                    <Input id="category" name="category" defaultValue={product?.category} required />
+                </div>
+            </div>
+             <div>
+                <Label htmlFor="image">URL de la Imagen</Label>
+                <Input id="image" name="image" defaultValue={product?.image} required />
+            </div>
+            <div>
+                <Label htmlFor="aiHint">AI Hint</Label>
+                <Input id="aiHint" name="aiHint" defaultValue={product?.aiHint} />
+            </div>
+            <div className="flex items-center space-x-2">
+                <Checkbox id="featured" name="featured" defaultChecked={product?.featured} />
+                <Label htmlFor="featured">Producto Destacado</Label>
+            </div>
+            <DialogFooter>
+                <DialogClose asChild><Button variant="ghost">Cancelar</Button></DialogClose>
+                <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Guardar Cambios
+                </Button>
+            </DialogFooter>
+        </form>
+    );
+}
+
+function AdminDashboard() {
+    const [products, setProducts] = useState<Product[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isFormOpen, setIsFormOpen] = useState(false);
+    const { toast } = useToast();
+
+    const fetchAndSetProducts = async () => {
+        setIsLoading(true);
+        const fetchedProducts = await getProducts();
+        setProducts(fetchedProducts);
+        setIsLoading(false);
+    }
+
+    useEffect(() => {
+        fetchAndSetProducts();
+    }, []);
+
+    const onFormFinished = () => {
+        setIsFormOpen(false);
+        fetchAndSetProducts(); // Refetch products after add/edit
+    }
+    
+    const handleDelete = async (id: number) => {
+      if (confirm('¿Estás seguro de que quieres eliminar este producto?')) {
+        const result = await deleteProductAction(id);
+         if (result?.error) {
+            toast({
+                title: 'Error',
+                description: result.error,
+                variant: 'destructive',
+            });
+        } else {
+            toast({
+                title: 'Éxito',
+                description: result.message,
+            });
+            fetchAndSetProducts(); // Refetch products after delete
+        }
+      }
+    }
+
+    return (
+    <div className="space-y-8">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold font-headline">Gestionar Productos</h1>
+         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+            <DialogTrigger asChild>
+                <Button>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Añadir Producto
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[625px]">
+                <DialogHeader>
+                    <DialogTitle>Añadir Nuevo Producto</DialogTitle>
+                </DialogHeader>
+                <ProductForm onFinished={onFormFinished} />
+            </DialogContent>
+        </Dialog>
+      </div>
+
+      <Card>
+        <CardContent className='p-0'>
+            {isLoading ? (
+                 <div className="flex justify-center items-center h-64">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                </div>
+            ) : (
+                <Table>
+                    <TableHeader>
+                    <TableRow>
+                        <TableHead>Imagen</TableHead>
+                        <TableHead>Nombre</TableHead>
+                        <TableHead>Precio</TableHead>
+                        <TableHead>Stock</TableHead>
+                        <TableHead>Acciones</TableHead>
+                    </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                    {products.map(product => (
+                        <TableRow key={product.id}>
+                        <TableCell>
+                            <Image
+                            src={product.image}
+                            alt={product.name}
+                            width={40}
+                            height={40}
+                            className="rounded-md"
+                            data-ai-hint={product.aiHint}
+                            />
+                        </TableCell>
+                        <TableCell className="font-medium">{product.name}</TableCell>
+                        <TableCell>${(product.salePrice ?? product.price).toLocaleString('es-AR')}</TableCell>
+                        <TableCell>{product.stock}</TableCell>
+                        <TableCell>
+                            <div className="flex gap-2">
+                                <Dialog>
+                                    <DialogTrigger asChild>
+                                        <Button variant="outline" size="icon">
+                                            <Edit className="h-4 w-4" />
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="sm:max-w-[625px]">
+                                        <DialogHeader>
+                                            <DialogTitle>Editar Producto</DialogTitle>
+                                        </DialogHeader>
+                                        <ProductForm product={product} onFinished={() => {
+                                           const closeButton = document.querySelector('[data-radix-dialog-close]');
+                                           if (closeButton instanceof HTMLElement) closeButton.click();
+                                           fetchAndSetProducts();
+                                        }} />
+                                    </DialogContent>
+                                </Dialog>
+                                <Button variant="destructive" size="icon" onClick={() => handleDelete(product.id)}>
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        </TableCell>
+                        </TableRow>
+                    ))}
+                    </TableBody>
+                </Table>
+            )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 
 
 export default function AdminPage() {
-  const [products] = useState<Product[]>(getProducts());
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -68,68 +287,5 @@ export default function AdminPage() {
     )
   }
 
-  return (
-    <div className="space-y-8">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold font-headline">Gestionar Productos</h1>
-        <Button disabled>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Añadir Producto
-        </Button>
-      </div>
-
-      <Alert variant="destructive">
-        <AlertTriangle className="h-4 w-4" />
-        <AlertTitle>Base de Datos No Conectada</AlertTitle>
-        <AlertDescription>
-          La gestión de productos (crear, editar, eliminar) está desactivada. Para habilitar estas funciones, la aplicación necesita ser conectada a una base de datos.
-        </AlertDescription>
-      </Alert>
-      
-      <Card>
-        <CardContent className='p-0'>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Imagen</TableHead>
-                <TableHead>Nombre</TableHead>
-                <TableHead>Precio</TableHead>
-                <TableHead>Stock</TableHead>
-                <TableHead>Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {products.map(product => (
-                <TableRow key={product.id}>
-                  <TableCell>
-                    <Image
-                      src={product.image}
-                      alt={product.name}
-                      width={40}
-                      height={40}
-                      className="rounded-md"
-                      data-ai-hint={product.aiHint}
-                    />
-                  </TableCell>
-                  <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell>${product.price.toLocaleString('es-AR')}</TableCell>
-                  <TableCell>{product.stock}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                        <Button variant="outline" size="icon" disabled>
-                            <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="destructive" size="icon" disabled>
-                            <Trash2 className="h-4 w-4" />
-                        </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </div>
-  );
+  return <AdminDashboard />;
 }

@@ -1,20 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { MercadoPagoConfig, Preference } from 'mercadopago';
+import type { CartItem } from '@/lib/types';
+import type { PreferenceItem } from 'mercadopago/dist/clients/preference/commonTypes';
 
-// This API route is disabled because the application is configured for static export.
-// A secure payment integration requires a server-side environment (like a Node.js server)
-// to protect sensitive API keys.
-//
-// To enable this functionality, you would need to:
-// 1. Switch to a hosting provider that supports Node.js.
-// 2. Remove the `output: 'export'` option from `next.config.ts`.
-// 3. Implement the server-side logic to create a payment preference
-//    using the Mercado Pago SDK with a secure access token.
+const client = new MercadoPagoConfig({ 
+    accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN!,
+});
 
 export async function POST(req: NextRequest) {
-  return NextResponse.json(
-    { 
-      error: 'This functionality is disabled in static export mode. A server is required for secure payment processing.' 
-    }, 
-    { status: 501 } // 501 Not Implemented
-  );
+  try {
+    const cartItems: CartItem[] = await req.json();
+
+    if (!cartItems || cartItems.length === 0) {
+      return NextResponse.json({ error: 'El carrito está vacío.' }, { status: 400 });
+    }
+
+    const preferenceItems: PreferenceItem[] = cartItems.map(item => ({
+      id: String(item.product.id),
+      title: item.product.name,
+      quantity: item.quantity,
+      unit_price: item.product.salePrice ?? item.product.price,
+      currency_id: 'ARS',
+      picture_url: item.product.image,
+      description: item.product.description,
+    }));
+
+    const preference = new Preference(client);
+
+    const result = await preference.create({
+      body: {
+        items: preferenceItems,
+        back_urls: {
+          success: `${req.nextUrl.origin}/`,
+          failure: `${req.nextUrl.origin}/cart`,
+          pending: `${req.nextUrl.origin}/cart`,
+        },
+        auto_return: 'approved',
+      },
+    });
+
+    return NextResponse.json({ id: result.id, init_point: result.init_point });
+
+  } catch (error) {
+    console.error('Error creating Mercado Pago preference:', error);
+    return NextResponse.json({ error: 'No se pudo crear la preferencia de pago.' }, { status: 500 });
+  }
 }
