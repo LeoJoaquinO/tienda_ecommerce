@@ -18,13 +18,22 @@ function rowToProduct(row: RowDataPacket): Product {
     };
 }
 
+function handleDbError(error: any, context: string): never {
+    if (error.code === 'ECONNREFUSED') {
+        const friendlyError = 'Could not connect to the database. Please ensure the database server is running and the connection details in your .env.local file are correct.';
+        console.error(`Database connection refused during ${context}:`, friendlyError);
+        throw new Error(friendlyError);
+    }
+    console.error(`Failed to ${context}:`, error);
+    throw new Error(`A database error occurred during ${context}.`);
+}
+
 export async function getProducts(): Promise<Product[]> {
   try {
     const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM products ORDER BY id DESC');
     return rows.map(rowToProduct);
   } catch (error) {
-    console.error('Failed to fetch products:', error);
-    return [];
+    handleDbError(error, 'fetching products');
   }
 }
 
@@ -36,12 +45,11 @@ export async function getProductById(id: number): Promise<Product | undefined> {
         }
         return undefined;
     } catch (error) {
-        console.error(`Failed to fetch product with id ${id}:`, error);
-        return undefined;
+        handleDbError(error, `fetching product with id ${id}`);
     }
 }
 
-export async function createProduct(product: Omit<Product, 'id'>): Promise<Product | null> {
+export async function createProduct(product: Omit<Product, 'id'>): Promise<Product> {
     const { name, description, price, salePrice, image, category, stock, featured, aiHint } = product;
     try {
         const [result] = await pool.query<any>(
@@ -49,33 +57,40 @@ export async function createProduct(product: Omit<Product, 'id'>): Promise<Produ
             [name, description, price, salePrice || null, image, category, stock, featured || false, aiHint || null]
         );
         const insertedId = result.insertId;
-        return await getProductById(insertedId);
+        const newProduct = await getProductById(insertedId);
+        if (!newProduct) {
+            throw new Error('Failed to retrieve product after creation.');
+        }
+        return newProduct;
     } catch (error) {
-        console.error('Failed to create product:', error);
-        return null;
+        handleDbError(error, 'creating a product');
     }
 }
 
-export async function updateProduct(id: number, product: Partial<Omit<Product, 'id'>>): Promise<Product | null> {
+export async function updateProduct(id: number, product: Partial<Omit<Product, 'id'>>): Promise<Product> {
     const { name, description, price, salePrice, image, category, stock, featured, aiHint } = product;
     try {
         await pool.query(
             'UPDATE products SET name = ?, description = ?, price = ?, salePrice = ?, image = ?, category = ?, stock = ?, featured = ?, aiHint = ? WHERE id = ?',
             [name, description, price, salePrice || null, image, category, stock, featured || false, aiHint || null, id]
         );
-        return await getProductById(id);
+        const updatedProduct = await getProductById(id);
+        if (!updatedProduct) {
+            throw new Error('Failed to retrieve product after update.');
+        }
+        return updatedProduct;
     } catch (error) {
-        console.error(`Failed to update product with id ${id}:`, error);
-        return null;
+        handleDbError(error, `updating product with id ${id}`);
     }
 }
 
-export async function deleteProduct(id: number): Promise<boolean> {
+export async function deleteProduct(id: number): Promise<void> {
     try {
         const [result] = await pool.query<any>('DELETE FROM products WHERE id = ?', [id]);
-        return result.affectedRows > 0;
+        if (result.affectedRows === 0) {
+            console.warn(`Attempted to delete product with id ${id}, but it was not found.`);
+        }
     } catch (error) {
-        console.error(`Failed to delete product with id ${id}:`, error);
-        return false;
+        handleDbError(error, `deleting product with id ${id}`);
     }
 }

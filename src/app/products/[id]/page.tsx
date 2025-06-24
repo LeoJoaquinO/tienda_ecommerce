@@ -2,6 +2,9 @@ import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import { getProductById } from '@/lib/products';
 import { AddToCartButton } from '@/components/AddToCartButton';
+import type { Product } from '@/lib/types';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 export default async function ProductPage({ params }: { params: { id: string } }) {
   const productId = parseInt(params.id, 10);
@@ -9,7 +12,29 @@ export default async function ProductPage({ params }: { params: { id: string } }
     notFound();
   }
   
-  const product = await getProductById(productId);
+  let product: Product | undefined;
+  let dbError: string | null = null;
+
+  try {
+    product = await getProductById(productId);
+  } catch (error: any) {
+    dbError = error.message;
+  }
+
+  if (dbError) {
+    return (
+        <div className="container mx-auto my-8">
+            <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Error de Conexión con la Base de Datos</AlertTitle>
+                <AlertDescription>
+                    <p>No se pudo cargar el producto. Por favor, asegúrate de que el servidor de la base de datos esté funcionando.</p>
+                    <p className="mt-2 text-xs font-mono"><strong>Mensaje técnico:</strong> {dbError}</p>
+                </AlertDescription>
+            </Alert>
+        </div>
+    )
+  }
 
   if (!product) {
     notFound();

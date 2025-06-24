@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { createProduct, deleteProduct, updateProduct } from "@/lib/products";
-import type { Product } from "@/lib/types";
 import { z } from "zod";
 
 const productSchema = z.object({
@@ -39,9 +38,9 @@ export async function addProductAction(formData: FormData) {
         await createProduct(validatedFields.data);
         revalidatePath("/admin");
         return { message: "Producto añadido exitosamente." };
-    } catch (e) {
+    } catch (e: any) {
         console.error(e);
-        return { error: "No se pudo añadir el producto." };
+        return { error: e.message || "No se pudo añadir el producto." };
     }
 }
 
@@ -67,9 +66,9 @@ export async function updateProductAction(id: number, formData: FormData) {
         revalidatePath("/admin");
         revalidatePath(`/products/${id}`);
         return { message: "Producto actualizado exitosamente." };
-    } catch (e) {
+    } catch (e: any) {
         console.error(e);
-        return { error: "No se pudo actualizar el producto." };
+        return { error: e.message || "No se pudo actualizar el producto." };
     }
 }
 
@@ -79,8 +78,8 @@ export async function deleteProductAction(id: number) {
         await deleteProduct(id);
         revalidatePath('/admin');
         return { message: 'Producto eliminado exitosamente.' }
-    } catch (e) {
+    } catch (e: any) {
         console.error(e);
-        return { error: 'No se pudo eliminar el producto.' }
+        return { error: e.message || 'No se pudo eliminar el producto.' }
     }
 }
