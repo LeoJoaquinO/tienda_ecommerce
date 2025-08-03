@@ -8,7 +8,9 @@ const productSchema = z.object({
     name: z.string().min(1, "El nombre es requerido."),
     description: z.string().min(1, "La descripción es requerida."),
     price: z.coerce.number().positive("El precio debe ser un número positivo."),
-    salePrice: z.coerce.number().optional().nullable(),
+    discountPercentage: z.coerce.number().min(0).max(100).optional().nullable(),
+    offerStartDate: z.coerce.date().optional().nullable(),
+    offerEndDate: z.coerce.date().optional().nullable(),
     stock: z.coerce.number().int().min(0, "El stock no puede ser negativo."),
     category: z.string().min(1, "La categoría es requerida."),
     image: z.string().url("La URL de la imagen no es válida."),
@@ -21,7 +23,9 @@ export async function addProductAction(formData: FormData) {
     const validatedFields = productSchema.safeParse({
       ...rawData,
       price: parseFloat(rawData.price as string),
-      salePrice: rawData.salePrice ? parseFloat(rawData.salePrice as string) : null,
+      discountPercentage: rawData.discountPercentage ? parseFloat(rawData.discountPercentage as string) : null,
+      offerStartDate: rawData.offerStartDate ? new Date(rawData.offerStartDate as string) : null,
+      offerEndDate: rawData.offerEndDate ? new Date(rawData.offerEndDate as string) : null,
       stock: parseInt(rawData.stock as string, 10),
       featured: rawData.featured === 'on',
     });
@@ -49,12 +53,15 @@ export async function updateProductAction(id: number, formData: FormData) {
     const validatedFields = productSchema.safeParse({
         ...rawData,
         price: parseFloat(rawData.price as string),
-        salePrice: rawData.salePrice ? parseFloat(rawData.salePrice as string) : null,
+        discountPercentage: rawData.discountPercentage ? parseFloat(rawData.discountPercentage as string) : null,
+        offerStartDate: rawData.offerStartDate ? new Date(rawData.offerStartDate as string) : null,
+        offerEndDate: rawData.offerEndDate ? new Date(rawData.offerEndDate as string) : null,
         stock: parseInt(rawData.stock as string, 10),
         featured: rawData.featured === 'on',
     });
 
     if (!validatedFields.success) {
+        console.error("Validation failed", validatedFields.error.flatten().fieldErrors);
         return {
             error: "Datos inválidos. Por favor, revisa los campos.",
             fieldErrors: validatedFields.error.flatten().fieldErrors,

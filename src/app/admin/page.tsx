@@ -15,7 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { PlusCircle, Edit, Trash2, LogIn, Loader2, Package, Tag, Wallet } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, LogIn, LogOut, Loader2, Package, Tag, Wallet, Calendar as CalendarIcon } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -28,17 +28,28 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import { addProductAction, updateProductAction, deleteProductAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 
 function ProductForm({ product, onFinished }: { product?: Product, onFinished: () => void }) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { toast } = useToast();
+    const [startDate, setStartDate] = useState<Date | undefined>(product?.offerStartDate ? new Date(product.offerStartDate) : undefined);
+    const [endDate, setEndDate] = useState<Date | undefined>(product?.offerEndDate ? new Date(product.offerEndDate) : undefined);
+
 
     const action = product ? updateProductAction.bind(null, product.id) : addProductAction;
 
     async function handleAction(formData: FormData) {
         setIsSubmitting(true);
+        // Append dates to formData if they exist
+        if (startDate) formData.append('offerStartDate', startDate.toISOString());
+        if (endDate) formData.append('offerEndDate', endDate.toISOString());
+
         const result = await action(formData);
         if (result?.error) {
             toast({
@@ -71,9 +82,51 @@ function ProductForm({ product, onFinished }: { product?: Product, onFinished: (
                     <Label htmlFor="price">Precio</Label>
                     <Input id="price" name="price" type="number" step="0.01" defaultValue={product?.price} required />
                 </div>
-                <div>
-                    <Label htmlFor="salePrice">Precio de Oferta</Label>
-                    <Input id="salePrice" name="salePrice" type="number" step="0.01" defaultValue={product?.salePrice ?? ''} />
+                 <div>
+                    <Label htmlFor="discountPercentage">Descuento (%)</Label>
+                    <Input id="discountPercentage" name="discountPercentage" type="number" step="1" min="0" max="100" defaultValue={product?.discountPercentage ?? ''} placeholder="Ej: 15" />
+                </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+                 <div>
+                    <Label>Inicio de Oferta</Label>
+                     <Popover>
+                        <PopoverTrigger asChild>
+                        <Button
+                            variant={"outline"}
+                            className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !startDate && "text-muted-foreground"
+                            )}
+                        >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {startDate ? format(startDate, "PPP") : <span>Elegir fecha</span>}
+                        </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                            <Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus />
+                        </PopoverContent>
+                    </Popover>
+                </div>
+                 <div>
+                    <Label>Fin de Oferta</Label>
+                     <Popover>
+                        <PopoverTrigger asChild>
+                        <Button
+                            variant={"outline"}
+                            className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !endDate && "text-muted-foreground"
+                            )}
+                        >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {endDate ? format(endDate, "PPP") : <span>Elegir fecha</span>}
+                        </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                            <Calendar mode="single" selected={endDate} onSelect={setEndDate} initialFocus />
+                        </PopoverContent>
+                    </Popover>
                 </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -109,7 +162,7 @@ function ProductForm({ product, onFinished }: { product?: Product, onFinished: (
     );
 }
 
-function AdminDashboard() {
+function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     const [products, setProducts] = useState<Product[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -156,9 +209,15 @@ function AdminDashboard() {
 
     return (
     <div className="space-y-8">
-        <div>
-            <h1 className="text-3xl font-bold font-headline">Panel de Administración</h1>
-            <p className="text-muted-foreground">Métricas y gestión de productos.</p>
+        <div className="flex justify-between items-start">
+            <div>
+                <h1 className="text-3xl font-bold font-headline">Panel de Administración</h1>
+                <p className="text-muted-foreground">Métricas y gestión de productos.</p>
+            </div>
+            <Button variant="outline" onClick={onLogout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                Cerrar Sesión
+            </Button>
         </div>
 
         {/* Metrics Section */}
@@ -190,7 +249,7 @@ function AdminDashboard() {
                 </CardHeader>
                 <CardContent>
                     <div className="text-2xl font-bold">{isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : productsOnSale}</div>
-                     <p className="text-xs text-muted-foreground">Productos con precio de descuento</p>
+                     <p className="text-xs text-muted-foreground">Productos con descuento activo</p>
                 </CardContent>
             </Card>
         </div>
@@ -262,9 +321,9 @@ function AdminDashboard() {
                                                 <DialogTitle>Editar Producto</DialogTitle>
                                             </DialogHeader>
                                             <ProductForm product={product} onFinished={() => {
-                                            const closeButton = document.querySelector('[data-radix-dialog-close]');
-                                            if (closeButton instanceof HTMLElement) closeButton.click();
-                                            fetchAndSetProducts();
+                                                // A bit of a hack to close the dialog from the child form
+                                                document.querySelector('[data-radix-dialog-close]button')?.click()
+                                                fetchAndSetProducts();
                                             }} />
                                         </DialogContent>
                                     </Dialog>
@@ -302,6 +361,13 @@ export default function AdminPage() {
     }
   }
 
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setEmail('');
+    setPassword('');
+  }
+
+
   if (!isAuthenticated) {
     return (
         <div className="flex items-center justify-center min-h-[60vh]">
@@ -333,7 +399,5 @@ export default function AdminPage() {
     )
   }
 
-  return <AdminDashboard />;
+  return <AdminDashboard onLogout={handleLogout} />;
 }
-
-    

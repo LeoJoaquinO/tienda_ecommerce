@@ -9,6 +9,9 @@ export type Product = {
   stock: number;
   aiHint?: string;
   featured?: boolean;
+  discountPercentage?: number | null;
+  offerStartDate?: Date | null;
+  offerEndDate?: Date | null;
 };
 
 export type CartItem = {

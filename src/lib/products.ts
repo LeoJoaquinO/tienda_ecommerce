@@ -2,29 +2,44 @@ import type { Product } from './types';
 import pool from './db';
 import { RowDataPacket } from 'mysql2';
 
-// --- Hardcoded Data for Initial Setup ---
-// This data is used by default so the app can run without a database connection.
-// The deployment guide explains how to switch to a live MySQL database.
+// --- Helper Functions ---
+function calculateSalePrice(product: Product): Product {
+    const now = new Date();
+    const isOfferValid = 
+        product.discountPercentage && product.discountPercentage > 0 &&
+        product.offerStartDate && product.offerEndDate &&
+        now >= new Date(product.offerStartDate) && now <= new Date(product.offerEndDate);
 
+    if (isOfferValid) {
+        const discount = product.price * (product.discountPercentage! / 100);
+        const salePrice = parseFloat((product.price - discount).toFixed(2));
+        return { ...product, salePrice };
+    }
+    // Ensure salePrice is null if the offer is not valid
+    return { ...product, salePrice: null };
+}
+
+// --- Hardcoded Data for Initial Setup ---
 const hardcodedProducts: Product[] = [
-    { id: 1, name: "Aura de Rosas", description: "Una fragancia floral y romántica con notas de rosa de Damasco, peonía y almizcle blanco.", price: 120, salePrice: 99, image: "https://farma365.com.ar/wp-content/uploads/2024/04/3348901486392-3.webp", category: "Floral", stock: 25, featured: true, aiHint: "pink perfume" },
-    { id: 2, name: "Noche en el Desierto", description: "Un aroma oriental especiado, con toques de incienso, oud y ámbar.", price: 150, salePrice: null, image: "https://www.lancome.cl/dw/image/v2/AATL_PRD/on/demandware.static/-/Sites-lancome-latam-hub-Library/es_CL/dwcab43319/seo_landings/fragancia/Imagen%20Cuerpo%201%20Fragancia.jpg?sw=1910&sh=1074&sm=cut&q=70", category: "Oriental", stock: 15, featured: true, aiHint: "dark perfume" },
-    { id: 3, name: "Cítrico Vibrante", description: "Una explosión de frescura con limón siciliano, bergamota y vetiver. Ideal para el día a día.", price: 95, salePrice: 80, image: "https://es.loccitane.com/dw/image/v2/BCDQ_PRD/on/demandware.static/-/Library-Sites-OCC_SharedLibrary/default/dwed515ac4/CWE%20images/collections/630x450-applyperfume.png?sw=630&sh=450", category: "Cítrico", stock: 30, featured: true, aiHint: "citrus perfume" },
-    { id: 4, name: "Madera y Cuero", description: "Un perfume masculino y sofisticado, con notas de cedro, cuero y tabaco.", price: 135, salePrice: null, image: "https://farma365.com.ar/wp-content/uploads/2024/04/3348901486392-3.webp", category: "Amaderado", stock: 18, featured: false, aiHint: "mens perfume" },
-    { id: 5, name: "Vainilla Gourmand", description: "Una fragancia dulce y acogedora que evoca postres recién horneados, con vainilla de Tahití y caramelo.", price: 110, salePrice: null, image: "https://www.lancome.cl/dw/image/v2/AATL_PRD/on/demandware.static/-/Sites-lancome-latam-hub-Library/es_CL/dwcab43319/seo_landings/fragancia/Imagen%20Cuerpo%201%20Fragancia.jpg?sw=1910&sh=1074&sm=cut&q=70", category: "Dulce", stock: 22, featured: false, aiHint: "elegant perfume" },
-    { id: 6, name: "Brise Marina", description: "Un aroma fresco y acuático que captura la esencia del océano, con sal marina, algas y salvia.", price: 105, salePrice: 90, image: "https://es.loccitane.com/dw/image/v2/BCDQ_PRD/on/demandware.static/-/Library-Sites-OCC_SharedLibrary/default/dwed515ac4/CWE%20images/collections/630x450-applyperfume.png?sw=630&sh=450", category: "Acuático", stock: 28, featured: true, aiHint: "blue perfume" },
-];
+    { id: 1, name: "Aura de Rosas", description: "Una fragancia floral y romántica con notas de rosa de Damasco, peonía y almizcle blanco.", price: 120, discountPercentage: 15, offerStartDate: new Date('2024-01-01'), offerEndDate: new Date('2025-12-31'), image: "https://farma365.com.ar/wp-content/uploads/2024/04/3348901486392-3.webp", category: "Floral", stock: 25, featured: true, aiHint: "pink perfume" },
+    { id: 2, name: "Noche en el Desierto", description: "Un aroma oriental especiado, con toques de incienso, oud y ámbar.", price: 150, discountPercentage: null, offerStartDate: null, offerEndDate: null, image: "https://www.lancome.cl/dw/image/v2/AATL_PRD/on/demandware.static/-/Sites-lancome-latam-hub-Library/es_CL/dwcab43319/seo_landings/fragancia/Imagen%20Cuerpo%201%20Fragancia.jpg?sw=1910&sh=1074&sm=cut&q=70", category: "Oriental", stock: 15, featured: true, aiHint: "dark perfume" },
+    { id: 3, name: "Cítrico Vibrante", description: "Una explosión de frescura con limón siciliano, bergamota y vetiver. Ideal para el día a día.", price: 95, discountPercentage: 10, offerStartDate: new Date('2024-01-01'), offerEndDate: new Date('2025-12-31'), image: "https://es.loccitane.com/dw/image/v2/BCDQ_PRD/on/demandware.static/-/Library-Sites-OCC_SharedLibrary/default/dwed515ac4/CWE%20images/collections/630x450-applyperfume.png?sw=630&sh=450", category: "Cítrico", stock: 30, featured: true, aiHint: "citrus perfume" },
+    { id: 4, name: "Madera y Cuero", description: "Un perfume masculino y sofisticado, con notas de cedro, cuero y tabaco.", price: 135, discountPercentage: null, offerStartDate: null, offerEndDate: null, image: "https://farma365.com.ar/wp-content/uploads/2024/04/3348901486392-3.webp", category: "Amaderado", stock: 18, featured: false, aiHint: "mens perfume" },
+    { id: 5, name: "Vainilla Gourmand", description: "Una fragancia dulce y acogedora que evoca postres recién horneados, con vainilla de Tahití y caramelo.", price: 110, discountPercentage: null, offerStartDate: null, offerEndDate: null, image: "https://www.lancome.cl/dw/image/v2/AATL_PRD/on/demandware.static/-/Sites-lancome-latam-hub-Library/es_CL/dwcab43319/seo_landings/fragancia/Imagen%20Cuerpo%201%20Fragancia.jpg?sw=1910&sh=1074&sm=cut&q=70", category: "Dulce", stock: 22, featured: false, aiHint: "elegant perfume" },
+    { id: 6, name: "Brise Marina", description: "Un aroma fresco y acuático que captura la esencia del océano, con sal marina, algas y salvia.", price: 105, discountPercentage: 20, offerStartDate: new Date('2024-01-01'), offerEndDate: new Date('2025-12-31'), image: "https://es.loccitane.com/dw/image/v2/BCDQ_PRD/on/demandware.static/-/Library-Sites-OCC_SharedLibrary/default/dwed515ac4/CWE%20images/collections/630x450-applyperfume.png?sw=630&sh=450", category: "Acuático", stock: 28, featured: true, aiHint: "blue perfume" },
+].map(calculateSalePrice);
 
 
 export async function getProducts(): Promise<Product[]> {
   // Return hardcoded data. To use a database, comment this line out.
-  return Promise.resolve(hardcodedProducts);
+  const processedProducts = hardcodedProducts.map(calculateSalePrice);
+  return Promise.resolve(processedProducts);
   
   // --- Database Logic (Commented out by default) ---
   /*
   try {
     const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM products ORDER BY id DESC');
-    return rows.map(rowToProduct);
+    return rows.map(rowToProduct).map(calculateSalePrice);
   } catch (error) {
     handleDbError(error, 'fetching products');
   }
@@ -34,14 +49,17 @@ export async function getProducts(): Promise<Product[]> {
 export async function getProductById(id: number): Promise<Product | undefined> {
     // Return hardcoded data. To use a database, comment this block out.
     const product = hardcodedProducts.find(p => p.id === id);
-    return Promise.resolve(product);
+    if (product) {
+        return Promise.resolve(calculateSalePrice(product));
+    }
+    return Promise.resolve(undefined);
 
     // --- Database Logic (Commented out by default) ---
     /*
     try {
         const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM products WHERE id = ?', [id]);
         if (rows.length > 0) {
-            return rowToProduct(rows[0]);
+            return calculateSalePrice(rowToProduct(rows[0]));
         }
         return undefined;
     } catch (error) {
@@ -50,49 +68,49 @@ export async function getProductById(id: number): Promise<Product | undefined> {
     */
 }
 
-export async function createProduct(product: Omit<Product, 'id'>): Promise<Product> {
+export async function createProduct(product: Omit<Product, 'id' | 'salePrice'>): Promise<Product> {
     console.log("createProduct called (hardcoded). In a real deployment, this would write to the database.", product);
     const newId = hardcodedProducts.length > 0 ? Math.max(...hardcodedProducts.map(p => p.id)) + 1 : 1;
-    const newProduct = { ...product, id: newId };
+    const newProduct: Product = { ...product, id: newId };
     hardcodedProducts.push(newProduct);
-    return Promise.resolve(newProduct);
+    return Promise.resolve(calculateSalePrice(newProduct));
     
     // --- Database Logic (Commented out by default) ---
     /*
-    const { name, description, price, salePrice, image, category, stock, featured, aiHint } = product;
+    const { name, description, price, image, category, stock, featured, aiHint, discountPercentage, offerStartDate, offerEndDate } = product;
     try {
         const [result] = await pool.query<any>(
-            'INSERT INTO products (name, description, price, salePrice, image, category, stock, featured, aiHint) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [name, description, price, salePrice || null, image, category, stock, featured || false, aiHint || null]
+            'INSERT INTO products (name, description, price, image, category, stock, featured, aiHint, discountPercentage, offerStartDate, offerEndDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [name, description, price, image, category, stock, featured || false, aiHint || null, discountPercentage || null, offerStartDate || null, offerEndDate || null]
         );
         const insertedId = result.insertId;
-        const newProduct = await getProductById(insertedId);
-        if (!newProduct) {
+        const newDbProduct = await getProductById(insertedId);
+        if (!newDbProduct) {
             throw new Error('Failed to retrieve product after creation.');
         }
-        return newProduct;
+        return newDbProduct;
     } catch (error) {
         handleDbError(error, 'creating a product');
     }
     */
 }
 
-export async function updateProduct(id: number, product: Partial<Omit<Product, 'id'>>): Promise<Product> {
+export async function updateProduct(id: number, product: Partial<Omit<Product, 'id' | 'salePrice'>>): Promise<Product> {
     console.log(`updateProduct called for id ${id} (hardcoded). In a real deployment, this would write to the database.`, product);
     const index = hardcodedProducts.findIndex(p => p.id === id);
     if (index !== -1) {
         hardcodedProducts[index] = { ...hardcodedProducts[index], ...product };
-        return Promise.resolve(hardcodedProducts[index]);
+        return Promise.resolve(calculateSalePrice(hardcodedProducts[index]));
     }
     throw new Error("Product not found");
     
     // --- Database Logic (Commented out by default) ---
     /*
-    const { name, description, price, salePrice, image, category, stock, featured, aiHint } = product;
+    const { name, description, price, image, category, stock, featured, aiHint, discountPercentage, offerStartDate, offerEndDate } = product;
     try {
         await pool.query(
-            'UPDATE products SET name = ?, description = ?, price = ?, salePrice = ?, image = ?, category = ?, stock = ?, featured = ?, aiHint = ? WHERE id = ?',
-            [name, description, price, salePrice || null, image, category, stock, featured || false, aiHint || null, id]
+            'UPDATE products SET name = ?, description = ?, price = ?, image = ?, category = ?, stock = ?, featured = ?, aiHint = ?, discountPercentage = ?, offerStartDate = ?, offerEndDate = ? WHERE id = ?',
+            [name, description, price, image, category, stock, featured || false, aiHint || null, discountPercentage || null, offerStartDate || null, offerEndDate || null, id]
         );
         const updatedProduct = await getProductById(id);
         if (!updatedProduct) {
@@ -128,7 +146,7 @@ export async function deleteProduct(id: number): Promise<void> {
 }
 
 
-// --- Helper Functions for Database (Commented out by default) ---
+// --- Database Helper Functions (Commented out by default) ---
 /*
 function rowToProduct(row: RowDataPacket): Product {
     return {
@@ -136,12 +154,15 @@ function rowToProduct(row: RowDataPacket): Product {
         name: row.name,
         description: row.description,
         price: Number(row.price),
-        salePrice: row.salePrice ? Number(row.salePrice) : null,
+        salePrice: null, // Will be calculated
         image: row.image,
         aiHint: row.aiHint,
         category: row.category,
         stock: row.stock,
         featured: Boolean(row.featured),
+        discountPercentage: row.discountPercentage ? Number(row.discountPercentage) : null,
+        offerStartDate: row.offerStartDate ? new Date(row.offerStartDate) : null,
+        offerEndDate: row.offerEndDate ? new Date(row.offerEndDate) : null,
     };
 }
 

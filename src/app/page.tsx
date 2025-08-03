@@ -82,11 +82,11 @@ export default async function Home() {
                 </div>
                 <div className="relative aspect-square rounded-lg overflow-hidden shadow-xl">
                     <Image 
-                        src="https://placehold.co/600x600" 
-                        alt="Taller de Joyería" 
+                        src="https://i.pinimg.com/736x/b5/e5/da/b5e5daf193cfa6bb18087ea578f14520.jpg" 
+                        alt="Taller de Perfumería" 
                         fill
                         className="object-cover"
-                        data-ai-hint="jewelry workshop"
+                        data-ai-hint="perfume making"
                     />
                 </div>
             </section>
