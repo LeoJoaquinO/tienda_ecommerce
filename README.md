@@ -15,11 +15,11 @@ Joya is a modern, stylish, and full-featured e-commerce storefront built with Ne
 -   **Shopping Cart:** A persistent client-side shopping cart that remembers items between visits.
 -   **Secure Payments:** Ready for production with a secure server-side integration for Mercado Pago.
 -   **AI Recommendations:** Includes a Genkit-powered AI agent for intelligent product recommendations.
--   **Easy Deployment:** Comes with a step-by-step guide for deploying to a VPS like Don Web.
+-   **Easy Deployment:** Comes with multiple deployment guides for different needs.
 
-### 🚀 Getting Started
+### 🚀 Getting Started (Local Development)
 
-To get a local copy up and running, follow these simple steps.
+To get a local copy up and running on your computer, follow these simple steps.
 
 1.  **Clone the repository:**
     ```sh
@@ -39,17 +39,115 @@ To get a local copy up and running, follow these simple steps.
     ```
 5.  Open [http://localhost:9002](http://localhost:9002) with your browser to see the result.
 
-By default, the application runs with **hardcoded product data** so you can start developing without needing a database. The admin panel will appear to work, but changes won't be saved permanently.
+By default, the application runs with **hardcoded sample data** so you can start developing without needing a database. The admin panel will appear to work, but changes won't be saved permanently until you connect a database during deployment.
 
-### 🚀 Deployment
+---
 
-For a complete, step-by-step guide on how to get your code onto GitHub and deploy it to a production server with a live database, please see the **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)** file.
+### 🚀 Deployment Options
 
-This guide covers everything you need to know, including:
--   How to securely manage your API keys.
--   How to set up your server environment.
--   How to connect to your MySQL database and switch off the hardcoded data.
--   How to launch your application for the world to see!
+This project includes two guides for deploying your application to a live server.
+
+1.  **Vercel (Recommended):** The easiest and fastest way to deploy a Next.js application. The free tier is very generous. See the detailed guide below.
+2.  **Manual VPS Setup:** For users who want to manage their own server infrastructure. See the **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)** file for instructions.
+
+---
+
+## 🚀 Recommended: Deploying to Vercel (Easiest Method)
+
+This guide will walk you through deploying your application to Vercel, which is the platform built by the creators of Next.js. It's the most seamless way to go live.
+
+### Part 1: Get Your Project on GitHub
+
+First, you need to store your code in a GitHub repository. Vercel will connect directly to it.
+
+1.  **Create a GitHub Repository:**
+    *   Go to [GitHub.com](https://github.com) and log in.
+    *   Click the **+** icon in the top-right and select **"New repository"**.
+    *   Choose a name (e.g., `joya-store`) and select **"Private"**.
+    *   **Do not** initialize it with a README or other files.
+    *   Click **"Create repository"**. Copy the repository URL it shows you.
+
+2.  **Upload Your Code:**
+    *   Open a terminal in your project's folder and run these commands:
+    ```bash
+    git init
+    git add .
+    git commit -m "Initial commit"
+    git branch -M main
+    # Replace the URL with your new repository's URL
+    git remote add origin https://github.com/your-username/joya-store.git
+    git push -u origin main
+    ```
+    *   Refresh your GitHub page. Your code is now online!
+
+### Part 2: Set Up a Free Database
+
+Vercel works with many database providers. **Vercel Postgres** is a great option that integrates directly and has a generous free tier.
+
+1.  **Create a Vercel Account:**
+    *   Go to [Vercel.com](https://vercel.com) and sign up with your GitHub account.
+
+2.  **Create a Database:**
+    *   On your Vercel dashboard, go to the **"Storage"** tab.
+    *   Click **"Create Database"** and choose **"Postgres"**.
+    *   Give it a name (e.g., `joya-db`), choose a region, and accept the terms.
+    *   After it's created, click **"Connect"**. You will see a screen with database credentials (host, user, password, etc.). **Keep this page open!** You'll need these credentials in the next step.
+
+### Part 3: Deploy to Vercel & Configure
+
+Now, we'll connect Vercel to your GitHub repository and tell it your secret keys.
+
+1.  **Import Your Project:**
+    *   On your Vercel dashboard, go to the **"Projects"** tab and click **"Add New... > Project"**.
+    *   Find your `joya-store` repository and click **"Import"**.
+
+2.  **Configure Environment Variables:**
+    *   This is the most important step for security. You'll see a section called **"Environment Variables"**. This is where you'll put your secret keys.
+    *   Add the following keys, one by one, copying the values from your Vercel Postgres database page.
+        *   `DB_HOST`: The host of your database.
+        *   `DB_USER`: The username for your database.
+        *   `DB_PASSWORD`: The password for your database.
+        *   `DB_DATABASE`: The name of your database.
+    *   Now, add the key for Mercado Pago. Get this from your [Mercado Pago Developer Dashboard](https://www.mercadopago.com/developers).
+        *   `MERCADOPAGO_ACCESS_TOKEN`: Your "Access Token" (use your Production key).
+    *   Double-check that all keys are copied correctly.
+
+3.  **Deploy!**
+    *   Click the **"Deploy"** button. Vercel will now build and launch your application. It might take a few minutes.
+
+### Part 4: Final Setup
+
+Your site is live, but it's still using the hardcoded sample data. Let's switch it to use your new live database.
+
+1.  **Create the Products Table:**
+    *   Your Vercel Postgres database is currently empty. We need to create the `products` table.
+    *   On your Vercel dashboard, go to the **Storage** tab, select your database, and then click on the **"Query"** tab.
+    *   Copy the SQL commands from the `database.sql` file in your project and paste them into the query editor on Vercel.
+    *   Click **"Run"**. This will create the necessary table structure.
+
+2.  **Switch to Live Data Mode:**
+    *   This is the final step! We need to tell the application to use the database.
+    *   Open `src/lib/products.ts` in your local code editor.
+    *   You will see several commented-out sections of code labeled `--- Database Logic ---`.
+    *   **DELETE or COMMENT OUT** the lines that say `return Promise.resolve(...)` (the hardcoded logic).
+    *   **UNCOMMENT** all the database logic sections that use `pool.query`.
+    *   Save the file.
+
+3.  **Redeploy the Changes:**
+    *   In your terminal, commit and push the change you just made:
+    ```bash
+    git add src/lib/products.ts
+    git commit -m "Switch to live database"
+    git push
+    ```
+    *   Vercel will automatically detect the push and redeploy your application with the new settings.
+
+### You're Live!
+
+Congratulations! Your store is now fully deployed and running on a live database at the URL Vercel provided.
+
+-   **Go to the `/admin` page** on your live site to add your real products.
+-   **Future Updates:** Every time you `git push` new changes to your `main` branch, Vercel will automatically redeploy the site for you.
 
 ---
 
