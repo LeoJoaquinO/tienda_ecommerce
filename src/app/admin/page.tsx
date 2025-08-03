@@ -132,20 +132,20 @@ function MetricsTab({ products, isLoading }: { products: Product[], isLoading: b
     return (
         <div className="space-y-6">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total de Productos</CardTitle><Package className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : totalProducts}</div><p className="text-xs text-muted-foreground">Productos únicos</p></CardContent></Card>
-                <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Inventario Total</CardTitle><ShoppingCart className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : totalStock}</div><p className="text-xs text-muted-foreground">Unidades de todos los productos</p></CardContent></Card>
-                <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Valor del Inventario</CardTitle><Wallet className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : `$${totalInventoryValue.toLocaleString('es-AR')}`}</div><p className="text-xs text-muted-foreground">Valor de costo del stock</p></CardContent></Card>
-                <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Productos en Oferta</CardTitle><Tag className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : productsOnSale}</div><p className="text-xs text-muted-foreground">Productos con descuento activo</p></CardContent></Card>
+                <Card className="shadow-md"><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total de Productos</CardTitle><Package className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : totalProducts}</div><p className="text-xs text-muted-foreground">Productos únicos</p></CardContent></Card>
+                <Card className="shadow-md"><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Inventario Total</CardTitle><ShoppingCart className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : totalStock}</div><p className="text-xs text-muted-foreground">Unidades de todos los productos</p></CardContent></Card>
+                <Card className="shadow-md"><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Valor del Inventario</CardTitle><Wallet className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : `$${totalInventoryValue.toLocaleString('es-AR')}`}</div><p className="text-xs text-muted-foreground">Valor de costo del stock</p></CardContent></Card>
+                <Card className="shadow-md"><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Productos en Oferta</CardTitle><Tag className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : productsOnSale}</div><p className="text-xs text-muted-foreground">Productos con descuento activo</p></CardContent></Card>
             </div>
             <div className="grid gap-6 lg:grid-cols-2">
-                <Card className="flex-1"><CardHeader><CardTitle>Productos por Categoría</CardTitle><CardDescription>Un desglose de cuántos productos tienes en cada categoría.</CardDescription></CardHeader><CardContent>
+                <Card className="flex-1 shadow-md"><CardHeader><CardTitle>Productos por Categoría</CardTitle><CardDescription>Un desglose de cuántos productos tienes en cada categoría.</CardDescription></CardHeader><CardContent>
                     {isLoading ? <div className="flex justify-center items-center h-80"><Loader2 className="h-8 w-8 animate-spin" /></div> : categoryData.length > 0 ? (
                         <ChartContainer config={{ products: { label: "Productos", color: "hsl(var(--primary))" } }} className="h-80">
                             <ResponsiveContainer width="100%" height="100%"><RechartsBarChart data={categoryData} margin={{ top: 20, right: 20, bottom: 5, left: 0 }}><CartesianGrid vertical={false} /><XAxis dataKey="category" tickLine={false} axisLine={false} tickMargin={8} /><YAxis allowDecimals={false} /><Tooltip cursor={false} content={<ChartTooltipContent />} /><RechartsBar dataKey="products" radius={8} /></RechartsBarChart></ResponsiveContainer>
                         </ChartContainer>
                     ) : <div className="flex justify-center items-center h-80"><BarChart className="h-8 w-8 text-muted-foreground" /><p className="text-muted-foreground ml-4">No hay datos de categoría.</p></div>}
                 </CardContent></Card>
-                <Card><CardHeader><CardTitle className="flex items-center gap-2"><AlertTriangle className="text-amber-500"/>Alertas de Inventario</CardTitle><CardDescription>Productos con bajo stock (5 unidades o menos).</CardDescription></CardHeader><CardContent>
+                <Card className="shadow-md"><CardHeader><CardTitle className="flex items-center gap-2"><AlertTriangle className="text-amber-500"/>Alertas de Inventario</CardTitle><CardDescription>Productos con bajo stock (5 unidades o menos).</CardDescription></CardHeader><CardContent>
                     {isLoading ? <div className="flex justify-center items-center h-80"><Loader2 className="h-8 w-8 animate-spin" /></div> : lowStockProducts.length > 0 ? (
                         <Table><TableHeader><TableRow><TableHead>Producto</TableHead><TableHead className="text-right">Stock Restante</TableHead></TableRow></TableHeader><TableBody>
                             {lowStockProducts.map(p => <TableRow key={p.id}><TableCell className="font-medium">{p.name}</TableCell><TableCell className="text-right font-bold text-destructive">{p.stock}</TableCell></TableRow>)}
@@ -162,7 +162,7 @@ function MetricsTab({ products, isLoading }: { products: Product[], isLoading: b
 // ############################################################################
 function ProductsTab({ products, isLoading, onEdit, onDelete, onAdd }: { products: Product[], isLoading: boolean, onEdit: (p: Product) => void, onDelete: (id: number) => void, onAdd: () => void }) {
     return (
-         <Card>
+         <Card className="shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between">
                 <div><CardTitle>Gestionar Productos</CardTitle><CardDescription>Añade, edita o elimina productos de tu catálogo.</CardDescription></div>
                 <Button onClick={onAdd}><PlusCircle className="mr-2 h-4 w-4" />Añadir Producto</Button>
@@ -298,7 +298,7 @@ export default function AdminPage() {
   if (!isAuthenticated) {
     return (
         <div className="flex items-center justify-center min-h-[60vh]">
-            <Card className="w-full max-w-sm">
+            <Card className="w-full max-w-sm shadow-2xl">
                 <CardHeader>
                     <CardTitle className="text-2xl font-bold font-headline">Admin Login</CardTitle>
                     <CardDescription>Ingresa a tu cuenta para gestionar la tienda.</CardDescription>
