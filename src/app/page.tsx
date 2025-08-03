@@ -25,7 +25,7 @@ export default async function Home() {
             <section className="relative text-center py-24 md:py-36 rounded-2xl overflow-hidden shadow-2xl">
                  <div className="absolute inset-0 z-0">
                     <Image
-                        src="https://i.pinimg.com/originals/a0/90/a9/a090a9442a5c5a7566a9d1d1f67b844f.jpg"
+                        src="https://lh3.googleusercontent.com/gg-dl/AJfQ9KQ4gG4viVsKkXup69RJNwHnI-zhtYOnFySsrBLEQQ6GrkI9Zk7OcQqiUHFqxF_qmnbq2HH-RqEN2MGztAZEC3nyP3YMBu_t4v7xkTR_Jw0gQzu4NVj7PzhOOEef8zAiNS5NcutgogsRMmZ8qGCOrzVnX5JQB5RSMxG_2nt1BzwwuAkRVw=s1024"
                         alt="Fondo de Joyería de Lujo"
                         fill
                         className="object-cover"
