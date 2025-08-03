@@ -39,6 +39,7 @@ export type OrderData = {
     items: CartItem[];
     couponCode?: string | null;
     discountAmount?: number;
+    paymentId?: string | null;
 }
 
 export type SalesMetrics = {
@@ -50,3 +51,5 @@ export type SalesMetrics = {
         count: number;
     }[];
 };
+
+    

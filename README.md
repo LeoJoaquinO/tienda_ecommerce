@@ -1,3 +1,4 @@
+
 # Joya - Elegancia Atemporal 💍
 
 ![Joya Store Banner](https://placehold.co/1200x400.png?text=Joya+Store)
@@ -13,7 +14,7 @@ Joya is a modern, stylish, and full-featured e-commerce storefront built with Ne
 -   **Fully Responsive:** Looks great on all devices, from desktops to mobile phones.
 -   **Product Management:** An admin dashboard to easily create, edit, and delete products.
 -   **Shopping Cart:** A persistent client-side shopping cart that remembers items between visits.
--   **Secure Payments:** Ready for production with a secure server-side integration for Mercado Pago.
+-   **Secure Payments:** Ready for production with a secure server-side integration for Mercado Pago using the Checkout API (Payment Bricks).
 -   **AI Recommendations:** Includes a Genkit-powered AI agent for intelligent product recommendations.
 -   **Easy Deployment:** Comes with multiple deployment guides for different needs.
 
@@ -33,11 +34,19 @@ To get a local copy up and running on your computer, follow these simple steps.
     ```sh
     npm install
     ```
-4.  **Run the development server:**
+4.  **Set up Environment Variables:**
+    *   Rename the `.env.example` file to `.env.local`.
+    *   Open `.env.local` and add your **Mercado Pago Test Credentials**. You can find your Public Key and Access Token in your [Mercado Pago Developer Dashboard](https://www.mercadopago.com/developers/panel/credentials).
+    ```env
+    MERCADOPAGO_ACCESS_TOKEN="YOUR_TEST_ACCESS_TOKEN"
+    NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY="YOUR_TEST_PUBLIC_KEY"
+    NEXT_PUBLIC_SITE_URL="http://localhost:9002"
+    ```
+5.  **Run the development server:**
     ```sh
     npm run dev
     ```
-5.  Open [http://localhost:9002](http://localhost:9002) with your browser to see the result.
+6.  Open [http://localhost:9002](http://localhost:9002) with your browser to see the result.
 
 By default, the application runs with **hardcoded sample data** so you can start developing without needing a database. The admin panel will appear to work, but changes won't be saved permanently until you connect a database during deployment.
 
@@ -103,13 +112,16 @@ Now, we'll connect Vercel to your GitHub repository and tell it your secret keys
 
 2.  **Configure Environment Variables:**
     *   This is the most important step for security. You'll see a section called **"Environment Variables"**. This is where you'll put your secret keys.
-    *   Add the following keys, one by one, copying the values from your Vercel Postgres database page.
+    *   **Database Variables:** Add the following keys, one by one, copying the values from your Vercel Postgres database page.
         *   `DB_HOST`: The host of your database.
         *   `DB_USER`: The username for your database.
         *   `DB_PASSWORD`: The password for your database.
         *   `DB_DATABASE`: The name of your database.
-    *   Now, add the key for Mercado Pago. Get this from your [Mercado Pago Developer Dashboard](https://www.mercadopago.com/developers).
-        *   `MERCADOPAGO_ACCESS_TOKEN`: Your "Access Token" (use your Production key).
+    *   **Mercado Pago Variables:** Get these from your [Mercado Pago Developer Dashboard](https://www.mercadopago.com/developers). Use your **Production** credentials.
+        *   `MERCADOPAGO_ACCESS_TOKEN`: Your Production "Access Token".
+        *   `NEXT_PUBLIC_MERCADOPGO_PUBLIC_KEY`: Your Production "Public Key".
+    *   **Site URL Variable:** Vercel will assign you a domain. You need to add it here so Mercado Pago knows where to send users back to.
+        *   `NEXT_PUBLIC_SITE_URL`: The full URL of your site (e.g., `https://joya-store-abcdef.vercel.app`).
     *   Double-check that all keys are copied correctly.
 
 3.  **Deploy!**
@@ -163,3 +175,5 @@ Congratulations! Your store is now fully deployed and running on a live database
 ---
 
 This project was built with assistance from **Firebase Studio**.
+
+    

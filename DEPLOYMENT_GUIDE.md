@@ -1,3 +1,4 @@
+
 # Deployment Guide: From Your Computer to a Live Server
 
 This guide provides all the steps needed to get your application code from your computer into a GitHub repository and then deploy it to a production VPS (Virtual Private Server), like the one you have with Don Web.
@@ -129,13 +130,20 @@ Now, let's get your code from GitHub onto the server.
     ```bash
     nano .env.local
     ```
-4.  **Add Your Secrets:** Copy the following into the editor, replacing the placeholders with your **actual** credentials from Don Web and Mercado Pago.
+4.  **Add Your Secrets:** Copy the following into the editor, replacing the placeholders with your **actual** Production credentials from Don Web and Mercado Pago.
     ```env
+    # Database credentials from Don Web
     DB_HOST="your_mysql_host"
     DB_USER="your_mysql_username"
     DB_PASSWORD="your_mysql_password"
     DB_DATABASE="your_mysql_database_name"
-    MERCADOPAGO_ACCESS_TOKEN="your_mercadopago_access_token"
+    
+    # Mercado Pago Production Credentials
+    MERCADOPAGO_ACCESS_TOKEN="your_production_mercadopago_access_token"
+    NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY="your_production_mercadopago_public_key"
+
+    # Your public domain
+    NEXT_PUBLIC_SITE_URL="https://your_domain.com"
     ```
 5.  Save and exit nano by pressing `Ctrl+X`, then `Y`, then `Enter`.
 
@@ -143,27 +151,29 @@ Now, let's get your code from GitHub onto the server.
 
 Your project currently uses hardcoded sample data. Now, we'll set up your real database and switch the app to use it.
 
-1.  **Create the `products` table:** Run the `database.sql` script included in the project. It will ask for your database password.
+1.  **Create the tables:** Run the `database.sql` script included in the project. It will ask for your database password.
     ```bash
     mysql -h your_mysql_host -u your_mysql_username -p your_mysql_database_name < database.sql
     ```
     This creates the table structure.
 
-2.  **Switch to Live Data Mode:** You need to edit one file to tell the app to use the database instead of the hardcoded data.
-    -   Open `src/lib/products.ts` with nano:
+2.  **Switch to Live Data Mode:** You need to edit three files to tell the app to use the database instead of the hardcoded data.
+    *   Open `src/lib/products.ts`, `src/lib/coupons.ts`, and `src/lib/orders.ts` with nano.
         ```bash
         nano src/lib/products.ts
+        nano src/lib/coupons.ts
+        nano src/lib/orders.ts
         ```
-    -   You will see commented-out sections of code labeled `--- Database Logic ---`.
-    -   **DELETE** or **COMMENT OUT** the hardcoded logic.
-    -   **UNCOMMENT** all the database logic sections.
-    -   The file should now be using `pool.query` to talk to your database.
-    -   Save and exit nano (`Ctrl+X`, `Y`, `Enter`).
+    *   In each file, you will see commented-out sections of code labeled `--- Database Logic ---`.
+    *   **DELETE** or **COMMENT OUT** the hardcoded logic.
+    *   **UNCOMMENT** all the database logic sections.
+    *   The files should now be using `pool.query` to talk to your database.
+    *   Save and exit nano (`Ctrl+X`, `Y`, `Enter`) for each file.
 
 3.  **Delete Hardcoded Items and Create Real Ones:**
-    -   After switching to live data, your products table will be empty.
-    -   You can now launch the application (see Step 5) and go to the `/admin` page.
-    -   From the admin dashboard, you can now add, edit, and delete your real products. Every change will be saved directly to your MySQL database.
+    *   After switching to live data, your products table will be empty.
+    *   You can now launch the application (see Step 5) and go to the `/admin` page.
+    *   From the admin dashboard, you can now add, edit, and delete your real products. Every change will be saved directly to your MySQL database.
 
 
 ### Step 5: Build and Launch Your Application
@@ -266,3 +276,5 @@ Your store is now fully deployed and accessible securely at `https://your_domain
 5.  Pull the latest changes: `git pull`
 6.  Re-install dependencies and re-build: `npm install && npm run build`
 7.  Restart the app with PM2: `pm2 restart joya-store`
+
+    

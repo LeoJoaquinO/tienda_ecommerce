@@ -1,4 +1,5 @@
 
+
 import pool from './db';
 import type { OrderData, OrderStatus, SalesMetrics, Product } from './types';
 import { RowDataPacket, OkPacket } from 'mysql2';
@@ -94,11 +95,12 @@ export async function createOrder(orderData: OrderData): Promise<number> {
 /**
  * Updates the status of an existing order.
  */
-export async function updateOrderStatus(orderId: number, status: OrderStatus): Promise<void> {
+export async function updateOrderStatus(orderId: number, status: OrderStatus, paymentId?: string): Promise<void> {
     // --- Hardcoded Logic ---
     const orderIndex = hardcodedOrders.findIndex(o => o.id === orderId);
     if (orderIndex !== -1) {
         hardcodedOrders[orderIndex].status = status;
+        if(paymentId) hardcodedOrders[orderIndex].paymentId = paymentId;
         console.log(`(Hardcoded) Order ${orderId} status updated to ${status}`);
     }
     return Promise.resolve();
@@ -106,7 +108,7 @@ export async function updateOrderStatus(orderId: number, status: OrderStatus): P
     // --- Database Logic ---
     /*
     try {
-        await pool.query('UPDATE orders SET status = ? WHERE id = ?', [status, orderId]);
+        await pool.query('UPDATE orders SET status = ?, payment_id = ? WHERE id = ?', [status, paymentId, orderId]);
     } catch (error) {
         handleDbError(error, `updating order status for order ${orderId}`);
     }
@@ -231,3 +233,5 @@ export async function getSalesMetrics(): Promise<SalesMetrics> {
     }
     */
 }
+
+    

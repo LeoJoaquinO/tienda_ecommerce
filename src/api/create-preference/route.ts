@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import { MercadoPagoConfig, Preference } from 'mercadopago';
 import type { CartItem, Coupon } from '@/lib/types';
@@ -23,6 +24,8 @@ type CheckoutPayload = {
     }
 }
 
+// NOTE: This endpoint is now deprecated and replaced by /api/process-payment
+// It is kept here for reference or potential fallback, but is not used in the new checkout flow.
 export async function POST(req: NextRequest) {
   try {
     const payload: CheckoutPayload = await req.json();
@@ -78,11 +81,11 @@ export async function POST(req: NextRequest) {
         external_reference: String(orderId), 
         // This is where Mercado Pago will send payment status updates.
         // It must be a publicly accessible HTTPS URL. You'll set this up in your MP Dashboard.
-        notification_url: `${req.nextUrl.origin}/api/mercadopago-webhook`,
+        notification_url: `${process.env.NEXT_PUBLIC_SITE_URL}/api/mercadopago-webhook`,
         back_urls: {
-          success: `${req.nextUrl.origin}/`,
-          failure: `${req.nextUrl.origin}/cart`,
-          pending: `${req.nextUrl.origin}/cart`,
+          success: `${process.env.NEXT_PUBLIC_SITE_URL}/`,
+          failure: `${process.env.NEXT_PUBLIC_SITE_URL}/cart`,
+          pending: `${process.env.NEXT_PUBLIC_SITE_URL}/cart`,
         },
         auto_return: 'approved',
       },
@@ -95,3 +98,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No se pudo crear la preferencia de pago.' }, { status: 500 });
   }
 }
+
+    
