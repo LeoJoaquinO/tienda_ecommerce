@@ -104,7 +104,7 @@ export function HeroCarousel() {
                 onClick={() => scrollTo(index)}
                 className={cn(
                 'h-2 w-2 rounded-full transition-all duration-300',
-                current === index ? 'w-4 bg-primary' : 'bg-muted hover:bg-muted-foreground'
+                current === index ? 'w-4 bg-primary' : 'bg-muted-foreground/50 hover:bg-muted-foreground'
                 )}
                 aria-label={`Ir a la diapositiva ${index + 1}`}
             />
@@ -113,4 +113,5 @@ export function HeroCarousel() {
     </div>
   );
 }
+
 
