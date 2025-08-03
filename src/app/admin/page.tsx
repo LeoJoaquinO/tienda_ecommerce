@@ -18,7 +18,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PlusCircle, Edit, Trash2, LogIn, LogOut, Loader2, Package, Tag, Wallet, Calendar as CalendarIcon, BarChart, AlertTriangle, ShoppingCart, Ticket } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, LogIn, LogOut, Loader2, Package, Tag, Wallet, Calendar as CalendarIcon, BarChart, AlertTriangle, ShoppingCart, Ticket, Badge } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -32,13 +32,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { addProductAction, updateProductAction, deleteProductAction, addCouponAction } from '@/app/actions';
+import { addProductAction, updateProductAction, deleteProductAction, addCouponAction, updateCouponAction, deleteCouponAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { BarChart as RechartsBarChart, Bar as RechartsBar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 
 // ############################################################################
 // Component: ProductForm
@@ -116,16 +117,19 @@ function ProductForm({ product, onFinished }: { product?: Product, onFinished: (
 // ############################################################################
 // Component: CouponForm
 // ############################################################################
-function CouponForm({ onFinished }: { onFinished: () => void }) {
+function CouponForm({ coupon, onFinished }: { coupon?: Coupon, onFinished: () => void }) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { toast } = useToast();
-    const [expiryDate, setExpiryDate] = useState<Date | undefined>(undefined);
+    const [expiryDate, setExpiryDate] = useState<Date | undefined>(coupon?.expiryDate ? new Date(coupon.expiryDate) : undefined);
+
+    const action = coupon ? updateCouponAction.bind(null, coupon.id) : addCouponAction;
 
     async function handleAction(formData: FormData) {
         setIsSubmitting(true);
         if (expiryDate) formData.set('expiryDate', expiryDate.toISOString());
+        else formData.delete('expiryDate');
 
-        const result = await addCouponAction(formData);
+        const result = await action(formData);
         if (result?.error) {
             toast({ title: 'Error de Validación', description: result.error, variant: 'destructive' });
         } else {
@@ -137,11 +141,11 @@ function CouponForm({ onFinished }: { onFinished: () => void }) {
     
     return (
         <form action={handleAction} className="space-y-4">
-            <div><Label htmlFor="code">Código del Cupón</Label><Input id="code" name="code" placeholder="VERANO20" required /></div>
+            <div><Label htmlFor="code">Código del Cupón</Label><Input id="code" name="code" defaultValue={coupon?.code} placeholder="VERANO20" required /></div>
             <div className="grid grid-cols-2 gap-4">
                 <div>
                     <Label htmlFor="discountType">Tipo de Descuento</Label>
-                    <Select name="discountType" required defaultValue="percentage">
+                    <Select name="discountType" required defaultValue={coupon?.discountType ?? 'percentage'}>
                         <SelectTrigger><SelectValue placeholder="Seleccionar tipo..." /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="percentage">Porcentaje (%)</SelectItem>
@@ -151,7 +155,7 @@ function CouponForm({ onFinished }: { onFinished: () => void }) {
                 </div>
                 <div>
                     <Label htmlFor="discountValue">Valor</Label>
-                    <Input id="discountValue" name="discountValue" type="number" step="0.01" min="0" placeholder="Ej: 20" required />
+                    <Input id="discountValue" name="discountValue" type="number" step="0.01" min="0" defaultValue={coupon?.discountValue} placeholder="Ej: 20" required />
                 </div>
             </div>
              <div>
@@ -165,9 +169,13 @@ function CouponForm({ onFinished }: { onFinished: () => void }) {
                     <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={expiryDate} onSelect={setExpiryDate} initialFocus /></PopoverContent>
                 </Popover>
             </div>
+            <div className="flex items-center space-x-2">
+                <Switch id="isActive" name="isActive" defaultChecked={coupon?.isActive ?? true} />
+                <Label htmlFor="isActive">Cupón Activo</Label>
+            </div>
             <DialogFooter>
                 <DialogClose asChild><Button variant="ghost">Cancelar</Button></DialogClose>
-                <Button type="submit" disabled={isSubmitting}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Crear Cupón</Button>
+                <Button type="submit" disabled={isSubmitting}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Guardar Cambios</Button>
             </DialogFooter>
         </form>
     );
@@ -253,7 +261,7 @@ function ProductsTab({ products, isLoading, onEdit, onDelete, onAdd }: { product
 // ############################################################################
 // Component: CouponsTab
 // ############################################################################
-function CouponsTab({ coupons, isLoading, onAdd }: { coupons: Coupon[], isLoading: boolean, onAdd: () => void }) {
+function CouponsTab({ coupons, isLoading, onAdd, onEdit, onDelete }: { coupons: Coupon[], isLoading: boolean, onAdd: () => void, onEdit: (c: Coupon) => void, onDelete: (id: number) => void }) {
     return (
         <Card className="shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between">
@@ -262,14 +270,23 @@ function CouponsTab({ coupons, isLoading, onAdd }: { coupons: Coupon[], isLoadin
             </CardHeader>
             <CardContent className='p-0'>
                 {isLoading ? <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div> : (
-                    <Table><TableHeader><TableRow><TableHead>Código</TableHead><TableHead>Tipo</TableHead><TableHead>Valor</TableHead><TableHead>Expiración</TableHead><TableHead>Activo</TableHead></TableRow></TableHeader><TableBody>
+                    <Table><TableHeader><TableRow><TableHead>Código</TableHead><TableHead>Tipo</TableHead><TableHead>Valor</TableHead><TableHead>Expiración</TableHead><TableHead>Estado</TableHead><TableHead>Acciones</TableHead></TableRow></TableHeader><TableBody>
                         {coupons.map(coupon => (
                             <TableRow key={coupon.id}>
                                 <TableCell className="font-medium text-primary">{coupon.code}</TableCell>
                                 <TableCell>{coupon.discountType === 'percentage' ? 'Porcentaje' : 'Monto Fijo'}</TableCell>
                                 <TableCell>{coupon.discountType === 'percentage' ? `${coupon.discountValue}%` : `$${coupon.discountValue}`}</TableCell>
                                 <TableCell>{coupon.expiryDate ? format(new Date(coupon.expiryDate), 'PPP') : 'Nunca'}</TableCell>
-                                <TableCell>{new Date(coupon.expiryDate ?? '9999-12-31') > new Date() ? 'Sí' : 'No'}</TableCell>
+                                <TableCell>
+                                    {coupon.isActive && (!coupon.expiryDate || new Date(coupon.expiryDate) > new Date())
+                                      ? <span className="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-green-600 bg-green-200">Activo</span>
+                                      : <span className="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-red-600 bg-red-200">Inactivo</span>
+                                    }
+                                </TableCell>
+                                <TableCell><div className="flex gap-2">
+                                    <Button variant="outline" size="icon" onClick={() => onEdit(coupon)}><Edit className="h-4 w-4" /></Button>
+                                    <Button variant="destructive" size="icon" onClick={() => onDelete(coupon.id)}><Trash2 className="h-4 w-4" /></Button>
+                                </div></TableCell>
                             </TableRow>
                         ))}
                     </TableBody></Table>
@@ -289,6 +306,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     const [isCouponsLoading, setIsCouponsLoading] = useState(true);
     const [dialogType, setDialogType] = useState<'product' | 'coupon' | null>(null);
     const [editingProduct, setEditingProduct] = useState<Product | undefined>(undefined);
+    const [editingCoupon, setEditingCoupon] = useState<Coupon | undefined>(undefined);
     const { toast } = useToast();
 
     const fetchAndSetProducts = async () => {
@@ -318,23 +336,30 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         fetchAndSetCoupons();
     }, []);
     
-    const handleOpenDialog = (type: 'product' | 'coupon', product?: Product) => {
+    const handleOpenProductDialog = (product?: Product) => {
         setEditingProduct(product);
-        setDialogType(type);
+        setDialogType('product');
+    };
+
+    const handleOpenCouponDialog = (coupon?: Coupon) => {
+        setEditingCoupon(coupon);
+        setDialogType('coupon');
     };
 
     const handleCloseDialog = () => {
         setDialogType(null);
         setEditingProduct(undefined);
+        setEditingCoupon(undefined);
     };
 
     const onFormFinished = () => {
+        const currentDialog = dialogType;
         handleCloseDialog();
-        if (dialogType === 'product') fetchAndSetProducts();
-        if (dialogType === 'coupon') fetchAndSetCoupons();
+        if (currentDialog === 'product') fetchAndSetProducts();
+        if (currentDialog === 'coupon') fetchAndSetCoupons();
     }
     
-    const handleDelete = async (id: number) => {
+    const handleDeleteProduct = async (id: number) => {
       if (confirm('¿Estás seguro de que quieres eliminar este producto?')) {
         const result = await deleteProductAction(id);
          if (result?.error) {
@@ -344,6 +369,18 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
             fetchAndSetProducts();
         }
       }
+    }
+
+    const handleDeleteCoupon = async (id: number) => {
+        if (confirm('¿Estás seguro de que quieres eliminar este cupón?')) {
+            const result = await deleteCouponAction(id);
+            if (result?.error) {
+                toast({ title: 'Error', description: result.error, variant: 'destructive' });
+            } else {
+                toast({ title: 'Éxito', description: result.message });
+                fetchAndSetCoupons();
+            }
+        }
     }
 
     return (
@@ -363,18 +400,18 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                 <MetricsTab products={products} isLoading={isProductsLoading} />
             </TabsContent>
             <TabsContent value="products" className="mt-6">
-                <ProductsTab products={products} isLoading={isProductsLoading} onAdd={() => handleOpenDialog('product')} onEdit={(p) => handleOpenDialog('product', p)} onDelete={handleDelete} />
+                <ProductsTab products={products} isLoading={isProductsLoading} onAdd={() => handleOpenProductDialog()} onEdit={handleOpenProductDialog} onDelete={handleDeleteProduct} />
             </TabsContent>
             <TabsContent value="coupons" className="mt-6">
-                <CouponsTab coupons={coupons} isLoading={isCouponsLoading} onAdd={() => handleOpenDialog('coupon')} />
+                <CouponsTab coupons={coupons} isLoading={isCouponsLoading} onAdd={() => handleOpenCouponDialog()} onEdit={handleOpenCouponDialog} onDelete={handleDeleteCoupon} />
             </TabsContent>
         </Tabs>
 
         <Dialog open={dialogType !== null} onOpenChange={(isOpen) => !isOpen && handleCloseDialog()}>
             <DialogContent className="sm:max-w-[625px]">
-                <DialogHeader><DialogTitle>{dialogType === 'product' ? (editingProduct ? 'Editar Producto' : 'Añadir Nuevo Producto') : 'Crear Nuevo Cupón'}</DialogTitle></DialogHeader>
+                <DialogHeader><DialogTitle>{dialogType === 'product' ? (editingProduct ? 'Editar Producto' : 'Añadir Nuevo Producto') : (editingCoupon ? 'Editar Cupón' : 'Crear Nuevo Cupón')}</DialogTitle></DialogHeader>
                 {dialogType === 'product' && <ProductForm product={editingProduct} onFinished={onFormFinished} />}
-                {dialogType === 'coupon' && <CouponForm onFinished={onFormFinished} />}
+                {dialogType === 'coupon' && <CouponForm coupon={editingCoupon} onFinished={onFormFinished} />}
             </DialogContent>
         </Dialog>
     </div>

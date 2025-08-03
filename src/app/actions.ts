@@ -3,7 +3,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createProduct, deleteProduct, updateProduct } from "@/lib/products";
-import { createCoupon } from "@/lib/coupons";
+import { createCoupon, deleteCoupon, updateCoupon } from "@/lib/coupons";
 import { z } from "zod";
 import DOMPurify from 'isomorphic-dompurify';
 
@@ -120,6 +120,7 @@ const couponSchema = z.object({
     discountType: z.enum(['percentage', 'fixed'], { required_error: "El tipo de descuento es requerido."}),
     discountValue: z.coerce.number().positive("El valor del descuento debe ser un número positivo."),
     expiryDate: z.coerce.date().optional().nullable(),
+    isActive: z.boolean().optional(),
 }).refine(data => {
     if (data.discountType === 'percentage') {
         return data.discountValue <= 100;
@@ -134,7 +135,10 @@ export async function addCouponAction(formData: FormData) {
     const rawData = Object.fromEntries(formData.entries());
     const sanitizedData = sanitizeData(rawData);
     
-    const validatedFields = couponSchema.safeParse(sanitizedData);
+    const validatedFields = couponSchema.safeParse({
+        ...sanitizedData,
+        isActive: sanitizedData.isActive === 'on',
+    });
 
     if (!validatedFields.success) {
         console.error("Validation failed", validatedFields.error.flatten().fieldErrors);
@@ -154,5 +158,46 @@ export async function addCouponAction(formData: FormData) {
             return { error: `El código de cupón '${validatedFields.data.code}' ya existe.` };
         }
         return { error: e.message || "No se pudo crear el cupón." };
+    }
+}
+
+export async function updateCouponAction(id: number, formData: FormData) {
+    const rawData = Object.fromEntries(formData.entries());
+    const sanitizedData = sanitizeData(rawData);
+    
+    const validatedFields = couponSchema.safeParse({
+        ...sanitizedData,
+        isActive: sanitizedData.isActive === 'on',
+    });
+
+    if (!validatedFields.success) {
+        console.error("Validation failed", validatedFields.error.flatten().fieldErrors);
+        return {
+            error: "Datos de cupón inválidos. Por favor, revisa los campos.",
+            fieldErrors: validatedFields.error.flatten().fieldErrors,
+        };
+    }
+
+    try {
+        await updateCoupon(id, validatedFields.data);
+        revalidatePath("/admin");
+        return { message: "Cupón actualizado exitosamente." };
+    } catch (e: any) {
+        console.error(e);
+        if (e.message.includes('UNIQUE constraint failed')) {
+            return { error: `El código de cupón '${validatedFields.data.code}' ya existe.` };
+        }
+        return { error: e.message || "No se pudo actualizar el cupón." };
+    }
+}
+
+export async function deleteCouponAction(id: number) {
+    try {
+        await deleteCoupon(id);
+        revalidatePath('/admin');
+        return { message: 'Cupón eliminado exitosamente.' }
+    } catch (e: any) {
+        console.error(e);
+        return { error: e.message || 'No se pudo eliminar el cupón.' }
     }
 }
