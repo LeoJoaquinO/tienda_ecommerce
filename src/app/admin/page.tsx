@@ -275,12 +275,12 @@ function CouponsTab({ coupons, isLoading, onAdd, onEdit, onDelete }: { coupons: 
                             <TableRow key={coupon.id}>
                                 <TableCell className="font-medium text-primary">{coupon.code}</TableCell>
                                 <TableCell>{coupon.discountType === 'percentage' ? 'Porcentaje' : 'Monto Fijo'}</TableCell>
-                                <TableCell>{coupon.discountType === 'percentage' ? `${coupon.discountValue}%` : `$${coupon.discountValue}`}</TableCell>
+                                <TableCell>{coupon.discountType === 'percentage' ? `${coupon.discountValue}%` : `$${coupon.discountValue.toLocaleString('es-AR')}`}</TableCell>
                                 <TableCell>{coupon.expiryDate ? format(new Date(coupon.expiryDate), 'PPP') : 'Nunca'}</TableCell>
                                 <TableCell>
                                     {coupon.isActive && (!coupon.expiryDate || new Date(coupon.expiryDate) > new Date())
-                                      ? <span className="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-green-600 bg-green-200">Activo</span>
-                                      : <span className="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-red-600 bg-red-200">Inactivo</span>
+                                      ? <Badge variant="default" className='bg-green-500 hover:bg-green-600'>Activo</Badge>
+                                      : <Badge variant="destructive">Inactivo</Badge>
                                     }
                                 </TableCell>
                                 <TableCell><div className="flex gap-2">

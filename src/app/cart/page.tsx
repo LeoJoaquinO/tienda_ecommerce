@@ -7,7 +7,7 @@ import { useCart } from '@/hooks/useCart';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Trash2, ShoppingBag, Ticket, XCircle } from 'lucide-react';
+import { Trash2, ShoppingBag, Ticket, XCircle, Loader2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
