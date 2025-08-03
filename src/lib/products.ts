@@ -7,13 +7,14 @@ import { RowDataPacket } from 'mysql2';
 // The deployment guide explains how to switch to a live MySQL database.
 
 const hardcodedProducts: Product[] = [
-    { id: 1, name: "Aura de Rosas", description: "Una fragancia floral y romántica con notas de rosa de Damasco, peonía y almizcle blanco.", price: 120, salePrice: 99, image: "https://placehold.co/600x601.png", category: "Floral", stock: 25, featured: true, aiHint: "perfume bottle" },
-    { id: 2, name: "Noche en el Desierto", description: "Un aroma oriental especiado, con toques de incienso, oud y ámbar.", price: 150, salePrice: null, image: "https://placehold.co/600x602.png", category: "Oriental", stock: 15, featured: true, aiHint: "perfume bottle" },
-    { id: 3, name: "Cítrico Vibrante", description: "Una explosión de frescura con limón siciliano, bergamota y vetiver. Ideal para el día a día.", price: 95, salePrice: 80, image: "https://placehold.co/600x603.png", category: "Cítrico", stock: 30, featured: true, aiHint: "perfume bottle" },
-    { id: 4, name: "Madera y Cuero", description: "Un perfume masculino y sofisticado, con notas de cedro, cuero y tabaco.", price: 135, salePrice: null, image: "https://placehold.co/600x604.png", category: "Amaderado", stock: 18, featured: false, aiHint: "perfume bottle" },
-    { id: 5, name: "Vainilla Gourmand", description: "Una fragancia dulce y acogedora que evoca postres recién horneados, con vainilla de Tahití y caramelo.", price: 110, salePrice: null, image: "https://placehold.co/600x605.png", category: "Dulce", stock: 22, featured: false, aiHint: "perfume bottle" },
-    { id: 6, name: "Brise Marina", description: "Un aroma fresco y acuático que captura la esencia del océano, con sal marina, algas y salvia.", price: 105, salePrice: 90, image: "https://placehold.co/600x606.png", category: "Acuático", stock: 28, featured: true, aiHint: "perfume bottle" },
+    { id: 1, name: "Aura de Rosas", description: "Una fragancia floral y romántica con notas de rosa de Damasco, peonía y almizcle blanco.", price: 120, salePrice: 99, image: "https://cdn.pixabay.com/photo/2017/09/04/10/30/perfume-2713625_640.jpg", category: "Floral", stock: 25, featured: true, aiHint: "pink perfume" },
+    { id: 2, name: "Noche en el Desierto", description: "Un aroma oriental especiado, con toques de incienso, oud y ámbar.", price: 150, salePrice: null, image: "https://cdn.pixabay.com/photo/2019/11/08/09/25/perfume-4610484_640.jpg", category: "Oriental", stock: 15, featured: true, aiHint: "dark perfume" },
+    { id: 3, name: "Cítrico Vibrante", description: "Una explosión de frescura con limón siciliano, bergamota y vetiver. Ideal para el día a día.", price: 95, salePrice: 80, image: "https://cdn.pixabay.com/photo/2017/03/13/15/37/perfume-2140417_640.jpg", category: "Cítrico", stock: 30, featured: true, aiHint: "citrus perfume" },
+    { id: 4, name: "Madera y Cuero", description: "Un perfume masculino y sofisticado, con notas de cedro, cuero y tabaco.", price: 135, salePrice: null, image: "https://cdn.pixabay.com/photo/2021/08/25/08/17/perfume-6572535_640.jpg", category: "Amaderado", stock: 18, featured: false, aiHint: "mens perfume" },
+    { id: 5, name: "Vainilla Gourmand", description: "Una fragancia dulce y acogedora que evoca postres recién horneados, con vainilla de Tahití y caramelo.", price: 110, salePrice: null, image: "https://cdn.pixabay.com/photo/2016/03/31/19/56/perfume-1295326_640.png", category: "Dulce", stock: 22, featured: false, aiHint: "elegant perfume" },
+    { id: 6, name: "Brise Marina", description: "Un aroma fresco y acuático que captura la esencia del océano, con sal marina, algas y salvia.", price: 105, salePrice: 90, image: "https://cdn.pixabay.com/photo/2024/02/21/10/24/ai-generated-8587132_640.jpg", category: "Acuático", stock: 28, featured: true, aiHint: "blue perfume" },
 ];
+
 
 export async function getProducts(): Promise<Product[]> {
   // Return hardcoded data. To use a database, comment this line out.
@@ -51,7 +52,8 @@ export async function getProductById(id: number): Promise<Product | undefined> {
 
 export async function createProduct(product: Omit<Product, 'id'>): Promise<Product> {
     console.log("createProduct called (hardcoded). In a real deployment, this would write to the database.", product);
-    const newProduct = { ...product, id: Math.max(...hardcodedProducts.map(p => p.id)) + 1 };
+    const newId = hardcodedProducts.length > 0 ? Math.max(...hardcodedProducts.map(p => p.id)) + 1 : 1;
+    const newProduct = { ...product, id: newId };
     hardcodedProducts.push(newProduct);
     return Promise.resolve(newProduct);
     
