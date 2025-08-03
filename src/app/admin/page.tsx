@@ -165,7 +165,8 @@ function ProductForm({ product, onFinished }: { product?: Product, onFinished: (
 function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     const [products, setProducts] = useState<Product[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [isFormOpen, setIsFormOpen] = useState(false);
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [editingProduct, setEditingProduct] = useState<Product | undefined>(undefined);
     const { toast } = useToast();
 
     const fetchAndSetProducts = async () => {
@@ -178,10 +179,20 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     useEffect(() => {
         fetchAndSetProducts();
     }, []);
+    
+    const handleOpenDialog = (product?: Product) => {
+        setEditingProduct(product);
+        setDialogOpen(true);
+    };
+
+    const handleCloseDialog = () => {
+        setDialogOpen(false);
+        setEditingProduct(undefined);
+    };
 
     const onFormFinished = () => {
-        setIsFormOpen(false);
-        fetchAndSetProducts(); // Refetch products after add/edit
+        handleCloseDialog();
+        fetchAndSetProducts();
     }
     
     const handleDelete = async (id: number) => {
@@ -198,7 +209,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                 title: 'Éxito',
                 description: result.message,
             });
-            fetchAndSetProducts(); // Refetch products after delete
+            fetchAndSetProducts();
         }
       }
     }
@@ -261,20 +272,10 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                      <CardTitle>Gestionar Productos</CardTitle>
                      <CardDescription>Añade, edita o elimina productos de tu catálogo.</CardDescription>
                 </div>
-                <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                    <DialogTrigger asChild>
-                        <Button>
-                            <PlusCircle className="mr-2 h-4 w-4" />
-                            Añadir Producto
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[625px]">
-                        <DialogHeader>
-                            <DialogTitle>Añadir Nuevo Producto</DialogTitle>
-                        </DialogHeader>
-                        <ProductForm onFinished={onFormFinished} />
-                    </DialogContent>
-                </Dialog>
+                <Button onClick={() => handleOpenDialog()}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Añadir Producto
+                </Button>
             </CardHeader>
             <CardContent className='p-0'>
                 {isLoading ? (
@@ -310,23 +311,9 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                             <TableCell>{product.stock}</TableCell>
                             <TableCell>
                                 <div className="flex gap-2">
-                                    <Dialog>
-                                        <DialogTrigger asChild>
-                                            <Button variant="outline" size="icon">
-                                                <Edit className="h-4 w-4" />
-                                            </Button>
-                                        </DialogTrigger>
-                                        <DialogContent className="sm:max-w-[625px]">
-                                            <DialogHeader>
-                                                <DialogTitle>Editar Producto</DialogTitle>
-                                            </DialogHeader>
-                                            <ProductForm product={product} onFinished={() => {
-                                                // A bit of a hack to close the dialog from the child form
-                                                document.querySelector('[data-radix-dialog-close]button')?.click()
-                                                fetchAndSetProducts();
-                                            }} />
-                                        </DialogContent>
-                                    </Dialog>
+                                    <Button variant="outline" size="icon" onClick={() => handleOpenDialog(product)}>
+                                        <Edit className="h-4 w-4" />
+                                    </Button>
                                     <Button variant="destructive" size="icon" onClick={() => handleDelete(product.id)}>
                                         <Trash2 className="h-4 w-4" />
                                     </Button>
@@ -338,7 +325,16 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                     </Table>
                 )}
             </CardContent>
-      </Card>
+        </Card>
+
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogContent className="sm:max-w-[625px]">
+                <DialogHeader>
+                    <DialogTitle>{editingProduct ? 'Editar Producto' : 'Añadir Nuevo Producto'}</DialogTitle>
+                </DialogHeader>
+                <ProductForm product={editingProduct} onFinished={onFormFinished} />
+            </DialogContent>
+        </Dialog>
     </div>
   );
 }
