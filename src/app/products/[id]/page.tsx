@@ -1,9 +1,44 @@
+
+"use client";
+
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import { getProductById } from '@/lib/products';
 import { AddToCartButton } from '@/components/AddToCartButton';
 import type { Product } from '@/lib/types';
-import { AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, XCircle, Eye } from 'lucide-react';
+import { useState, useEffect } from 'react';
+
+function LiveVisitorCounter() {
+    const [viewers, setViewers] = useState(0);
+
+    useEffect(() => {
+        // Simulate a random number of viewers when the component mounts
+        const randomViewers = Math.floor(Math.random() * (45 - 8 + 1)) + 8; // Random number between 8 and 45
+        setViewers(randomViewers);
+
+        // Optional: create a subtle fluctuation effect
+        const interval = setInterval(() => {
+            setViewers(prev => {
+                const change = Math.random() > 0.5 ? 1 : -1;
+                const newViewers = prev + change;
+                return Math.max(5, newViewers); // Ensure it doesn't go below a certain number
+            });
+        }, 3000 + Math.random() * 2000); // Fluctuate every 3-5 seconds
+
+        return () => clearInterval(interval);
+    }, []);
+
+    if (viewers === 0) return null;
+
+    return (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground mt-4 animate-pulse">
+            <Eye className="h-5 w-5" />
+            <p className="font-semibold">{viewers} personas están viendo este artículo</p>
+        </div>
+    );
+}
+
 
 export default async function ProductPage({ params }: { params: { id: string } }) {
   const productId = parseInt(params.id, 10);
@@ -57,6 +92,7 @@ export default async function ProductPage({ params }: { params: { id: string } }
                       <p className="text-sm font-semibold">¡Quedan pocas unidades!</p>
                   </div>
                 )}
+                 <LiveVisitorCounter />
               </>
             ) : (
               <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
