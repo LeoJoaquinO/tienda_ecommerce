@@ -117,30 +117,41 @@ Now, we'll connect Vercel to your GitHub repository and tell it your secret keys
 
 ### Part 4: Final Setup
 
-Your site is live, but it's still using the hardcoded sample data. Let's switch it to use your new live database.
+Your site is live, but it's still using the hardcoded sample data. Let's switch it to use your new live database and configure your payment webhook.
 
-1.  **Create the Products Table:**
-    *   Your Vercel Postgres database is currently empty. We need to create the `products` table.
+1.  **Create the Database Tables:**
+    *   Your Vercel Postgres database is currently empty. We need to create the `products`, `orders`, and other tables.
     *   On your Vercel dashboard, go to the **Storage** tab, select your database, and then click on the **"Query"** tab.
     *   Copy the SQL commands from the `database.sql` file in your project and paste them into the query editor on Vercel.
     *   Click **"Run"**. This will create the necessary table structure.
 
 2.  **Switch to Live Data Mode:**
-    *   This is the final step! We need to tell the application to use the database.
-    *   Open `src/lib/products.ts` in your local code editor.
+    *   We need to tell the application to use the database.
+    *   Open `src/lib/products.ts`, `src/lib/coupons.ts` and `src/lib/orders.ts` in your local code editor.
     *   You will see several commented-out sections of code labeled `--- Database Logic ---`.
-    *   **DELETE or COMMENT OUT** the lines that say `return Promise.resolve(...)` (the hardcoded logic).
+    *   **DELETE or COMMENT OUT** the lines that contain the hardcoded logic.
     *   **UNCOMMENT** all the database logic sections that use `pool.query`.
-    *   Save the file.
+    *   Save the files.
 
 3.  **Redeploy the Changes:**
-    *   In your terminal, commit and push the change you just made:
+    *   In your terminal, commit and push the changes you just made:
     ```bash
-    git add src/lib/products.ts
-    git commit -m "Switch to live database"
+    git add src/lib/products.ts src/lib/coupons.ts src/lib/orders.ts
+    git commit -m "Switch to live database mode"
     git push
     ```
     *   Vercel will automatically detect the push and redeploy your application with the new settings.
+
+4.  **Configure Mercado Pago Webhook (CRITICAL):**
+    *   After your site is live with HTTPS, you must tell Mercado Pago where to send payment updates.
+    *   Go to your **Mercado Pago Developer Dashboard**.
+    *   Navigate to **Your Applications > (Your App Name) > Webhooks**.
+    *   In the "Production" URL field, enter the full URL to your new webhook endpoint. It will be your Vercel production domain followed by `/api/mercadopago-webhook`. For example:
+        ```
+        https://joya-store-abcdef.vercel.app/api/mercadopago-webhook
+        ```
+    *   Under "Events", make sure that **Payments** (`payment`) is selected.
+    *   Save your changes. This step is essential for your server to receive payment confirmations.
 
 ### You're Live!
 
