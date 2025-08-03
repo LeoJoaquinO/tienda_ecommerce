@@ -47,12 +47,12 @@ export default function RootLayout({
             </CartProvider>
         </ThemeProvider>
         
-        {/* Hotjar Tracking Code - Replace YOUR_SITE_ID with your actual Site ID */}
+        {/* Hotjar Tracking Code - Replace 'YOUR_SITE_ID' with your actual Site ID */}
         <Script id="hotjar-integration" strategy="afterInteractive">
           {`
             (function(h,o,t,j,a,r){
                 h.hj=h.hj||function(){(h.hj.q=h.hj.q||[]).push(arguments)};
-                h._hjSettings={hjid:YOUR_SITE_ID,hjsv:6};
+                h._hjSettings={hjid:'YOUR_SITE_ID',hjsv:6};
                 a=o.getElementsByTagName('head')[0];
                 r=o.createElement('script');r.async=1;
                 r.src=t+h._hjSettings.hjid+j+h._hjSettings.hjsv;
