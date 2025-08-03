@@ -75,7 +75,7 @@ export default function GarantiaPage() {
       </div>
        <div className="text-center mt-12">
             <p className="text-lg font-semibold text-muted-foreground">¡Muchas Gracias por tu confianza!</p>
-            <p className="text-sm text-muted-foreground">@almablancaplata925</p>
+            <p className="text-sm text-muted-foreground">Joya</p>
         </div>
     </div>
   );

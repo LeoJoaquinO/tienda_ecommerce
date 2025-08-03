@@ -1,5 +1,5 @@
 
-import { Instagram, Facebook, Twitter, Send } from "lucide-react";
+import { Instagram, Facebook, Send } from "lucide-react";
 import Link from 'next/link';
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
@@ -21,7 +21,6 @@ export default function Footer() {
                  <div className="flex gap-4">
                     <Link href="https://instagram.com" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="text-muted-foreground hover:text-primary transition-colors"><Instagram className="h-6 w-6"/></Link>
                     <Link href="https://facebook.com" target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="text-muted-foreground hover:text-primary transition-colors"><Facebook className="h-6 w-6"/></Link>
-                    <Link href="https://twitter.com" target="_blank" rel="noopener noreferrer" aria-label="Twitter" className="text-muted-foreground hover:text-primary transition-colors"><Twitter className="h-6 w-6"/></Link>
                 </div>
             </div>
             
