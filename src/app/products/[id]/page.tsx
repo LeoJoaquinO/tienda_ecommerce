@@ -3,7 +3,7 @@ import Image from 'next/image';
 import { getProductById } from '@/lib/products';
 import { AddToCartButton } from '@/components/AddToCartButton';
 import type { Product } from '@/lib/types';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
 
 export default async function ProductPage({ params }: { params: { id: string } }) {
   const productId = parseInt(params.id, 10);
@@ -43,15 +43,28 @@ export default async function ProductPage({ params }: { params: { id: string } }
           ) : (
             <p className="mt-6 text-4xl font-bold text-primary">${product.price.toLocaleString('es-AR')}</p>
           )}
-          <div className="mt-8">
-            <AddToCartButton product={product} />
+          <div className="mt-8 space-y-4">
+            {product.stock > 0 ? (
+              <>
+                <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                  <CheckCircle2 className="h-5 w-5" />
+                  <p className="font-semibold">En Stock</p>
+                </div>
+                <AddToCartButton product={product} />
+                {product.stock <= 5 && (
+                  <div className="flex items-center gap-2 text-amber-600">
+                      <AlertTriangle className="h-5 w-5" />
+                      <p className="text-sm font-semibold">¡Quedan pocas unidades!</p>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                <XCircle className="h-5 w-5" />
+                <p className="font-semibold">Sin Stock</p>
+              </div>
+            )}
           </div>
-           {product.stock > 0 && product.stock <= 5 && (
-            <div className="mt-4 flex items-center gap-2 text-amber-600">
-                <AlertTriangle className="h-5 w-5" />
-                <p className="text-sm font-semibold">¡Quedan pocas unidades!</p>
-            </div>
-           )}
         </div>
       </div>
     </div>
