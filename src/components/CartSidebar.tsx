@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from 'next/link';
@@ -123,7 +122,7 @@ export default function CartSidebar() {
                     </div>
                      <div className="flex justify-between">
                         <span>Envío</span>
-                        <span>Gratis</span>
+                        <span>A coordinar</span>
                     </div>
                     <div className="flex justify-between font-bold text-base">
                         <span>Total</span>
@@ -133,7 +132,7 @@ export default function CartSidebar() {
              </div>
             <SheetFooter className="gap-2 pr-6">
                  <Button asChild className="w-full">
-                    <Link href="/checkout">Iniciar Compra</Link>
+                    <Link href="/checkout" onClick={() => setIsSidebarOpen(false)}>Iniciar Compra</Link>
                 </Button>
                 <Button variant="outline" asChild className="w-full">
                     <Link href="/tienda" onClick={() => setIsSidebarOpen(false)}>Seguir Comprando</Link>
