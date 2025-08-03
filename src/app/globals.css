@@ -59,8 +59,13 @@ body {
   }
   body {
     @apply bg-background text-foreground;
-    background-image: radial-gradient(hsl(var(--muted)) 1px, transparent 1px);
-    background-size: 1rem 1rem;
+    background-color: hsl(var(--background));
+    background-image:  
+      radial-gradient(at 80% 80%, hsla(var(--primary), 0.15) 0px, transparent 50%),
+      radial-gradient(at 10% 20%, hsla(var(--secondary), 0.25) 0px, transparent 50%),
+      radial-gradient(at 90% 10%, hsla(var(--accent), 0.35) 0px, transparent 50%);
     background-attachment: fixed;
   }
 }
+
+    

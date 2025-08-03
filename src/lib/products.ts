@@ -7,12 +7,12 @@ import { RowDataPacket } from 'mysql2';
 // The deployment guide explains how to switch to a live MySQL database.
 
 const hardcodedProducts: Product[] = [
-    { id: 1, name: "Anillo de Bodas Clásico", description: "Un elegante y atemporal anillo de bodas de oro, perfecto para simbolizar vuestro amor eterno.", price: 750, salePrice: 699, image: "https://cdn.pixabay.com/photo/2018/08/16/19/56/wedding-rings-3611277_640.jpg", category: "Anillos", stock: 15, featured: true, aiHint: "gold rings" },
-    { id: 2, name: "Alianza de Compromiso", description: "Una hermosa alianza de oro blanco para un compromiso inolvidable.", price: 980, salePrice: null, image: "https://cdn.pixabay.com/photo/2018/08/16/19/56/wedding-rings-3611277_640.jpg", category: "Anillos", stock: 10, featured: true, aiHint: "gold rings" },
-    { id: 3, name: "Anillos Gemelos de Plata", description: "Un par de anillos gemelos de plata, ideales para parejas que valoran la elegancia y la simplicidad.", price: 450, salePrice: 400, image: "https://cdn.pixabay.com/photo/2018/08/16/19/56/wedding-rings-3611277_640.jpg", category: "Anillos", stock: 20, featured: true, aiHint: "silver rings" },
-    { id: 4, name: "Sortija de Oro Rosa", description: "Una delicada sortija de oro rosa con un diseño moderno y femenino.", price: 620, salePrice: null, image: "https://cdn.pixabay.com/photo/2018/08/16/19/56/wedding-rings-3611277_640.jpg", category: "Anillos", stock: 8, featured: false, aiHint: "rose gold ring" },
-    { id: 5, name: "Anillo de Boda con Textura", description: "Un anillo de boda único con una textura martillada que le da un carácter distintivo.", price: 810, salePrice: 750, image: "https://cdn.pixabay.com/photo/2018/08/16/19/56/wedding-rings-3611277_640.jpg", category: "Anillos", stock: 12, featured: false, aiHint: "textured ring" },
-    { id: 6, name: "Set de Anillos de Boda", description: "Un juego completo de anillos de boda de oro a juego para él y para ella.", price: 1500, salePrice: null, image: "https://cdn.pixabay.com/photo/2018/08/16/19/56/wedding-rings-3611277_640.jpg", category: "Anillos", stock: 5, featured: true, aiHint: "wedding rings set" },
+    { id: 1, name: "Aura de Rosas", description: "Una fragancia floral y romántica con notas de rosa de Damasco, peonía y almizcle blanco.", price: 120, salePrice: 99, image: "https://placehold.co/600x600.png", category: "Floral", stock: 25, featured: true, aiHint: "perfume bottle" },
+    { id: 2, name: "Noche en el Desierto", description: "Un aroma oriental especiado, con toques de incienso, oud y ámbar.", price: 150, salePrice: null, image: "https://placehold.co/600x600.png", category: "Oriental", stock: 15, featured: true, aiHint: "perfume bottle" },
+    { id: 3, name: "Cítrico Vibrante", description: "Una explosión de frescura con limón siciliano, bergamota y vetiver. Ideal para el día a día.", price: 95, salePrice: 80, image: "https://placehold.co/600x600.png", category: "Cítrico", stock: 30, featured: true, aiHint: "perfume bottle" },
+    { id: 4, name: "Madera y Cuero", description: "Un perfume masculino y sofisticado, con notas de cedro, cuero y tabaco.", price: 135, salePrice: null, image: "https://placehold.co/600x600.png", category: "Amaderado", stock: 18, featured: false, aiHint: "perfume bottle" },
+    { id: 5, name: "Vainilla Gourmand", description: "Una fragancia dulce y acogedora que evoca postres recién horneados, con vainilla de Tahití y caramelo.", price: 110, salePrice: null, image: "https://placehold.co/600x600.png", category: "Dulce", stock: 22, featured: false, aiHint: "perfume bottle" },
+    { id: 6, name: "Brise Marina", description: "Un aroma fresco y acuático que captura la esencia del océano, con sal marina, algas y salvia.", price: 105, salePrice: 90, image: "https://placehold.co/600x600.png", category: "Acuático", stock: 28, featured: true, aiHint: "perfume bottle" },
 ];
 
 export async function getProducts(): Promise<Product[]> {
@@ -153,3 +153,5 @@ function handleDbError(error: any, context: string): never {
     throw new Error(`A database error occurred during ${context}.`);
 }
 */
+
+    

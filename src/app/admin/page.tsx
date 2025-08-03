@@ -15,7 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { PlusCircle, Edit, Trash2, LogIn, Loader2 } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, LogIn, Loader2, Package, Tag, Wallet } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -150,89 +150,135 @@ function AdminDashboard() {
       }
     }
 
+    const totalProducts = products.length;
+    const totalStock = products.reduce((acc, p) => acc + p.stock, 0);
+    const productsOnSale = products.filter(p => p.salePrice && p.salePrice > 0).length;
+
     return (
     <div className="space-y-8">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold font-headline">Gestionar Productos</h1>
-         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-            <DialogTrigger asChild>
-                <Button>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Añadir Producto
-                </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[625px]">
-                <DialogHeader>
-                    <DialogTitle>Añadir Nuevo Producto</DialogTitle>
-                </DialogHeader>
-                <ProductForm onFinished={onFormFinished} />
-            </DialogContent>
-        </Dialog>
-      </div>
+        <div>
+            <h1 className="text-3xl font-bold font-headline">Panel de Administración</h1>
+            <p className="text-muted-foreground">Métricas y gestión de productos.</p>
+        </div>
 
-      <Card>
-        <CardContent className='p-0'>
-            {isLoading ? (
-                 <div className="flex justify-center items-center h-64">
-                    <Loader2 className="h-8 w-8 animate-spin" />
+        {/* Metrics Section */}
+        <div className="grid gap-4 md:grid-cols-3">
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total de Productos</CardTitle>
+                    <Package className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : totalProducts}</div>
+                    <p className="text-xs text-muted-foreground">Productos únicos en la tienda</p>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Inventario Total</CardTitle>
+                    <Wallet className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : totalStock}</div>
+                    <p className="text-xs text-muted-foreground">Unidades de todos los productos</p>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Productos en Oferta</CardTitle>
+                    <Tag className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : productsOnSale}</div>
+                     <p className="text-xs text-muted-foreground">Productos con precio de descuento</p>
+                </CardContent>
+            </Card>
+        </div>
+        
+        {/* Products Table Section */}
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                     <CardTitle>Gestionar Productos</CardTitle>
+                     <CardDescription>Añade, edita o elimina productos de tu catálogo.</CardDescription>
                 </div>
-            ) : (
-                <Table>
-                    <TableHeader>
-                    <TableRow>
-                        <TableHead>Imagen</TableHead>
-                        <TableHead>Nombre</TableHead>
-                        <TableHead>Precio</TableHead>
-                        <TableHead>Stock</TableHead>
-                        <TableHead>Acciones</TableHead>
-                    </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                    {products.map(product => (
-                        <TableRow key={product.id}>
-                        <TableCell>
-                            <Image
-                            src={product.image}
-                            alt={product.name}
-                            width={40}
-                            height={40}
-                            className="rounded-md"
-                            data-ai-hint={product.aiHint}
-                            />
-                        </TableCell>
-                        <TableCell className="font-medium">{product.name}</TableCell>
-                        <TableCell>${(product.salePrice ?? product.price).toLocaleString('es-AR')}</TableCell>
-                        <TableCell>{product.stock}</TableCell>
-                        <TableCell>
-                            <div className="flex gap-2">
-                                <Dialog>
-                                    <DialogTrigger asChild>
-                                        <Button variant="outline" size="icon">
-                                            <Edit className="h-4 w-4" />
-                                        </Button>
-                                    </DialogTrigger>
-                                    <DialogContent className="sm:max-w-[625px]">
-                                        <DialogHeader>
-                                            <DialogTitle>Editar Producto</DialogTitle>
-                                        </DialogHeader>
-                                        <ProductForm product={product} onFinished={() => {
-                                           const closeButton = document.querySelector('[data-radix-dialog-close]');
-                                           if (closeButton instanceof HTMLElement) closeButton.click();
-                                           fetchAndSetProducts();
-                                        }} />
-                                    </DialogContent>
-                                </Dialog>
-                                <Button variant="destructive" size="icon" onClick={() => handleDelete(product.id)}>
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                            </div>
-                        </TableCell>
+                <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+                    <DialogTrigger asChild>
+                        <Button>
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            Añadir Producto
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[625px]">
+                        <DialogHeader>
+                            <DialogTitle>Añadir Nuevo Producto</DialogTitle>
+                        </DialogHeader>
+                        <ProductForm onFinished={onFormFinished} />
+                    </DialogContent>
+                </Dialog>
+            </CardHeader>
+            <CardContent className='p-0'>
+                {isLoading ? (
+                    <div className="flex justify-center items-center h-64">
+                        <Loader2 className="h-8 w-8 animate-spin" />
+                    </div>
+                ) : (
+                    <Table>
+                        <TableHeader>
+                        <TableRow>
+                            <TableHead>Imagen</TableHead>
+                            <TableHead>Nombre</TableHead>
+                            <TableHead>Precio</TableHead>
+                            <TableHead>Stock</TableHead>
+                            <TableHead>Acciones</TableHead>
                         </TableRow>
-                    ))}
-                    </TableBody>
-                </Table>
-            )}
-        </CardContent>
+                        </TableHeader>
+                        <TableBody>
+                        {products.map(product => (
+                            <TableRow key={product.id}>
+                            <TableCell>
+                                <Image
+                                src={product.image}
+                                alt={product.name}
+                                width={40}
+                                height={40}
+                                className="rounded-md object-cover"
+                                data-ai-hint={product.aiHint}
+                                />
+                            </TableCell>
+                            <TableCell className="font-medium">{product.name}</TableCell>
+                            <TableCell>${(product.salePrice ?? product.price).toLocaleString('es-AR')}</TableCell>
+                            <TableCell>{product.stock}</TableCell>
+                            <TableCell>
+                                <div className="flex gap-2">
+                                    <Dialog>
+                                        <DialogTrigger asChild>
+                                            <Button variant="outline" size="icon">
+                                                <Edit className="h-4 w-4" />
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="sm:max-w-[625px]">
+                                            <DialogHeader>
+                                                <DialogTitle>Editar Producto</DialogTitle>
+                                            </DialogHeader>
+                                            <ProductForm product={product} onFinished={() => {
+                                            const closeButton = document.querySelector('[data-radix-dialog-close]');
+                                            if (closeButton instanceof HTMLElement) closeButton.click();
+                                            fetchAndSetProducts();
+                                            }} />
+                                        </DialogContent>
+                                    </Dialog>
+                                    <Button variant="destructive" size="icon" onClick={() => handleDelete(product.id)}>
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </TableCell>
+                            </TableRow>
+                        ))}
+                        </TableBody>
+                    </Table>
+                )}
+            </CardContent>
       </Card>
     </div>
   );
@@ -263,7 +309,7 @@ export default function AdminPage() {
                 <CardHeader>
                     <CardTitle className="text-2xl font-bold font-headline">Admin Login</CardTitle>
                     <CardDescription>
-                        Ingresa a tu cuenta para gestionar productos.
+                        Ingresa a tu cuenta para gestionar la tienda.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -289,3 +335,5 @@ export default function AdminPage() {
 
   return <AdminDashboard />;
 }
+
+    
