@@ -1,11 +1,21 @@
-import pool from './db';
-import type { OrderData, OrderStatus } from './types';
-import { RowDataPacket, OkPacket } from 'mysql2';
 
-// Let's assume hardcoded data is not needed for orders in the same way as products,
-// as orders are transactional. We'll build the DB logic directly.
-let hardcodedOrders: any[] = [];
-let nextOrderId = 1;
+import pool from './db';
+import type { OrderData, OrderStatus, SalesMetrics, Product } from './types';
+import { RowDataPacket, OkPacket } from 'mysql2';
+import { getProducts } from './products';
+
+
+// --- Hardcoded Data for Demonstration ---
+// NOTE: In a real application, this would be empty and populated by real orders.
+// We are pre-filling it here to demonstrate the new metrics panel.
+let hardcodedOrders: any[] = [
+    { id: 101, customerName: 'Juan Perez', customerEmail: 'juan@example.com', total: 255, status: 'paid', createdAt: new Date('2024-07-20T10:30:00Z'), items: [{ product: {id: 1, salePrice: 102, price: 120}, quantity: 1 }, { product: {id: 2, salePrice: 150, price: 150}, quantity: 1 }] },
+    { id: 102, customerName: 'Ana Gomez', customerEmail: 'ana@example.com', total: 95, status: 'paid', createdAt: new Date('2024-07-21T14:00:00Z'), items: [{ product: {id: 3, salePrice: 85.5, price: 95}, quantity: 1 }] },
+    { id: 103, customerName: 'Carlos Ruiz', customerEmail: 'carlos@example.com', total: 245, status: 'paid', createdAt: new Date('2024-07-22T11:00:00Z'), items: [{ product: {id: 4, price: 135}, quantity: 1 }, { product: {id: 5, price: 110}, quantity: 1 }] },
+    { id: 104, customerName: 'Lucia Fernandez', customerEmail: 'lucia@example.com', total: 85.5, status: 'paid', createdAt: new Date(), items: [{ product: {id: 3, salePrice: 85.5, price: 95}, quantity: 1 }] },
+    { id: 105, customerName: 'Test Pending', customerEmail: 'pending@test.com', total: 100, status: 'pending', createdAt: new Date(), items: [{ product: {id: 1, salePrice: 102, price: 120}, quantity: 1 }] },
+];
+let nextOrderId = 106;
 
 
 /**
@@ -28,7 +38,11 @@ function handleDbError(error: any, context: string): never {
  */
 export async function createOrder(orderData: OrderData): Promise<number> {
     // --- Hardcoded Logic ---
-    const newOrder = { id: nextOrderId++, ...orderData, createdAt: new Date() };
+    const newOrder = { 
+        id: nextOrderId++, 
+        ...orderData, 
+        createdAt: new Date(),
+    };
     hardcodedOrders.push(newOrder);
     console.log("createOrder called (hardcoded). Order created:", newOrder);
     // In a real scenario, you'd also decrement stock here.
@@ -143,6 +157,77 @@ export async function restockItemsForOrder(orderId: number): Promise<void> {
         handleDbError(error, `restocking items for order ${orderId}`);
     } finally {
         connection.release();
+    }
+    */
+}
+
+/**
+ * Retrieves sales metrics from the database.
+ */
+export async function getSalesMetrics(): Promise<SalesMetrics> {
+    // --- Hardcoded Logic ---
+    const paidOrders = hardcodedOrders.filter(o => o.status === 'paid');
+    const totalRevenue = paidOrders.reduce((sum, order) => sum + order.total, 0);
+    const totalSales = paidOrders.length;
+    
+    const salesByProduct: { [key: number]: { name: string; count: number } } = {};
+    const allProducts = await getProducts(); // Need product names
+
+    for (const order of paidOrders) {
+        for (const item of order.items) {
+            const productId = item.product.id;
+            const productDetails = allProducts.find(p => p.id === productId);
+            const productName = productDetails ? productDetails.name : `Producto #${productId}`;
+
+            if (salesByProduct[productId]) {
+                salesByProduct[productId].count += item.quantity;
+            } else {
+                salesByProduct[productId] = { name: productName, count: item.quantity };
+            }
+        }
+    }
+
+    const topSellingProducts = Object.entries(salesByProduct)
+        .map(([id, data]) => ({ productId: Number(id), name: data.name, count: data.count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5); // Get top 5
+
+    return Promise.resolve({
+        totalRevenue,
+        totalSales,
+        topSellingProducts
+    });
+
+    // --- Database Logic ---
+    /*
+    try {
+        const [revenueResult] = await pool.query<RowDataPacket[]>(
+            "SELECT SUM(total) as totalRevenue, COUNT(*) as totalSales FROM orders WHERE status = 'paid'"
+        );
+
+        const [topProductsResult] = await pool.query<RowDataPacket[]>(`
+            SELECT p.id, p.name, SUM(oi.quantity) as count
+            FROM order_items oi
+            JOIN products p ON oi.product_id = p.id
+            JOIN orders o ON oi.order_id = o.id
+            WHERE o.status = 'paid'
+            GROUP BY p.id, p.name
+            ORDER BY count DESC
+            LIMIT 5
+        `);
+        
+        return {
+            totalRevenue: Number(revenueResult[0].totalRevenue) || 0,
+            totalSales: Number(revenueResult[0].totalSales) || 0,
+            topSellingProducts: topProductsResult.map(row => ({
+                productId: row.id,
+                name: row.name,
+                count: Number(row.count)
+            }))
+        };
+
+    } catch(error) {
+        handleDbError(error, 'fetching sales metrics');
     }
     */
 }

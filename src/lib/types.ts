@@ -40,3 +40,13 @@ export type OrderData = {
     couponCode?: string | null;
     discountAmount?: number;
 }
+
+export type SalesMetrics = {
+    totalRevenue: number;
+    totalSales: number;
+    topSellingProducts: {
+        productId: number;
+        name: string;
+        count: number;
+    }[];
+};

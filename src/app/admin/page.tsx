@@ -5,7 +5,8 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { getProducts } from '@/lib/products';
 import { getCoupons } from '@/lib/coupons';
-import type { Product, Coupon } from '@/lib/types';
+import { getSalesMetrics } from '@/lib/orders';
+import type { Product, Coupon, SalesMetrics } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -18,7 +19,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PlusCircle, Edit, Trash2, LogIn, LogOut, Loader2, Package, Tag, Wallet, Calendar as CalendarIcon, BarChart, AlertTriangle, ShoppingCart, Ticket, Badge } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, LogIn, LogOut, Loader2, Package, Tag, Wallet, Calendar as CalendarIcon, BarChart, AlertTriangle, ShoppingCart, Ticket, Badge, TrendingUp, DollarSign } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -184,12 +185,10 @@ function CouponForm({ coupon, onFinished }: { coupon?: Coupon, onFinished: () =>
 // ############################################################################
 // Component: MetricsTab
 // ############################################################################
-function MetricsTab({ products, isLoading }: { products: Product[], isLoading: boolean }) {
+function MetricsTab({ products, salesMetrics, isLoading }: { products: Product[], salesMetrics: SalesMetrics | null, isLoading: boolean }) {
     const totalProducts = products.length;
     const totalStock = products.reduce((acc, p) => acc + p.stock, 0);
-    const totalInventoryValue = products.reduce((acc, p) => acc + (p.price * p.stock), 0);
-    const productsOnSale = products.filter(p => p.salePrice && p.salePrice > 0).length;
-    const lowStockProducts = products.filter(p => p.stock <= 3);
+    const lowStockProducts = products.filter(p => p.stock > 0 && p.stock <= 3);
 
     const categoryData = Object.values(products.reduce((acc, product) => {
         const category = product.category || 'Sin Categoría';
@@ -201,10 +200,10 @@ function MetricsTab({ products, isLoading }: { products: Product[], isLoading: b
     return (
         <div className="space-y-6">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Card className="shadow-md"><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total de Productos</CardTitle><Package className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : totalProducts}</div><p className="text-xs text-muted-foreground">Productos únicos</p></CardContent></Card>
-                <Card className="shadow-md"><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Inventario Total</CardTitle><ShoppingCart className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : totalStock}</div><p className="text-xs text-muted-foreground">Unidades de todos los productos</p></CardContent></Card>
-                <Card className="shadow-md"><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Valor del Inventario</CardTitle><Wallet className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : `$${totalInventoryValue.toLocaleString('es-AR')}`}</div><p className="text-xs text-muted-foreground">Valor de costo del stock</p></CardContent></Card>
-                <Card className="shadow-md"><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Productos en Oferta</CardTitle><Tag className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : productsOnSale}</div><p className="text-xs text-muted-foreground">Productos con descuento activo</p></CardContent></Card>
+                <Card className="shadow-md"><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Ingresos Totales</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{isLoading || !salesMetrics ? <Loader2 className="h-6 w-6 animate-spin" /> : `$${salesMetrics.totalRevenue.toLocaleString('es-AR')}`}</div><p className="text-xs text-muted-foreground">Suma de todas las ventas</p></CardContent></Card>
+                <Card className="shadow-md"><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Ventas Totales</CardTitle><ShoppingCart className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{isLoading || !salesMetrics ? <Loader2 className="h-6 w-6 animate-spin" /> : `+${salesMetrics.totalSales}`}</div><p className="text-xs text-muted-foreground">Cantidad de órdenes pagadas</p></CardContent></Card>
+                <Card className="shadow-md"><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total de Productos</CardTitle><Package className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : totalProducts}</div><p className="text-xs text-muted-foreground">Productos únicos en el catálogo</p></CardContent></Card>
+                <Card className="shadow-md"><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Inventario Total</CardTitle><Wallet className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : totalStock}</div><p className="text-xs text-muted-foreground">Suma de stock de todos los productos</p></CardContent></Card>
             </div>
             <div className="grid gap-6 lg:grid-cols-2">
                 <Card className="flex-1 shadow-md"><CardHeader><CardTitle>Productos por Categoría</CardTitle><CardDescription>Un desglose de cuántos productos tienes en cada categoría.</CardDescription></CardHeader><CardContent>
@@ -214,7 +213,16 @@ function MetricsTab({ products, isLoading }: { products: Product[], isLoading: b
                         </ChartContainer>
                     ) : <div className="flex justify-center items-center h-80"><BarChart className="h-8 w-8 text-muted-foreground" /><p className="text-muted-foreground ml-4">No hay datos de categoría.</p></div>}
                 </CardContent></Card>
-                <Card className="shadow-md"><CardHeader><CardTitle className="flex items-center gap-2"><AlertTriangle className="text-amber-500"/>Alertas de Inventario</CardTitle><CardDescription>Productos con bajo stock (3 unidades o menos).</CardDescription></CardHeader><CardContent>
+                 <Card className="shadow-md"><CardHeader><CardTitle className="flex items-center gap-2"><TrendingUp className="text-blue-500"/>Productos Más Vendidos</CardTitle><CardDescription>Tus productos más populares basados en unidades vendidas.</CardDescription></CardHeader><CardContent>
+                    {isLoading || !salesMetrics ? <div className="flex justify-center items-center h-80"><Loader2 className="h-8 w-8 animate-spin" /></div> : salesMetrics.topSellingProducts.length > 0 ? (
+                        <Table><TableHeader><TableRow><TableHead>Producto</TableHead><TableHead className="text-right">Unidades Vendidas</TableHead></TableRow></TableHeader><TableBody>
+                            {salesMetrics.topSellingProducts.map(p => <TableRow key={p.productId}><TableCell className="font-medium">{p.name}</TableCell><TableCell className="text-right font-bold text-primary">{p.count}</TableCell></TableRow>)}
+                        </TableBody></Table>
+                    ) : <div className="flex justify-center items-center h-80"><TrendingUp className="h-8 w-8 text-muted-foreground" /><p className="text-muted-foreground ml-4">Aún no hay datos de ventas.</p></div>}
+                </CardContent></Card>
+            </div>
+             <div className="grid gap-6">
+                <Card className="shadow-md"><CardHeader><CardTitle className="flex items-center gap-2"><AlertTriangle className="text-amber-500"/>Alertas de Stock Bajo</CardTitle><CardDescription>Productos con 3 unidades o menos en stock.</CardDescription></CardHeader><CardContent>
                     {isLoading ? <div className="flex justify-center items-center h-80"><Loader2 className="h-8 w-8 animate-spin" /></div> : lowStockProducts.length > 0 ? (
                         <Table><TableHeader><TableRow><TableHead>Producto</TableHead><TableHead className="text-right">Stock Restante</TableHead></TableRow></TableHeader><TableBody>
                             {lowStockProducts.map(p => <TableRow key={p.id}><TableCell className="font-medium">{p.name}</TableCell><TableCell className="text-right font-bold text-destructive">{p.stock}</TableCell></TableRow>)}
@@ -225,6 +233,7 @@ function MetricsTab({ products, isLoading }: { products: Product[], isLoading: b
         </div>
     );
 }
+
 
 // ############################################################################
 // Component: ProductsTab
@@ -302,38 +311,32 @@ function CouponsTab({ coupons, isLoading, onAdd, onEdit, onDelete }: { coupons: 
 function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     const [products, setProducts] = useState<Product[]>([]);
     const [coupons, setCoupons] = useState<Coupon[]>([]);
-    const [isProductsLoading, setIsProductsLoading] = useState(true);
-    const [isCouponsLoading, setIsCouponsLoading] = useState(true);
+    const [salesMetrics, setSalesMetrics] = useState<SalesMetrics | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
     const [dialogType, setDialogType] = useState<'product' | 'coupon' | null>(null);
     const [editingProduct, setEditingProduct] = useState<Product | undefined>(undefined);
     const [editingCoupon, setEditingCoupon] = useState<Coupon | undefined>(undefined);
     const { toast } = useToast();
 
-    const fetchAndSetProducts = async () => {
-        setIsProductsLoading(true);
+    const fetchData = async () => {
+        setIsLoading(true);
         try {
-            const fetchedProducts = await getProducts();
+            const [fetchedProducts, fetchedCoupons, fetchedMetrics] = await Promise.all([
+                getProducts(),
+                getCoupons(),
+                getSalesMetrics(),
+            ]);
             setProducts(fetchedProducts);
-        } catch (error) {
-            toast({ title: 'Error al cargar productos', description: (error as Error).message, variant: 'destructive' });
-        }
-        setIsProductsLoading(false);
-    }
-    
-    const fetchAndSetCoupons = async () => {
-        setIsCouponsLoading(true);
-        try {
-            const fetchedCoupons = await getCoupons();
             setCoupons(fetchedCoupons);
+            setSalesMetrics(fetchedMetrics);
         } catch (error) {
-            toast({ title: 'Error al cargar cupones', description: (error as Error).message, variant: 'destructive' });
+            toast({ title: 'Error al cargar los datos del panel', description: (error as Error).message, variant: 'destructive' });
         }
-        setIsCouponsLoading(false);
+        setIsLoading(false);
     }
 
     useEffect(() => { 
-        fetchAndSetProducts();
-        fetchAndSetCoupons();
+        fetchData();
     }, []);
     
     const handleOpenProductDialog = (product?: Product) => {
@@ -353,10 +356,8 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     };
 
     const onFormFinished = () => {
-        const currentDialog = dialogType;
         handleCloseDialog();
-        if (currentDialog === 'product') fetchAndSetProducts();
-        if (currentDialog === 'coupon') fetchAndSetCoupons();
+        fetchData(); // Refetch all data to ensure consistency
     }
     
     const handleDeleteProduct = async (id: number) => {
@@ -366,7 +367,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
             toast({ title: 'Error', description: result.error, variant: 'destructive' });
         } else {
             toast({ title: 'Éxito', description: result.message });
-            fetchAndSetProducts();
+            fetchData();
         }
       }
     }
@@ -378,7 +379,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
             } else {
                 toast({ title: 'Éxito', description: result.message });
-                fetchAndSetCoupons();
+                fetchData();
             }
         }
     }
@@ -397,13 +398,13 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                 <TabsTrigger value="coupons">Cupones</TabsTrigger>
             </TabsList>
             <TabsContent value="overview" className="mt-6">
-                <MetricsTab products={products} isLoading={isProductsLoading} />
+                <MetricsTab products={products} salesMetrics={salesMetrics} isLoading={isLoading} />
             </TabsContent>
             <TabsContent value="products" className="mt-6">
-                <ProductsTab products={products} isLoading={isProductsLoading} onAdd={() => handleOpenProductDialog()} onEdit={handleOpenProductDialog} onDelete={handleDeleteProduct} />
+                <ProductsTab products={products} isLoading={isLoading} onAdd={() => handleOpenProductDialog()} onEdit={handleOpenProductDialog} onDelete={handleDeleteProduct} />
             </TabsContent>
             <TabsContent value="coupons" className="mt-6">
-                <CouponsTab coupons={coupons} isLoading={isCouponsLoading} onAdd={() => handleOpenCouponDialog()} onEdit={handleOpenCouponDialog} onDelete={handleDeleteCoupon} />
+                <CouponsTab coupons={coupons} isLoading={isLoading} onAdd={() => handleOpenCouponDialog()} onEdit={handleOpenCouponDialog} onDelete={handleDeleteCoupon} />
             </TabsContent>
         </Tabs>
 
