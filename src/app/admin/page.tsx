@@ -19,7 +19,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PlusCircle, Edit, Trash2, LogIn, LogOut, Loader2, Package, Tag, Wallet, Calendar as CalendarIcon, BarChart, AlertTriangle, ShoppingCart, Ticket, Badge, TrendingUp, DollarSign } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, LogIn, LogOut, Loader2, Package, Tag, Wallet, Calendar as CalendarIcon, BarChart, AlertTriangle, ShoppingCart, Ticket, Badge, TrendingUp, DollarSign, CheckCircle, XCircle } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -27,7 +27,16 @@ import {
   DialogTitle,
   DialogFooter,
   DialogClose,
-} from '@/components/ui/dialog';
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -167,7 +176,15 @@ function CouponForm({ coupon, onFinished }: { coupon?: Coupon, onFinished: () =>
                             <CalendarIcon className="mr-2 h-4 w-4" />{expiryDate ? format(expiryDate, "PPP") : <span>Elegir fecha</span>}
                         </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={expiryDate} onSelect={setExpiryDate} initialFocus /></PopoverContent>
+                    <PopoverContent className="w-auto p-0">
+                        <Calendar 
+                            mode="single" 
+                            selected={expiryDate} 
+                            onSelect={setExpiryDate} 
+                            initialFocus 
+                            fromDate={new Date()}
+                        />
+                    </PopoverContent>
                 </Popover>
             </div>
             <div className="flex items-center space-x-2">
@@ -256,7 +273,21 @@ function ProductsTab({ products, isLoading, onEdit, onDelete, onAdd }: { product
                                 <TableCell>{product.stock}</TableCell>
                                 <TableCell><div className="flex gap-2">
                                     <Button variant="outline" size="icon" onClick={() => onEdit(product)}><Edit className="h-4 w-4" /></Button>
-                                    <Button variant="destructive" size="icon" onClick={() => onDelete(product.id)}><Trash2 className="h-4 w-4" /></Button>
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                            <AlertDialogDescription>Esta acción no se puede deshacer. Esto eliminará permanentemente el producto.</AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                            <AlertDialogAction onClick={() => onDelete(product.id)}>Eliminar</AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
                                 </div></TableCell>
                             </TableRow>
                         ))}
@@ -271,6 +302,10 @@ function ProductsTab({ products, isLoading, onEdit, onDelete, onAdd }: { product
 // Component: CouponsTab
 // ############################################################################
 function CouponsTab({ coupons, isLoading, onAdd, onEdit, onDelete }: { coupons: Coupon[], isLoading: boolean, onAdd: () => void, onEdit: (c: Coupon) => void, onDelete: (id: number) => void }) {
+    const isCouponActive = (coupon: Coupon) => {
+        return coupon.isActive && (!coupon.expiryDate || new Date(coupon.expiryDate) > new Date());
+    }
+
     return (
         <Card className="shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between">
@@ -279,22 +314,36 @@ function CouponsTab({ coupons, isLoading, onAdd, onEdit, onDelete }: { coupons: 
             </CardHeader>
             <CardContent className='p-0'>
                 {isLoading ? <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div> : (
-                    <Table><TableHeader><TableRow><TableHead>Código</TableHead><TableHead>Tipo</TableHead><TableHead>Valor</TableHead><TableHead>Expiración</TableHead><TableHead>Estado</TableHead><TableHead>Acciones</TableHead></TableRow></TableHeader><TableBody>
+                    <Table><TableHeader><TableRow><TableHead>Código</TableHead><TableHead>Tipo</TableHead><TableHead>Valor</TableHead><TableHead>Expiración</TableHead><TableHead className="text-center">Estado</TableHead><TableHead>Acciones</TableHead></TableRow></TableHeader><TableBody>
                         {coupons.map(coupon => (
                             <TableRow key={coupon.id}>
                                 <TableCell className="font-medium text-primary">{coupon.code}</TableCell>
                                 <TableCell>{coupon.discountType === 'percentage' ? 'Porcentaje' : 'Monto Fijo'}</TableCell>
                                 <TableCell>{coupon.discountType === 'percentage' ? `${coupon.discountValue}%` : `$${coupon.discountValue.toLocaleString('es-AR')}`}</TableCell>
                                 <TableCell>{coupon.expiryDate ? format(new Date(coupon.expiryDate), 'PPP') : 'Nunca'}</TableCell>
-                                <TableCell>
-                                    {coupon.isActive && (!coupon.expiryDate || new Date(coupon.expiryDate) > new Date())
-                                      ? <Badge variant="default" className='bg-green-500 hover:bg-green-600'>Activo</Badge>
-                                      : <Badge variant="destructive">Inactivo</Badge>
+                                <TableCell className="text-center">
+                                    {isCouponActive(coupon)
+                                      ? <CheckCircle className="h-5 w-5 text-green-500 inline-block" />
+                                      : <XCircle className="h-5 w-5 text-destructive inline-block" />
                                     }
                                 </TableCell>
                                 <TableCell><div className="flex gap-2">
                                     <Button variant="outline" size="icon" onClick={() => onEdit(coupon)}><Edit className="h-4 w-4" /></Button>
-                                    <Button variant="destructive" size="icon" onClick={() => onDelete(coupon.id)}><Trash2 className="h-4 w-4" /></Button>
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                            <AlertDialogDescription>Esta acción no se puede deshacer. Esto eliminará permanentemente el cupón.</AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                            <AlertDialogAction onClick={() => onDelete(coupon.id)}>Eliminar</AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
                                 </div></TableCell>
                             </TableRow>
                         ))}
@@ -361,7 +410,6 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     }
     
     const handleDeleteProduct = async (id: number) => {
-      if (confirm('¿Estás seguro de que quieres eliminar este producto?')) {
         const result = await deleteProductAction(id);
          if (result?.error) {
             toast({ title: 'Error', description: result.error, variant: 'destructive' });
@@ -369,18 +417,15 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
             toast({ title: 'Éxito', description: result.message });
             fetchData();
         }
-      }
     }
 
     const handleDeleteCoupon = async (id: number) => {
-        if (confirm('¿Estás seguro de que quieres eliminar este cupón?')) {
-            const result = await deleteCouponAction(id);
-            if (result?.error) {
-                toast({ title: 'Error', description: result.error, variant: 'destructive' });
-            } else {
-                toast({ title: 'Éxito', description: result.message });
-                fetchData();
-            }
+        const result = await deleteCouponAction(id);
+        if (result?.error) {
+            toast({ title: 'Error', description: result.error, variant: 'destructive' });
+        } else {
+            toast({ title: 'Éxito', description: result.message });
+            fetchData();
         }
     }
 
