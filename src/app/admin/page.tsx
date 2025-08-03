@@ -51,12 +51,12 @@ function ProductForm({ product, onFinished }: { product?: Product, onFinished: (
 
     async function handleAction(formData: FormData) {
         setIsSubmitting(true);
-        if (startDate) formData.append('offerStartDate', startDate.toISOString());
-        if (endDate) formData.append('offerEndDate', endDate.toISOString());
+        if (startDate) formData.set('offerStartDate', startDate.toISOString());
+        if (endDate) formData.set('offerEndDate', endDate.toISOString());
 
         const result = await action(formData);
         if (result?.error) {
-            toast({ title: 'Error', description: result.error, variant: 'destructive' });
+            toast({ title: 'Error de Validación', description: result.error, variant: 'destructive' });
         } else {
             toast({ title: 'Éxito', description: result.message });
             onFinished();
@@ -69,7 +69,7 @@ function ProductForm({ product, onFinished }: { product?: Product, onFinished: (
             <div><Label htmlFor="name">Nombre</Label><Input id="name" name="name" defaultValue={product?.name} required /></div>
             <div><Label htmlFor="description">Descripción</Label><Textarea id="description" name="description" defaultValue={product?.description} required /></div>
             <div className="grid grid-cols-2 gap-4">
-                <div><Label htmlFor="price">Precio</Label><Input id="price" name="price" type="number" step="0.01" defaultValue={product?.price} required /></div>
+                <div><Label htmlFor="price">Precio</Label><Input id="price" name="price" type="number" step="0.01" min="0" defaultValue={product?.price} required /></div>
                 <div><Label htmlFor="discountPercentage">Descuento (%)</Label><Input id="discountPercentage" name="discountPercentage" type="number" step="1" min="0" max="100" defaultValue={product?.discountPercentage ?? ''} placeholder="Ej: 15" /></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -97,10 +97,10 @@ function ProductForm({ product, onFinished }: { product?: Product, onFinished: (
                 </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-                <div><Label htmlFor="stock">Stock</Label><Input id="stock" name="stock" type="number" defaultValue={product?.stock} required /></div>
+                <div><Label htmlFor="stock">Stock</Label><Input id="stock" name="stock" type="number" min="0" step="1" defaultValue={product?.stock} required /></div>
                 <div><Label htmlFor="category">Categoría</Label><Input id="category" name="category" defaultValue={product?.category} required /></div>
             </div>
-            <div><Label htmlFor="image">URL de la Imagen</Label><Input id="image" name="image" defaultValue={product?.image} required /></div>
+            <div><Label htmlFor="image">URL de la Imagen</Label><Input id="image" name="image" type="url" defaultValue={product?.image} required /></div>
             <div><Label htmlFor="aiHint">AI Hint</Label><Input id="aiHint" name="aiHint" defaultValue={product?.aiHint} /></div>
             <div className="flex items-center space-x-2"><Checkbox id="featured" name="featured" defaultChecked={product?.featured} /><Label htmlFor="featured">Producto Destacado</Label></div>
             <DialogFooter>
@@ -319,5 +319,3 @@ export default function AdminPage() {
 
   return <AdminDashboard onLogout={handleLogout} />;
 }
-
-    
