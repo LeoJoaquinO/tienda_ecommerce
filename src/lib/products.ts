@@ -29,9 +29,6 @@ let hardcodedProducts: Product[] = [
     { id: 6, name: "Brise Marina", description: "Un aroma fresco y acuático que captura la esencia del océano, con sal marina, algas y salvia.", price: 105, discountPercentage: 20, offerStartDate: new Date('2024-01-01'), offerEndDate: new Date('2025-12-31'), image: "https://es.loccitane.com/dw/image/v2/BCDQ_PRD/on/demandware.static/-/Library-Sites-OCC_SharedLibrary/default/dwed515ac4/CWE%20images/collections/630x450-applyperfume.png?sw=630&sh=450", category: "Acuático", stock: 0, featured: true, aiHint: "blue perfume" },
 ].map(calculateSalePrice);
 
-let hardcodedOrders: any[] = [];
-let nextOrderId = 1;
-
 
 export async function getProducts(): Promise<Product[]> {
   // Return hardcoded data. To use a database, comment this line out.
@@ -147,53 +144,6 @@ export async function deleteProduct(id: number): Promise<void> {
     }
     */
 }
-
-// --- Order Management ---
-
-export async function createOrder(orderData: OrderData): Promise<number> {
-    // Hardcoded logic
-    console.log("createOrder called (hardcoded).", orderData);
-    const newOrder = { id: nextOrderId++, ...orderData, createdAt: new Date() };
-    hardcodedOrders.push(newOrder);
-    // In a real scenario, you'd also decrement stock here, but that requires a transaction.
-    // For now, we just record the order.
-    return Promise.resolve(newOrder.id);
-
-    // --- Database Logic ---
-    /*
-    const connection = await pool.getConnection();
-    try {
-        await connection.beginTransaction();
-
-        const [orderResult] = await connection.query<OkPacket>(
-            'INSERT INTO orders (customer_name, customer_email, total, status, coupon_code, discount_amount) VALUES (?, ?, ?, ?, ?, ?)',
-            [orderData.customerName, orderData.customerEmail, orderData.total, orderData.status, orderData.couponCode, orderData.discountAmount]
-        );
-        const orderId = orderResult.insertId;
-
-        for (const item of orderData.items) {
-            await connection.query(
-                'INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)',
-                [orderId, item.product.id, item.quantity, item.product.salePrice ?? item.product.price]
-            );
-            // Decrement stock
-            await connection.query(
-                'UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?',
-                [item.quantity, item.product.id, item.quantity]
-            );
-        }
-
-        await connection.commit();
-        return orderId;
-    } catch (error) {
-        await connection.rollback();
-        handleDbError(error, 'creating an order');
-    } finally {
-        connection.release();
-    }
-    */
-}
-
 
 
 // --- Database Helper Functions (Commented out by default) ---

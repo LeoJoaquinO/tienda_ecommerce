@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MercadoPagoConfig, Preference } from 'mercadopago';
-import type { CartItem, Product, Coupon } from '@/lib/types';
+import type { CartItem, Coupon } from '@/lib/types';
 import type { PreferenceItem } from 'mercadopago/dist/clients/preference/commonTypes';
-import { createOrder } from '@/lib/products';
+import { createOrder } from '@/lib/orders';
 
 
 const client = new MercadoPagoConfig({ 
@@ -76,6 +76,9 @@ export async function POST(req: NextRequest) {
         items: preferenceItems,
         // We can pass our internal order ID to track it back upon return
         external_reference: String(orderId), 
+        // This is where Mercado Pago will send payment status updates.
+        // It must be a publicly accessible HTTPS URL. You'll set this up in your MP Dashboard.
+        notification_url: `${req.nextUrl.origin}/api/mercadopago-webhook`,
         back_urls: {
           success: `${req.nextUrl.origin}/`,
           failure: `${req.nextUrl.origin}/cart`,

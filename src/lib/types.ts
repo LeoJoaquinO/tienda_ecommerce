@@ -29,11 +29,13 @@ export type Coupon = {
   isActive: boolean;
 };
 
+export type OrderStatus = 'pending' | 'paid' | 'failed' | 'cancelled';
+
 export type OrderData = {
     customerName: string;
     customerEmail: string;
     total: number;
-    status: 'pending' | 'paid' | 'failed' | 'cancelled';
+    status: OrderStatus;
     items: CartItem[];
     couponCode?: string | null;
     discountAmount?: number;

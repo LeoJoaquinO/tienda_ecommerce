@@ -236,6 +236,23 @@ This is crucial for security and user trust.
 
 ---
 
+### Step 8: Configure Mercado Pago Webhook (CRITICAL)
+
+After your site is live with HTTPS, you must tell Mercado Pago where to send payment updates.
+
+1.  **Go to your Mercado Pago Developer Dashboard.**
+2.  Navigate to **Your Applications > (Your App Name) > Webhooks**.
+3.  In the "Production" URL field, enter the full URL to your new webhook endpoint. It will be:
+    ```
+    https://your_domain.com/api/mercadopago-webhook
+    ```
+4.  Under "Events", make sure that **Payments** (`payment`) is selected.
+5.  Save your changes.
+
+This step is essential for your server to receive payment confirmations and update orders automatically.
+
+---
+
 ## You're Live!
 
 Your store is now fully deployed and accessible securely at `https://your_domain.com`.
