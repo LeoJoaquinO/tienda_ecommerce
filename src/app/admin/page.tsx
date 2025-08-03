@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -15,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { PlusCircle, Edit, Trash2, LogIn, LogOut, Loader2, Package, Tag, Wallet, Calendar as CalendarIcon } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, LogIn, LogOut, Loader2, Package, Tag, Wallet, Calendar as CalendarIcon, BarChart } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -34,6 +35,9 @@ import { addProductAction, updateProductAction, deleteProductAction } from '@/ap
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { BarChart as RechartsBarChart, Bar as RechartsBar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+
 
 function ProductForm({ product, onFinished }: { product?: Product, onFinished: () => void }) {
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -171,8 +175,16 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 
     const fetchAndSetProducts = async () => {
         setIsLoading(true);
-        const fetchedProducts = await getProducts();
-        setProducts(fetchedProducts);
+        try {
+            const fetchedProducts = await getProducts();
+            setProducts(fetchedProducts);
+        } catch (error) {
+            toast({
+                title: 'Error al cargar productos',
+                description: (error as Error).message,
+                variant: 'destructive'
+            });
+        }
         setIsLoading(false);
     }
 
@@ -218,6 +230,17 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     const totalStock = products.reduce((acc, p) => acc + p.stock, 0);
     const productsOnSale = products.filter(p => p.salePrice && p.salePrice > 0).length;
 
+    const categoryData = products.reduce((acc, product) => {
+        const category = product.category || 'Sin Categoría';
+        if (!acc[category]) {
+            acc[category] = { category, products: 0 };
+        }
+        acc[category].products++;
+        return acc;
+    }, {} as Record<string, { category: string, products: number }>);
+    const categoryChartData = Object.values(categoryData);
+
+
     return (
     <div className="space-y-8">
         <div className="flex justify-between items-start">
@@ -232,7 +255,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         </div>
 
         {/* Metrics Section */}
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Total de Productos</CardTitle>
@@ -264,6 +287,51 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                 </CardContent>
             </Card>
         </div>
+
+        {/* Analytics Chart */}
+        <Card>
+            <CardHeader>
+                <CardTitle>Productos por Categoría</CardTitle>
+                <CardDescription>Un desglose de cuántos productos tienes en cada categoría.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                {isLoading ? (
+                     <div className="flex justify-center items-center h-80">
+                        <Loader2 className="h-8 w-8 animate-spin" />
+                    </div>
+                ) : categoryChartData.length > 0 ? (
+                    <ChartContainer config={{
+                        products: {
+                            label: "Productos",
+                            color: "hsl(var(--primary))",
+                        }
+                    }} className="h-80">
+                         <ResponsiveContainer width="100%" height="100%">
+                            <RechartsBarChart data={categoryChartData} margin={{ top: 20, right: 20, bottom: 5, left: 0 }}>
+                                <CartesianGrid vertical={false} />
+                                <XAxis
+                                    dataKey="category"
+                                    tickLine={false}
+                                    axisLine={false}
+                                    tickMargin={8}
+                                />
+                                <YAxis allowDecimals={false} />
+                                <Tooltip
+                                    cursor={false}
+                                    content={<ChartTooltipContent />}
+                                />
+                                <RechartsBar dataKey="products" radius={8} />
+                            </RechartsBarChart>
+                        </ResponsiveContainer>
+                    </ChartContainer>
+                ) : (
+                    <div className="flex justify-center items-center h-80">
+                        <BarChart className="h-8 w-8 text-muted-foreground" />
+                        <p className="text-muted-foreground ml-4">No hay datos de categoría para mostrar.</p>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
         
         {/* Products Table Section */}
         <Card>
@@ -397,3 +465,5 @@ export default function AdminPage() {
 
   return <AdminDashboard onLogout={handleLogout} />;
 }
+
+    
