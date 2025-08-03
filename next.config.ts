@@ -18,10 +18,22 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'cdn.pixabay.com',
+        hostname: 'farma365.com.ar',
         port: '',
         pathname: '/**',
-      }
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.lancome.cl',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'es.loccitane.com',
+        port: '',
+        pathname: '/**',
+      },
     ],
   },
 };
