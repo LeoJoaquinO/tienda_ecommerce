@@ -4,13 +4,14 @@
 /node_modules
 /.pnp
 .pnp.js
+.yarn/install-state.gz
 
 # Testing
 /coverage
 
-# Next.js build output
-/.next
-/out
+# Next.js
+/.next/
+/out/
 
 # Production
 /build
@@ -19,12 +20,11 @@
 .DS_Store
 *.pem
 
-# Local environment variables
+# Local .env files
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
-.env
 
 # Log files
 npm-debug.log*
@@ -34,9 +34,19 @@ pnpm-debug.log*
 
 # Editor directories and files
 .vscode
-.idea
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+
+# Firebase
+.firebase
+firebase.json
+database-debug.log
+storage-debug.log
+firestore-debug.log
+
+# Genkit
+.genkit/
+.genkit-cache/

@@ -119,7 +119,7 @@ Now, we'll connect Vercel to your GitHub repository and tell it your secret keys
         *   `DB_DATABASE`: The name of your database.
     *   **Mercado Pago Variables:** Get these from your [Mercado Pago Developer Dashboard](https://www.mercadopago.com/developers). Use your **Production** credentials.
         *   `MERCADOPAGO_ACCESS_TOKEN`: Your Production "Access Token".
-        *   `NEXT_PUBLIC_MERCADOPGO_PUBLIC_KEY`: Your Production "Public Key".
+        *   `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY`: Your Production "Public Key".
     *   **Site URL Variable:** Vercel will assign you a domain. You need to add it here so Mercado Pago knows where to send users back to.
         *   `NEXT_PUBLIC_SITE_URL`: The full URL of your site (e.g., `https://joya-store-abcdef.vercel.app`).
     *   Double-check that all keys are copied correctly.
@@ -175,5 +175,3 @@ Congratulations! Your store is now fully deployed and running on a live database
 ---
 
 This project was built with assistance from **Firebase Studio**.
-
-    
