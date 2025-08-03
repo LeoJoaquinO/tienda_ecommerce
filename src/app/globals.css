@@ -59,13 +59,27 @@ body {
   }
   body {
     @apply bg-background text-foreground;
-    background-color: hsl(var(--background));
-    background-image:  
-      radial-gradient(at 80% 80%, hsla(var(--primary), 0.15) 0px, transparent 50%),
-      radial-gradient(at 10% 20%, hsla(var(--secondary), 0.25) 0px, transparent 50%),
-      radial-gradient(at 90% 10%, hsla(var(--accent), 0.35) 0px, transparent 50%);
-    background-attachment: fixed;
   }
 }
 
-    
+@layer utilities {
+    @keyframes animated-gradient {
+      from {
+        background-position: 0 50%;
+      }
+      to {
+        background-position: 100% 50%;
+      }
+    }
+    .animated-background {
+      background-size: 200% 200%;
+      background-image: linear-gradient(
+        -45deg,
+        hsl(var(--background)) 25%,
+        hsl(var(--secondary)) 50%,
+        hsl(var(--background)) 75%,
+        hsl(var(--accent)) 100%
+      );
+      animation: animated-gradient 15s ease infinite;
+    }
+}
