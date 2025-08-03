@@ -234,7 +234,7 @@ export default function CheckoutPage() {
                         )}
                         <div className="flex justify-between">
                             <p className="text-muted-foreground">Envío</p>
-                            <p>Gratis</p>
+                            <p>A coordinar</p>
                         </div>
                         <Separator className="my-4"/>
                         <div className="flex justify-between font-bold text-xl">

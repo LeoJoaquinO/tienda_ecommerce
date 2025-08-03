@@ -115,7 +115,7 @@ export default function CartPage() {
                  )}
                 <div className="flex justify-between">
                   <span>Envío</span>
-                  <span>Gratis</span>
+                  <span>A coordinar</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between font-bold text-lg">
