@@ -19,7 +19,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PlusCircle, Edit, Trash2, LogIn, LogOut, Loader2, Package, Tag, Wallet, Calendar as CalendarIcon, BarChart, AlertTriangle, ShoppingCart, Ticket, Badge, TrendingUp, DollarSign, CheckCircle, XCircle, Download } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, LogIn, LogOut, Loader2, Package, Tag, Wallet, Calendar as CalendarIcon, BarChart, AlertTriangle, ShoppingCart, Ticket, Badge, TrendingUp, DollarSign, CheckCircle, XCircle, Download, Link as LinkIcon, Briefcase, Truck, Send } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -380,6 +380,63 @@ function CouponsTab({ coupons, isLoading, onAdd, onEdit, onDelete, onExport }: {
 }
 
 // ############################################################################
+// Component: IntegrationsTab
+// ############################################################################
+function IntegrationsTab() {
+    const integrations = [
+        {
+            title: "Software de Contabilidad",
+            description: "Sincroniza tus ventas e inventario con tu software contable.",
+            icon: Briefcase,
+            comingSoon: true,
+        },
+        {
+            title: "Plataformas de Envío",
+            description: "Calcula costos y genera etiquetas de envío automáticamente.",
+            icon: Truck,
+            comingSoon: true,
+        },
+        {
+            title: "Email Marketing",
+            description: "Añade clientes a tus listas de correo para campañas.",
+            icon: Send,
+            comingSoon: true,
+        },
+    ];
+
+    return (
+        <div className="space-y-6">
+             <CardHeader className="px-0">
+                <CardTitle>Integraciones Externas</CardTitle>
+                <CardDescription>Conecta tu tienda con otras herramientas para potenciar tu negocio.</CardDescription>
+            </CardHeader>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {integrations.map((integration, index) => (
+                    <Card key={index} className="shadow-lg flex flex-col">
+                        <CardHeader className="flex flex-row items-start justify-between">
+                            <div className="space-y-1.5">
+                                <CardTitle className="text-xl">{integration.title}</CardTitle>
+                                <CardDescription>{integration.description}</CardDescription>
+                            </div>
+                            <integration.icon className="h-8 w-8 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent className="flex-1"></CardContent>
+                        <CardFooter className="flex justify-between items-center">
+                            <Badge variant="outline">Próximamente</Badge>
+                            <Button disabled>
+                                <LinkIcon className="mr-2 h-4 w-4" />
+                                Conectar
+                            </Button>
+                        </CardFooter>
+                    </Card>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+
+// ############################################################################
 // Component: AdminDashboard
 // ############################################################################
 function AdminDashboard({ onLogout }: { onLogout: () => void }) {
@@ -496,10 +553,11 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         </div>
 
         <Tabs defaultValue="overview">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="overview">Visión General</TabsTrigger>
                 <TabsTrigger value="products">Productos</TabsTrigger>
                 <TabsTrigger value="coupons">Cupones</TabsTrigger>
+                <TabsTrigger value="integrations">Integraciones</TabsTrigger>
             </TabsList>
             <TabsContent value="overview" className="mt-6">
                 <MetricsTab products={products} salesMetrics={salesMetrics} isLoading={isLoading} />
@@ -509,6 +567,9 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
             </TabsContent>
             <TabsContent value="coupons" className="mt-6">
                 <CouponsTab coupons={coupons} isLoading={isLoading} onAdd={() => handleOpenCouponDialog()} onEdit={handleOpenCouponDialog} onDelete={handleDeleteCoupon} onExport={exportCouponsToCSV} />
+            </TabsContent>
+             <TabsContent value="integrations" className="mt-6">
+                <IntegrationsTab />
             </TabsContent>
         </Tabs>
 
