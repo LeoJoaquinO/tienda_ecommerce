@@ -38,6 +38,7 @@ To get a local copy up and running on your computer, follow these simple steps.
     *   Rename the `.env.example` file to `.env.local`.
     *   Open `.env.local` and add your **Mercado Pago Test Credentials**. You can find your Public Key and Access Token in your [Mercado Pago Developer Dashboard](https://www.mercadopago.com/developers/panel/credentials).
     ```env
+    # Use your TEST credentials for local development
     MERCADOPAGO_ACCESS_TOKEN="YOUR_TEST_ACCESS_TOKEN"
     NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY="YOUR_TEST_PUBLIC_KEY"
     NEXT_PUBLIC_SITE_URL="http://localhost:9002"
@@ -120,7 +121,7 @@ Now, we'll connect Vercel to your GitHub repository and tell it your secret keys
     *   **Mercado Pago Variables:** Get these from your [Mercado Pago Developer Dashboard](https://www.mercadopago.com/developers). Use your **Production** credentials.
         *   `MERCADOPAGO_ACCESS_TOKEN`: Your Production "Access Token".
         *   `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY`: Your Production "Public Key".
-    *   **Site URL Variable:** Vercel will assign you a domain. You need to add it here so Mercado Pago knows where to send users back to.
+    *   **Site URL Variable:** Vercel will assign you a domain. You need to add it here so Mercado Pago knows where to send users back to. You can find this on your Vercel project's "Domains" page.
         *   `NEXT_PUBLIC_SITE_URL`: The full URL of your site (e.g., `https://joya-store-abcdef.vercel.app`).
     *   Double-check that all keys are copied correctly.
 
@@ -140,7 +141,7 @@ Your site is live, but it's still using the hardcoded sample data. Let's switch 
 2.  **Switch to Live Data Mode:**
     *   We need to tell the application to use the database.
     *   Open `src/lib/products.ts`, `src/lib/coupons.ts` and `src/lib/orders.ts` in your local code editor.
-    *   You will see several commented-out sections of code labeled `--- Database Logic ---`.
+    *   In each file, you will see commented-out sections of code labeled `--- Database Logic ---`.
     *   **DELETE or COMMENT OUT** the lines that contain the hardcoded logic.
     *   **UNCOMMENT** all the database logic sections that use `pool.query`.
     *   Save the files.

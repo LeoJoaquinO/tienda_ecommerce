@@ -96,7 +96,7 @@ function ProductForm({ product, onFinished }: { product?: Product, onFinished: (
                                 <CalendarIcon className="mr-2 h-4 w-4" />{startDate ? format(startDate, "PPP") : <span>Elegir fecha</span>}
                             </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus /></PopoverContent>
+                        <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus fromDate={new Date()} /></PopoverContent>
                     </Popover>
                 </div>
                 <div>
@@ -107,7 +107,7 @@ function ProductForm({ product, onFinished }: { product?: Product, onFinished: (
                                 <CalendarIcon className="mr-2 h-4 w-4" />{endDate ? format(endDate, "PPP") : <span>Elegir fecha</span>}
                             </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={endDate} onSelect={setEndDate} initialFocus /></PopoverContent>
+                        <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={endDate} onSelect={setEndDate} initialFocus fromDate={startDate || new Date()} /></PopoverContent>
                     </Popover>
                 </div>
             </div>
@@ -516,7 +516,3 @@ export default function AdminPage() {
 
   return <AdminDashboard onLogout={handleLogout} />;
 }
-
-    
-
-    

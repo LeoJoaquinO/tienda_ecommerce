@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
                 await restockItemsForOrder(orderId);
 
                 console.log(`Order ${orderId} updated to '${newStatus}' and items have been restocked.`);
-            } else if (paymentStatus === 'in_process') {
+            } else if (paymentStatus === 'in_process' || paymentStatus === 'pending') {
                 newStatus = 'pending';
                 await updateOrderStatus(orderId, newStatus, String(paymentId));
                  console.log(`Order ${orderId} status updated to 'pending'.`);
@@ -63,5 +63,3 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Webhook processing failed.' }, { status: 500 });
     }
 }
-
-    

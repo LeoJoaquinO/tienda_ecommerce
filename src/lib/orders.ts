@@ -108,7 +108,7 @@ export async function updateOrderStatus(orderId: number, status: OrderStatus, pa
     // --- Database Logic ---
     /*
     try {
-        await pool.query('UPDATE orders SET status = ?, payment_id = ? WHERE id = ?', [status, paymentId, orderId]);
+        await pool.query('UPDATE orders SET status = ?, payment_id = ? WHERE id = ?', [status, paymentId || null, orderId]);
     } catch (error) {
         handleDbError(error, `updating order status for order ${orderId}`);
     }
@@ -233,5 +233,3 @@ export async function getSalesMetrics(): Promise<SalesMetrics> {
     }
     */
 }
-
-    

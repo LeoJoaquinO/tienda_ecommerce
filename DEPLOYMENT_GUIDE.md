@@ -126,7 +126,7 @@ Now, let's get your code from GitHub onto the server.
     ```bash
     cd joya-store
     ```
-3.  **Create Your Environment File:**
+3.  **Create Your Environment File:** This file will hold your secret keys. It is **never** committed to GitHub.
     ```bash
     nano .env.local
     ```
@@ -142,7 +142,7 @@ Now, let's get your code from GitHub onto the server.
     MERCADOPAGO_ACCESS_TOKEN="your_production_mercadopago_access_token"
     NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY="your_production_mercadopago_public_key"
 
-    # Your public domain
+    # Your public domain (e.g., https://your_domain.com)
     NEXT_PUBLIC_SITE_URL="https://your_domain.com"
     ```
 5.  Save and exit nano by pressing `Ctrl+X`, then `Y`, then `Enter`.
@@ -276,5 +276,3 @@ Your store is now fully deployed and accessible securely at `https://your_domain
 5.  Pull the latest changes: `git pull`
 6.  Re-install dependencies and re-build: `npm install && npm run build`
 7.  Restart the app with PM2: `pm2 restart joya-store`
-
-    
