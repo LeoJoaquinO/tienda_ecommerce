@@ -19,7 +19,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PlusCircle, Edit, Trash2, LogIn, LogOut, Loader2, Package, Tag, Wallet, Calendar as CalendarIcon, BarChart, AlertTriangle, ShoppingCart, Ticket, Badge, TrendingUp, DollarSign, CheckCircle, XCircle } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, LogIn, LogOut, Loader2, Package, Tag, Wallet, Calendar as CalendarIcon, BarChart, AlertTriangle, ShoppingCart, Ticket, Badge, TrendingUp, DollarSign, CheckCircle, XCircle, Download } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -52,6 +52,23 @@ import { BarChart as RechartsBarChart, Bar as RechartsBar, XAxis, YAxis, Tooltip
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+
+// ############################################################################
+// Helper: CSV Export
+// ############################################################################
+function downloadCSV(csvContent: string, fileName: string) {
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    if (link.download !== undefined) {
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", fileName);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+}
 
 // ############################################################################
 // Component: ProductForm
@@ -257,12 +274,15 @@ function MetricsTab({ products, salesMetrics, isLoading }: { products: Product[]
 // ############################################################################
 // Component: ProductsTab
 // ############################################################################
-function ProductsTab({ products, isLoading, onEdit, onDelete, onAdd }: { products: Product[], isLoading: boolean, onEdit: (p: Product) => void, onDelete: (id: number) => void, onAdd: () => void }) {
+function ProductsTab({ products, isLoading, onEdit, onDelete, onAdd, onExport }: { products: Product[], isLoading: boolean, onEdit: (p: Product) => void, onDelete: (id: number) => void, onAdd: () => void, onExport: () => void }) {
     return (
          <Card className="shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between">
                 <div><CardTitle>Gestionar Productos</CardTitle><CardDescription>Añade, edita o elimina productos de tu catálogo.</CardDescription></div>
-                <Button onClick={onAdd}><PlusCircle className="mr-2 h-4 w-4" />Añadir Producto</Button>
+                <div className="flex gap-2">
+                    <Button onClick={onExport} variant="outline"><Download className="mr-2 h-4 w-4" />Exportar a CSV</Button>
+                    <Button onClick={onAdd}><PlusCircle className="mr-2 h-4 w-4" />Añadir Producto</Button>
+                </div>
             </CardHeader>
             <CardContent className='p-0'>
                 {isLoading ? <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div> : (
@@ -303,7 +323,7 @@ function ProductsTab({ products, isLoading, onEdit, onDelete, onAdd }: { product
 // ############################################################################
 // Component: CouponsTab
 // ############################################################################
-function CouponsTab({ coupons, isLoading, onAdd, onEdit, onDelete }: { coupons: Coupon[], isLoading: boolean, onAdd: () => void, onEdit: (c: Coupon) => void, onDelete: (id: number) => void }) {
+function CouponsTab({ coupons, isLoading, onAdd, onEdit, onDelete, onExport }: { coupons: Coupon[], isLoading: boolean, onAdd: () => void, onEdit: (c: Coupon) => void, onDelete: (id: number) => void, onExport: () => void }) {
     const isCouponActive = (coupon: Coupon) => {
         return coupon.isActive && (!coupon.expiryDate || new Date(coupon.expiryDate) > new Date());
     }
@@ -312,7 +332,10 @@ function CouponsTab({ coupons, isLoading, onAdd, onEdit, onDelete }: { coupons: 
         <Card className="shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between">
                 <div><CardTitle>Gestionar Cupones</CardTitle><CardDescription>Crea y gestiona códigos de descuento.</CardDescription></div>
-                <Button onClick={onAdd}><PlusCircle className="mr-2 h-4 w-4" />Crear Cupón</Button>
+                <div className="flex gap-2">
+                    <Button onClick={onExport} variant="outline"><Download className="mr-2 h-4 w-4" />Exportar a CSV</Button>
+                    <Button onClick={onAdd}><PlusCircle className="mr-2 h-4 w-4" />Crear Cupón</Button>
+                </div>
             </CardHeader>
             <CardContent className='p-0'>
                 {isLoading ? <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div> : (
@@ -431,6 +454,40 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         }
     }
 
+    const exportProductsToCSV = () => {
+        const headers = ['ID', 'Name', 'Price', 'Sale Price', 'Stock', 'Category', 'Featured', 'Image URL'];
+        const rows = products.map(p => [
+            p.id,
+            `"${p.name.replace(/"/g, '""')}"`,
+            p.price,
+            p.salePrice ?? '',
+            p.stock,
+            p.category,
+            p.featured ? 'Yes' : 'No',
+            p.image
+        ].join(','));
+        
+        const csvContent = [headers.join(','), ...rows].join('\n');
+        downloadCSV(csvContent, 'products.csv');
+        toast({ title: 'Éxito', description: 'Datos de productos exportados a CSV.' });
+    };
+
+    const exportCouponsToCSV = () => {
+        const headers = ['ID', 'Code', 'Discount Type', 'Discount Value', 'Expiry Date', 'Is Active'];
+        const rows = coupons.map(c => [
+            c.id,
+            c.code,
+            c.discountType,
+            c.discountValue,
+            c.expiryDate ? format(new Date(c.expiryDate), 'yyyy-MM-dd') : 'Never',
+            c.isActive ? 'Yes' : 'No'
+        ].join(','));
+
+        const csvContent = [headers.join(','), ...rows].join('\n');
+        downloadCSV(csvContent, 'coupons.csv');
+        toast({ title: 'Éxito', description: 'Datos de cupones exportados a CSV.' });
+    };
+
     return (
     <div className="space-y-6">
         <div className="flex justify-between items-start">
@@ -448,10 +505,10 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                 <MetricsTab products={products} salesMetrics={salesMetrics} isLoading={isLoading} />
             </TabsContent>
             <TabsContent value="products" className="mt-6">
-                <ProductsTab products={products} isLoading={isLoading} onAdd={() => handleOpenProductDialog()} onEdit={handleOpenProductDialog} onDelete={handleDeleteProduct} />
+                <ProductsTab products={products} isLoading={isLoading} onAdd={() => handleOpenProductDialog()} onEdit={handleOpenProductDialog} onDelete={handleDeleteProduct} onExport={exportProductsToCSV} />
             </TabsContent>
             <TabsContent value="coupons" className="mt-6">
-                <CouponsTab coupons={coupons} isLoading={isLoading} onAdd={() => handleOpenCouponDialog()} onEdit={handleOpenCouponDialog} onDelete={handleDeleteCoupon} />
+                <CouponsTab coupons={coupons} isLoading={isLoading} onAdd={() => handleOpenCouponDialog()} onEdit={handleOpenCouponDialog} onDelete={handleDeleteCoupon} onExport={exportCouponsToCSV} />
             </TabsContent>
         </Tabs>
 
