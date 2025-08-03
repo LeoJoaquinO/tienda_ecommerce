@@ -1,6 +1,6 @@
-import type { Product } from './types';
+import type { Product, OrderData } from './types';
 import pool from './db';
-import { RowDataPacket } from 'mysql2';
+import { RowDataPacket, OkPacket } from 'mysql2';
 
 // --- Helper Functions ---
 function calculateSalePrice(product: Product): Product {
@@ -20,14 +20,17 @@ function calculateSalePrice(product: Product): Product {
 }
 
 // --- Hardcoded Data for Initial Setup ---
-const hardcodedProducts: Product[] = [
+let hardcodedProducts: Product[] = [
     { id: 1, name: "Aura de Rosas", description: "Una fragancia floral y romántica con notas de rosa de Damasco, peonía y almizcle blanco.", price: 120, discountPercentage: 15, offerStartDate: new Date('2024-01-01'), offerEndDate: new Date('2025-12-31'), image: "https://farma365.com.ar/wp-content/uploads/2024/04/3348901486392-3.webp", category: "Floral", stock: 25, featured: true, aiHint: "pink perfume" },
     { id: 2, name: "Noche en el Desierto", description: "Un aroma oriental especiado, con toques de incienso, oud y ámbar.", price: 150, discountPercentage: null, offerStartDate: null, offerEndDate: null, image: "https://www.lancome.cl/dw/image/v2/AATL_PRD/on/demandware.static/-/Sites-lancome-latam-hub-Library/es_CL/dwcab43319/seo_landings/fragancia/Imagen%20Cuerpo%201%20Fragancia.jpg?sw=1910&sh=1074&sm=cut&q=70", category: "Oriental", stock: 15, featured: true, aiHint: "dark perfume" },
-    { id: 3, name: "Cítrico Vibrante", description: "Una explosión de frescura con limón siciliano, bergamota y vetiver. Ideal para el día a día.", price: 95, discountPercentage: 10, offerStartDate: new Date('2024-01-01'), offerEndDate: new Date('2025-12-31'), image: "https://es.loccitane.com/dw/image/v2/BCDQ_PRD/on/demandware.static/-/Library-Sites-OCC_SharedLibrary/default/dwed515ac4/CWE%20images/collections/630x450-applyperfume.png?sw=630&sh=450", category: "Cítrico", stock: 30, featured: true, aiHint: "citrus perfume" },
+    { id: 3, name: "Cítrico Vibrante", description: "Una explosión de frescura con limón siciliano, bergamota y vetiver. Ideal para el día a día.", price: 95, discountPercentage: 10, offerStartDate: new Date('2024-01-01'), offerEndDate: new Date('2025-12-31'), image: "https://es.loccitane.com/dw/image/v2/BCDQ_PRD/on/demandware.static/-/Library-Sites-OCC_SharedLibrary/default/dwed515ac4/CWE%20images/collections/630x450-applyperfume.png?sw=630&sh=450", category: "Cítrico", stock: 3, featured: true, aiHint: "citrus perfume" },
     { id: 4, name: "Madera y Cuero", description: "Un perfume masculino y sofisticado, con notas de cedro, cuero y tabaco.", price: 135, discountPercentage: null, offerStartDate: null, offerEndDate: null, image: "https://farma365.com.ar/wp-content/uploads/2024/04/3348901486392-3.webp", category: "Amaderado", stock: 18, featured: false, aiHint: "mens perfume" },
     { id: 5, name: "Vainilla Gourmand", description: "Una fragancia dulce y acogedora que evoca postres recién horneados, con vainilla de Tahití y caramelo.", price: 110, discountPercentage: null, offerStartDate: null, offerEndDate: null, image: "https://www.lancome.cl/dw/image/v2/AATL_PRD/on/demandware.static/-/Sites-lancome-latam-hub-Library/es_CL/dwcab43319/seo_landings/fragancia/Imagen%20Cuerpo%201%20Fragancia.jpg?sw=1910&sh=1074&sm=cut&q=70", category: "Dulce", stock: 22, featured: false, aiHint: "elegant perfume" },
-    { id: 6, name: "Brise Marina", description: "Un aroma fresco y acuático que captura la esencia del océano, con sal marina, algas y salvia.", price: 105, discountPercentage: 20, offerStartDate: new Date('2024-01-01'), offerEndDate: new Date('2025-12-31'), image: "https://es.loccitane.com/dw/image/v2/BCDQ_PRD/on/demandware.static/-/Library-Sites-OCC_SharedLibrary/default/dwed515ac4/CWE%20images/collections/630x450-applyperfume.png?sw=630&sh=450", category: "Acuático", stock: 28, featured: true, aiHint: "blue perfume" },
+    { id: 6, name: "Brise Marina", description: "Un aroma fresco y acuático que captura la esencia del océano, con sal marina, algas y salvia.", price: 105, discountPercentage: 20, offerStartDate: new Date('2024-01-01'), offerEndDate: new Date('2025-12-31'), image: "https://es.loccitane.com/dw/image/v2/BCDQ_PRD/on/demandware.static/-/Library-Sites-OCC_SharedLibrary/default/dwed515ac4/CWE%20images/collections/630x450-applyperfume.png?sw=630&sh=450", category: "Acuático", stock: 0, featured: true, aiHint: "blue perfume" },
 ].map(calculateSalePrice);
+
+let hardcodedOrders: any[] = [];
+let nextOrderId = 1;
 
 
 export async function getProducts(): Promise<Product[]> {
@@ -144,6 +147,53 @@ export async function deleteProduct(id: number): Promise<void> {
     }
     */
 }
+
+// --- Order Management ---
+
+export async function createOrder(orderData: OrderData): Promise<number> {
+    // Hardcoded logic
+    console.log("createOrder called (hardcoded).", orderData);
+    const newOrder = { id: nextOrderId++, ...orderData, createdAt: new Date() };
+    hardcodedOrders.push(newOrder);
+    // In a real scenario, you'd also decrement stock here, but that requires a transaction.
+    // For now, we just record the order.
+    return Promise.resolve(newOrder.id);
+
+    // --- Database Logic ---
+    /*
+    const connection = await pool.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        const [orderResult] = await connection.query<OkPacket>(
+            'INSERT INTO orders (customer_name, customer_email, total, status, coupon_code, discount_amount) VALUES (?, ?, ?, ?, ?, ?)',
+            [orderData.customerName, orderData.customerEmail, orderData.total, orderData.status, orderData.couponCode, orderData.discountAmount]
+        );
+        const orderId = orderResult.insertId;
+
+        for (const item of orderData.items) {
+            await connection.query(
+                'INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)',
+                [orderId, item.product.id, item.quantity, item.product.salePrice ?? item.product.price]
+            );
+            // Decrement stock
+            await connection.query(
+                'UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?',
+                [item.quantity, item.product.id, item.quantity]
+            );
+        }
+
+        await connection.commit();
+        return orderId;
+    } catch (error) {
+        await connection.rollback();
+        handleDbError(error, 'creating an order');
+    } finally {
+        connection.release();
+    }
+    */
+}
+
 
 
 // --- Database Helper Functions (Commented out by default) ---

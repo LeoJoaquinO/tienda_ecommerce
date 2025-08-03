@@ -21,7 +21,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
-import { Loader2, Ticket, XCircle } from "lucide-react";
+import { Loader2, Ticket } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
 const shippingSchema = z.object({
@@ -57,39 +57,26 @@ export default function CheckoutPage() {
     setIsLoading(true);
 
     try {
-      // Create a new cart representation for checkout that includes the discount
-      const checkoutItems = [
-        ...cartItems.map(item => ({
-            id: String(item.product.id),
-            title: item.product.name,
-            quantity: item.quantity,
-            unit_price: item.product.salePrice ?? item.product.price,
-            currency_id: 'ARS',
-            picture_url: item.product.image,
-            description: item.product.description,
-        }))
-      ];
-      
-      // If a discount is applied, add it as a separate line item.
-      // Mercado Pago doesn't support a top-level discount field in the same way.
-      if (appliedCoupon && discount > 0) {
-          checkoutItems.push({
-              id: appliedCoupon.code,
-              title: `Descuento: ${appliedCoupon.code}`,
-              quantity: 1,
-              unit_price: -discount, // The discount is a negative value
-              currency_id: 'ARS',
-              picture_url: '',
-              description: 'Cupón de descuento aplicado',
-          });
-      }
+      const checkoutPayload = {
+        cartItems: cartItems,
+        appliedCoupon: appliedCoupon,
+        totalPrice: totalPrice,
+        discount: discount,
+        shippingInfo: {
+            name: values.name,
+            email: values.email,
+            address: values.address,
+            city: values.city,
+            postalCode: values.postalCode,
+        }
+      };
 
       const response = await fetch('/api/create-preference', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(checkoutItems),
+        body: JSON.stringify(checkoutPayload),
       });
 
       const data = await response.json();

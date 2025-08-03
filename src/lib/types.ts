@@ -28,3 +28,13 @@ export type Coupon = {
   expiryDate: Date | null;
   isActive: boolean;
 };
+
+export type OrderData = {
+    customerName: string;
+    customerEmail: string;
+    total: number;
+    status: 'pending' | 'paid' | 'failed' | 'cancelled';
+    items: CartItem[];
+    couponCode?: string | null;
+    discountAmount?: number;
+}
