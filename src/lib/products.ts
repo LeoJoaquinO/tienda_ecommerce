@@ -1,3 +1,4 @@
+
 import type { Product, OrderData } from './types';
 import pool from './db';
 import { RowDataPacket, OkPacket } from 'mysql2';
@@ -21,13 +22,13 @@ function calculateSalePrice(product: Product): Product {
 
 // --- Hardcoded Data for Initial Setup ---
 let hardcodedProducts: Product[] = [
-    { id: 1, name: "Aura de Rosas", description: "Una fragancia floral y romántica con notas de rosa de Damasco, peonía y almizcle blanco.", price: 120, discountPercentage: 15, offerStartDate: new Date('2024-01-01'), offerEndDate: new Date('2025-12-31'), image: "https://farma365.com.ar/wp-content/uploads/2024/04/3348901486392-3.webp", category: "Floral", stock: 25, featured: true, aiHint: "pink perfume" },
-    { id: 2, name: "Noche en el Desierto", description: "Un aroma oriental especiado, con toques de incienso, oud y ámbar.", price: 150, discountPercentage: null, offerStartDate: null, offerEndDate: null, image: "https://www.lancome.cl/dw/image/v2/AATL_PRD/on/demandware.static/-/Sites-lancome-latam-hub-Library/es_CL/dwcab43319/seo_landings/fragancia/Imagen%20Cuerpo%201%20Fragancia.jpg?sw=1910&sh=1074&sm=cut&q=70", category: "Oriental", stock: 15, featured: true, aiHint: "dark perfume" },
-    { id: 3, name: "Cítrico Vibrante", description: "Una explosión de frescura con limón siciliano, bergamota y vetiver. Ideal para el día a día.", price: 95, discountPercentage: 10, offerStartDate: new Date('2024-01-01'), offerEndDate: new Date('2025-12-31'), image: "https://es.loccitane.com/dw/image/v2/BCDQ_PRD/on/demandware.static/-/Library-Sites-OCC_SharedLibrary/default/dwed515ac4/CWE%20images/collections/630x450-applyperfume.png?sw=630&sh=450", category: "Cítrico", stock: 3, featured: true, aiHint: "citrus perfume" },
-    { id: 4, name: "Madera y Cuero", description: "Un perfume masculino y sofisticado, con notas de cedro, cuero y tabaco.", price: 135, discountPercentage: null, offerStartDate: null, offerEndDate: null, image: "https://farma365.com.ar/wp-content/uploads/2024/04/3348901486392-3.webp", category: "Amaderado", stock: 18, featured: false, aiHint: "mens perfume" },
-    { id: 5, name: "Vainilla Gourmand", description: "Una fragancia dulce y acogedora que evoca postres recién horneados, con vainilla de Tahití y caramelo.", price: 110, discountPercentage: null, offerStartDate: null, offerEndDate: null, image: "https://www.lancome.cl/dw/image/v2/AATL_PRD/on/demandware.static/-/Sites-lancome-latam-hub-Library/es_CL/dwcab43319/seo_landings/fragancia/Imagen%20Cuerpo%201%20Fragancia.jpg?sw=1910&sh=1074&sm=cut&q=70", category: "Dulce", stock: 22, featured: false, aiHint: "elegant perfume" },
-    { id: 6, name: "Brise Marina", description: "Un aroma fresco y acuático que captura la esencia del océano, con sal marina, algas y salvia.", price: 105, discountPercentage: 20, offerStartDate: new Date('2024-01-01'), offerEndDate: new Date('2025-12-31'), image: "https://es.loccitane.com/dw/image/v2/BCDQ_PRD/on/demandware.static/-/Library-Sites-OCC_SharedLibrary/default/dwed515ac4/CWE%20images/collections/630x450-applyperfume.png?sw=630&sh=450", category: "Acuático", stock: 0, featured: true, aiHint: "blue perfume" },
-].map(calculateSalePrice);
+    { id: 1, name: "Aura de Rosas", description: "Una fragancia floral y romántica con notas de rosa de Damasco, peonía y almizcle blanco.", shortDescription: "Floral, romántica y suave.", price: 120, discountPercentage: 15, offerStartDate: new Date('2024-01-01'), offerEndDate: new Date('2025-12-31'), images: ["https://farma365.com.ar/wp-content/uploads/2024/04/3348901486392-3.webp"], category: "Floral", stock: 25, featured: true, aiHint: "pink perfume" },
+    { id: 2, name: "Noche en el Desierto", description: "Un aroma oriental especiado, con toques de incienso, oud y ámbar.", shortDescription: "Oriental, especiado y misterioso.", price: 150, discountPercentage: null, offerStartDate: null, offerEndDate: null, images: ["https://www.lancome.cl/dw/image/v2/AATL_PRD/on/demandware.static/-/Sites-lancome-latam-hub-Library/es_CL/dwcab43319/seo_landings/fragancia/Imagen%20Cuerpo%201%20Fragancia.jpg?sw=1910&sh=1074&sm=cut&q=70"], category: "Oriental", stock: 15, featured: true, aiHint: "dark perfume" },
+    { id: 3, name: "Cítrico Vibrante", description: "Una explosión de frescura con limón siciliano, bergamota y vetiver. Ideal para el día a día.", shortDescription: "Fresco, cítrico y enérgico.", price: 95, discountPercentage: 10, offerStartDate: new Date('2024-01-01'), offerEndDate: new Date('2025-12-31'), images: ["https://es.loccitane.com/dw/image/v2/BCDQ_PRD/on/demandware.static/-/Library-Sites-OCC_SharedLibrary/default/dwed515ac4/CWE%20images/collections/630x450-applyperfume.png?sw=630&sh=450"], category: "Cítrico", stock: 3, featured: true, aiHint: "citrus perfume" },
+    { id: 4, name: "Madera y Cuero", description: "Un perfume masculino y sofisticado, con notas de cedro, cuero y tabaco.", shortDescription: "Masculino, amaderado y con carácter.", price: 135, discountPercentage: null, offerStartDate: null, offerEndDate: null, images: ["https://farma365.com.ar/wp-content/uploads/2024/04/3348901486392-3.webp"], category: "Amaderado", stock: 18, featured: false, aiHint: "mens perfume" },
+    { id: 5, name: "Vainilla Gourmand", description: "Una fragancia dulce y acogedora que evoca postres recién horneados, con vainilla de Tahití y caramelo.", shortDescription: "Dulce, avainillado y acogedor.", price: 110, discountPercentage: null, offerStartDate: null, offerEndDate: null, images: ["https://www.lancome.cl/dw/image/v2/AATL_PRD/on/demandware.static/-/Sites-lancome-latam-hub-Library/es_CL/dwcab43319/seo_landings/fragancia/Imagen%20Cuerpo%201%20Fragancia.jpg?sw=1910&sh=1074&sm=cut&q=70"], category: "Dulce", stock: 22, featured: false, aiHint: "elegant perfume" },
+    { id: 6, name: "Brise Marina", description: "Un aroma fresco y acuático que captura la esencia del océano, con sal marina, algas y salvia.", shortDescription: "Fresco, marino y revitalizante.", price: 105, discountPercentage: 20, offerStartDate: new Date('2024-01-01'), offerEndDate: new Date('2025-12-31'), images: ["https://es.loccitane.com/dw/image/v2/BCDQ_PRD/on/demandware.static/-/Library-Sites-OCC_SharedLibrary/default/dwed515ac4/CWE%20images/collections/630x450-applyperfume.png?sw=630&sh=450"], category: "Acuático", stock: 0, featured: true, aiHint: "blue perfume" },
+].map(p => ({...p, images: p.images || []})).map(calculateSalePrice);
 
 
 export async function getProducts(): Promise<Product[]> {
@@ -77,11 +78,12 @@ export async function createProduct(product: Omit<Product, 'id' | 'salePrice'>):
     
     // --- Database Logic (Commented out by default) ---
     /*
-    const { name, description, price, image, category, stock, featured, aiHint, discountPercentage, offerStartDate, offerEndDate } = product;
+    const { name, description, shortDescription, price, images, category, stock, featured, aiHint, discountPercentage, offerStartDate, offerEndDate } = product;
+    const imagesString = images.join(',');
     try {
         const [result] = await pool.query<any>(
-            'INSERT INTO products (name, description, price, image, category, stock, featured, aiHint, discountPercentage, offerStartDate, offerEndDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [name, description, price, image, category, stock, featured || false, aiHint || null, discountPercentage || null, offerStartDate || null, offerEndDate || null]
+            'INSERT INTO products (name, description, shortDescription, price, images, category, stock, featured, aiHint, discountPercentage, offerStartDate, offerEndDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [name, description, shortDescription, price, imagesString, category, stock, featured || false, aiHint || null, discountPercentage || null, offerStartDate || null, offerEndDate || null]
         );
         const insertedId = result.insertId;
         const newDbProduct = await getProductById(insertedId);
@@ -106,11 +108,12 @@ export async function updateProduct(id: number, product: Partial<Omit<Product, '
     
     // --- Database Logic (Commented out by default) ---
     /*
-    const { name, description, price, image, category, stock, featured, aiHint, discountPercentage, offerStartDate, offerEndDate } = product;
+    const { name, description, shortDescription, price, images, category, stock, featured, aiHint, discountPercentage, offerStartDate, offerEndDate } = product;
+    const imagesString = images?.join(',');
     try {
         await pool.query(
-            'UPDATE products SET name = ?, description = ?, price = ?, image = ?, category = ?, stock = ?, featured = ?, aiHint = ?, discountPercentage = ?, offerStartDate = ?, offerEndDate = ? WHERE id = ?',
-            [name, description, price, image, category, stock, featured || false, aiHint || null, discountPercentage || null, offerStartDate || null, offerEndDate || null, id]
+            'UPDATE products SET name = ?, description = ?, shortDescription = ?, price = ?, images = ?, category = ?, stock = ?, featured = ?, aiHint = ?, discountPercentage = ?, offerStartDate = ?, offerEndDate = ? WHERE id = ?',
+            [name, description, shortDescription, price, imagesString, category, stock, featured || false, aiHint || null, discountPercentage || null, offerStartDate || null, offerEndDate || null, id]
         );
         const updatedProduct = await getProductById(id);
         if (!updatedProduct) {
@@ -153,9 +156,10 @@ function rowToProduct(row: RowDataPacket): Product {
         id: row.id,
         name: row.name,
         description: row.description,
+        shortDescription: row.shortDescription,
         price: Number(row.price),
         salePrice: null, // Will be calculated
-        image: row.image,
+        images: row.images ? row.images.split(',') : [],
         aiHint: row.aiHint,
         category: row.category,
         stock: row.stock,

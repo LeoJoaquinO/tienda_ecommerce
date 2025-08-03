@@ -99,7 +99,8 @@ function ProductForm({ product, onFinished }: { product?: Product, onFinished: (
     return (
         <form action={handleAction} className="space-y-4">
             <div><Label htmlFor="name">Nombre</Label><Input id="name" name="name" defaultValue={product?.name} required /></div>
-            <div><Label htmlFor="description">Descripción</Label><Textarea id="description" name="description" defaultValue={product?.description} required /></div>
+            <div><Label htmlFor="shortDescription">Descripción Corta</Label><Input id="shortDescription" name="shortDescription" defaultValue={product?.shortDescription} placeholder="Un resumen breve para la tarjeta de producto."/></div>
+            <div><Label htmlFor="description">Descripción Completa</Label><Textarea id="description" name="description" defaultValue={product?.description} required /></div>
             <div className="grid grid-cols-2 gap-4">
                 <div><Label htmlFor="price">Precio</Label><Input id="price" name="price" type="number" step="0.01" min="0" defaultValue={product?.price} required /></div>
                 <div><Label htmlFor="discountPercentage">Descuento (%)</Label><Input id="discountPercentage" name="discountPercentage" type="number" step="1" min="0" max="100" defaultValue={product?.discountPercentage ?? ''} placeholder="Ej: 15" /></div>
@@ -132,7 +133,14 @@ function ProductForm({ product, onFinished }: { product?: Product, onFinished: (
                 <div><Label htmlFor="stock">Stock</Label><Input id="stock" name="stock" type="number" min="0" step="1" defaultValue={product?.stock} required /></div>
                 <div><Label htmlFor="category">Categoría</Label><Input id="category" name="category" defaultValue={product?.category} required /></div>
             </div>
-            <div><Label htmlFor="image">URL de la Imagen</Label><Input id="image" name="image" type="url" defaultValue={product?.image} required /></div>
+            <div className='space-y-2'>
+                <Label>Imágenes del Producto (hasta 5)</Label>
+                <Input id="image1" name="image1" type="url" defaultValue={product?.images?.[0]} placeholder="URL de la Imagen Principal (requerido)" required />
+                <Input id="image2" name="image2" type="url" defaultValue={product?.images?.[1]} placeholder="URL de la Imagen 2 (opcional)" />
+                <Input id="image3" name="image3" type="url" defaultValue={product?.images?.[2]} placeholder="URL de la Imagen 3 (opcional)" />
+                <Input id="image4" name="image4" type="url" defaultValue={product?.images?.[3]} placeholder="URL de la Imagen 4 (opcional)" />
+                <Input id="image5" name="image5" type="url" defaultValue={product?.images?.[4]} placeholder="URL de la Imagen 5 (opcional)" />
+            </div>
             <div><Label htmlFor="aiHint">AI Hint</Label><Input id="aiHint" name="aiHint" defaultValue={product?.aiHint} /></div>
             <div className="flex items-center space-x-2"><Checkbox id="featured" name="featured" defaultChecked={product?.featured} /><Label htmlFor="featured">Producto Destacado</Label></div>
             <DialogFooter>
@@ -289,7 +297,16 @@ function ProductsTab({ products, isLoading, onEdit, onDelete, onAdd, onExport }:
                     <Table><TableHeader><TableRow><TableHead>Imagen</TableHead><TableHead>Nombre</TableHead><TableHead>Precio</TableHead><TableHead>Stock</TableHead><TableHead>Acciones</TableHead></TableRow></TableHeader><TableBody>
                         {products.map(product => (
                             <TableRow key={product.id}>
-                                <TableCell><Image src={product.image} alt={product.name} width={40} height={40} className="rounded-md object-cover" data-ai-hint={product.aiHint} /></TableCell>
+                                <TableCell>
+                                    <Image 
+                                        src={product.images[0] ?? "https://placehold.co/40x40.png"} 
+                                        alt={product.name} 
+                                        width={40} 
+                                        height={40} 
+                                        className="rounded-md object-cover" 
+                                        data-ai-hint={product.aiHint} 
+                                    />
+                                </TableCell>
                                 <TableCell className="font-medium">{product.name}</TableCell>
                                 <TableCell>${(product.salePrice ?? product.price).toLocaleString('es-AR')}</TableCell>
                                 <TableCell>{product.stock}</TableCell>
@@ -512,16 +529,17 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     }
 
     const exportProductsToCSV = () => {
-        const headers = ['ID', 'Name', 'Price', 'Sale Price', 'Stock', 'Category', 'Featured', 'Image URL'];
+        const headers = ['ID', 'Name', 'Short Description', 'Price', 'Sale Price', 'Stock', 'Category', 'Featured', 'Image URL 1', 'Image URL 2', 'Image URL 3', 'Image URL 4', 'Image URL 5'];
         const rows = products.map(p => [
             p.id,
             `"${p.name.replace(/"/g, '""')}"`,
+            `"${p.shortDescription?.replace(/"/g, '""') ?? ''}"`,
             p.price,
             p.salePrice ?? '',
             p.stock,
             p.category,
             p.featured ? 'Yes' : 'No',
-            p.image
+            ...(p.images.slice(0, 5).map(img => `"${img}"`) ?? []),
         ].join(','));
         
         const csvContent = [headers.join(','), ...rows].join('\n');

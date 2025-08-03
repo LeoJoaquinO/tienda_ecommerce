@@ -24,13 +24,14 @@ function sanitizeData(data: Record<string, any>): Record<string, any> {
 const productSchema = z.object({
     name: z.string().min(1, "El nombre es requerido."),
     description: z.string().min(1, "La descripción es requerida."),
+    shortDescription: z.string().optional(),
     price: z.coerce.number().positive("El precio debe ser un número positivo."),
     discountPercentage: z.coerce.number().min(0, "El descuento no puede ser negativo.").max(100, "El descuento no puede ser mayor a 100.").optional().nullable(),
     offerStartDate: z.coerce.date().optional().nullable(),
     offerEndDate: z.coerce.date().optional().nullable(),
     stock: z.coerce.number().int("El stock debe ser un número entero.").min(0, "El stock no puede ser negativo."),
     category: z.string().min(1, "La categoría es requerida."),
-    image: z.string().url("La URL de la imagen no es válida.").min(1, "La URL de la imagen es requerida."),
+    images: z.array(z.string().url("La URL de la imagen no es válida.")).min(1, "Se requiere al menos una imagen."),
     aiHint: z.string().optional(),
     featured: z.boolean().optional(),
 });
@@ -41,10 +42,19 @@ export async function addProductAction(formData: FormData) {
 
     // Handle empty strings for optional number fields
     if (sanitizedData.discountPercentage === '') sanitizedData.discountPercentage = null;
+    
+    // Collect images
+    const images = [];
+    for (let i = 1; i <= 5; i++) {
+        if (sanitizedData[`image${i}`]) {
+            images.push(sanitizedData[`image${i}`]);
+        }
+    }
 
     const validatedFields = productSchema.safeParse({
       ...sanitizedData,
       featured: sanitizedData.featured === 'on',
+      images,
     });
 
     if (!validatedFields.success) {
@@ -74,9 +84,18 @@ export async function updateProductAction(id: number, formData: FormData) {
     // Handle empty strings for optional number fields
     if (sanitizedData.discountPercentage === '') sanitizedData.discountPercentage = null;
 
+    // Collect images
+    const images = [];
+    for (let i = 1; i <= 5; i++) {
+        if (sanitizedData[`image${i}`]) {
+            images.push(sanitizedData[`image${i}`]);
+        }
+    }
+
     const validatedFields = productSchema.safeParse({
         ...sanitizedData,
         featured: sanitizedData.featured === 'on',
+        images,
     });
 
     if (!validatedFields.success) {

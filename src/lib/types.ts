@@ -3,9 +3,10 @@ export type Product = {
   id: number;
   name: string;
   description: string;
+  shortDescription?: string;
   price: number;
   salePrice?: number | null;
-  image: string;
+  images: string[];
   category: string;
   stock: number;
   aiHint?: string;
@@ -51,5 +52,3 @@ export type SalesMetrics = {
         count: number;
     }[];
 };
-
-    
