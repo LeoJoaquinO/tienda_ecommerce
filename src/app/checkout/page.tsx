@@ -176,9 +176,6 @@ export default function CheckoutPage() {
                    <Payment
                         initialization={{
                             amount: totalPrice,
-                            payer: {
-                                email: form.getValues().email,
-                            },
                         }}
                         customization={{
                             paymentMethods: {
@@ -251,5 +248,3 @@ export default function CheckoutPage() {
     </div>
   );
 }
-
-    
