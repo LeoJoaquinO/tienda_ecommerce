@@ -21,6 +21,8 @@ interface CartContextType {
   applyCoupon: (coupon: Coupon) => void;
   removeCoupon: () => void;
   discount: number;
+  isSidebarOpen: boolean;
+  setIsSidebarOpen: (isOpen: boolean) => void;
 }
 
 export const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -28,6 +30,7 @@ export const CartContext = createContext<CartContextType | undefined>(undefined)
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -72,11 +75,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       }
       return [...prevItems, { product, quantity }];
     });
-    toast({
-      title: "¡Agregado!",
-      description: `${product.name} fue agregado al carrito.`,
-      action: <ToastAction asChild altText="Ver carrito"><Button variant="secondary" size="sm" asChild><Link href="/cart">Ver Carrito</Link></Button></ToastAction>,
-    });
+    setIsSidebarOpen(true);
   };
 
   const removeFromCart = (productId: number) => {
@@ -140,7 +139,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
 
   return (
-    <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, updateQuantity, clearCart, cartCount, subtotal, totalPrice, appliedCoupon, applyCoupon, removeCoupon, discount }}>
+    <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, updateQuantity, clearCart, cartCount, subtotal, totalPrice, appliedCoupon, applyCoupon, removeCoupon, discount, isSidebarOpen, setIsSidebarOpen }}>
       {children}
     </CartContext.Provider>
   );

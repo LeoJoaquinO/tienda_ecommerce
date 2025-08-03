@@ -9,6 +9,7 @@ import Footer from '@/components/Footer';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import WhatsAppButton from '@/components/WhatsAppButton';
 import Script from 'next/script';
+import CartSidebar from '@/components/CartSidebar';
 
 export const metadata: Metadata = {
   title: 'Joya - Elegancia Atemporal',
@@ -42,6 +43,7 @@ export default function RootLayout({
                 </main>
                 <Footer />
               </div>
+              <CartSidebar />
               <WhatsAppButton />
               <Toaster />
             </CartProvider>
