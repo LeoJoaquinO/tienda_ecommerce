@@ -73,7 +73,7 @@ export default function ComoComprarPage() {
         <CardContent>
           <p className="text-muted-foreground">
             Si todavía tienes dudas, no dudes en visitar nuestra sección de{' '}
-            <Link href="/pages/preguntas-frecuentes" className="text-primary hover:underline">
+            <Link href="/pages/preguntas-frecuentes" className="text-primary hover:underline font-semibold">
               Preguntas Frecuentes
             </Link>{' '}
             o contactarnos directamente.
