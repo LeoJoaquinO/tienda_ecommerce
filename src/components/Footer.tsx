@@ -10,9 +10,9 @@ export default function Footer() {
             <div className="flex items-center gap-4">
                 <p className="text-sm font-semibold">Síguenos:</p>
                 <div className="flex gap-2">
-                    <Link href="#" className="hover:text-primary transition-colors"><Instagram className="h-5 w-5"/></Link>
-                    <Link href="#" className="hover:text-primary transition-colors"><Facebook className="h-5 w-5"/></Link>
-                    <Link href="#" className="hover:text-primary transition-colors"><Twitter className="h-5 w-5"/></Link>
+                    <Link href="https://instagram.com" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="hover:text-primary transition-colors"><Instagram className="h-5 w-5"/></Link>
+                    <Link href="https://facebook.com" target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="hover:text-primary transition-colors"><Facebook className="h-5 w-5"/></Link>
+                    <Link href="https://twitter.com" target="_blank" rel="noopener noreferrer" aria-label="Twitter" className="hover:text-primary transition-colors"><Twitter className="h-5 w-5"/></Link>
                 </div>
             </div>
         </div>
