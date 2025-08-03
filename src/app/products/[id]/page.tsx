@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { getProductById } from '@/lib/products';
 import { AddToCartButton } from '@/components/AddToCartButton';
 import type { Product } from '@/lib/types';
+import { AlertTriangle } from 'lucide-react';
 
 export default async function ProductPage({ params }: { params: { id: string } }) {
   const productId = parseInt(params.id, 10);
@@ -45,7 +46,12 @@ export default async function ProductPage({ params }: { params: { id: string } }
           <div className="mt-8">
             <AddToCartButton product={product} />
           </div>
-          <p className="mt-4 text-sm text-muted-foreground">Stock: {product.stock} unidades</p>
+           {product.stock > 0 && product.stock <= 5 && (
+            <div className="mt-4 flex items-center gap-2 text-amber-600">
+                <AlertTriangle className="h-5 w-5" />
+                <p className="text-sm font-semibold">¡Quedan pocas unidades!</p>
+            </div>
+           )}
         </div>
       </div>
     </div>

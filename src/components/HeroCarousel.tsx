@@ -58,9 +58,23 @@ export function HeroCarousel() {
     }
 
     setCurrent(api.selectedScrollSnap());
-    api.on("select", () => {
-      setCurrent(api.selectedScrollSnap());
-    });
+
+    const onSelect = () => {
+        setCurrent(api.selectedScrollSnap());
+    };
+
+    const onInteraction = () => {
+        plugin.current.reset();
+    };
+
+    api.on("select", onSelect);
+    api.on("pointerDown", onInteraction);
+
+
+    return () => {
+      api.off("select", onSelect);
+      api.off("pointerDown", onInteraction);
+    };
   }, [api]);
 
   const scrollTo = useCallback((index: number) => {
@@ -73,8 +87,6 @@ export function HeroCarousel() {
             setApi={setApi} 
             opts={{ loop: true }} 
             plugins={[plugin.current]}
-            onMouseEnter={plugin.current.stop}
-            onMouseLeave={plugin.current.reset}
             className="w-full"
         >
             <CarouselContent>
@@ -89,6 +101,7 @@ export function HeroCarousel() {
                             className="object-cover"
                             data-ai-hint={slide.aiHint}
                             priority={index === 0}
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-black/20"></div>
                         </div>
