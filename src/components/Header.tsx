@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -9,6 +10,8 @@ import {
   Sheet,
   SheetContent,
   SheetTrigger,
+  SheetHeader,
+  SheetTitle
 } from "@/components/ui/sheet";
 import { ThemeToggle } from './ThemeToggle';
 
@@ -19,11 +22,12 @@ export default function Header() {
   const navLinks = [
     { href: '/', label: 'Inicio' },
     { href: '/tienda', label: 'Tienda' },
+    { href: '/#about', label: 'Sobre Nosotros' },
     { href: '/admin', label: 'Admin' },
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-sm supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center">
         <div className="mr-4 hidden md:flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
@@ -47,21 +51,21 @@ export default function Header() {
                 <span className="sr-only">Abrir menú</span>
                 </Button>
             </SheetTrigger>
-            <SheetContent side="left">
-                <div className="flex flex-col h-full">
-                <div className="border-b p-4">
-                    <Link href="/" onClick={() => setIsMobileMenuOpen(false)}>
-                    <span className="font-bold font-headline text-xl">Joya</span>
-                    </Link>
-                </div>
-                <nav className="flex flex-col gap-4 p-4 text-lg">
+            <SheetContent side="left" className='w-full max-w-[300px]'>
+                <SheetHeader>
+                    <SheetTitle>
+                        <Link href="/" onClick={() => setIsMobileMenuOpen(false)}>
+                            <span className="font-bold font-headline text-2xl">Joya</span>
+                        </Link>
+                    </SheetTitle>
+                </SheetHeader>
+                <nav className="flex flex-col gap-6 p-4 text-lg mt-4">
                     {navLinks.map((link) => (
-                    <Link key={link.href} href={link.href} onClick={() => setIsMobileMenuOpen(false)} className="text-foreground hover:text-primary">
+                    <Link key={link.href} href={link.href} onClick={() => setIsMobileMenuOpen(false)} className="text-foreground hover:text-primary transition-colors">
                         {link.label}
                     </Link>
                     ))}
                 </nav>
-                </div>
             </SheetContent>
             </Sheet>
         </div>
@@ -73,20 +77,24 @@ export default function Header() {
              </Link>
         </div>
 
-        <div className="flex items-center justify-end space-x-2 md:flex-1">
+        <div className="flex items-center justify-end space-x-1 md:flex-1">
           <ThemeToggle />
-          <Link href="/cart" aria-label="Carrito de compras" className="relative">
-            <Button variant="ghost" size="icon">
-              <ShoppingCart className="h-5 w-5" />
-              {cartCount > 0 && (
-                <span className="absolute top-0 right-0 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground transform translate-x-1/2 -translate-y-1/2">
-                  {cartCount}
-                </span>
-              )}
-            </Button>
-          </Link>
+          <Button variant="ghost" size="icon" asChild>
+            <Link href="/cart" aria-label="Carrito de compras">
+                <div className="relative">
+                <ShoppingCart className="h-5 w-5" />
+                {cartCount > 0 && (
+                    <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                    {cartCount}
+                    </span>
+                )}
+                </div>
+            </Link>
+          </Button>
         </div>
       </div>
     </header>
   );
 }
+
+    

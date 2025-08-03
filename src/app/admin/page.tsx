@@ -305,10 +305,10 @@ export default function AdminPage() {
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleLogin} className="space-y-4">
-                        <div className="space-y-2"><Input id="email" type="email" placeholder="email@ejemplo.com" required value={email} onChange={(e) => setEmail(e.target.value)} /></div>
-                        <div className="space-y-2"><Input id="password" type="password" required placeholder="Contraseña" value={password} onChange={(e) => setPassword(e.target.value)} /></div>
+                        <div className="space-y-2"><Label htmlFor='email'>Email</Label><Input id="email" type="email" placeholder="email@ejemplo.com" required value={email} onChange={(e) => setEmail(e.target.value)} /></div>
+                        <div className="space-y-2"><Label htmlFor='password'>Contraseña</Label><Input id="password" type="password" required placeholder="Contraseña" value={password} onChange={(e) => setPassword(e.target.value)} /></div>
                         {error && <p className="text-sm text-destructive">{error}</p>}
-                        <p className="text-xs text-muted-foreground">Hint: admin@joya.com / password123</p>
+                        <p className="text-xs text-muted-foreground text-center pt-2">Hint: admin@joya.com / password123</p>
                         <Button type="submit" className="w-full"><LogIn className="mr-2 h-4 w-4" />Iniciar Sesión</Button>
                     </form>
                 </CardContent>
@@ -319,3 +319,5 @@ export default function AdminPage() {
 
   return <AdminDashboard onLogout={handleLogout} />;
 }
+
+    

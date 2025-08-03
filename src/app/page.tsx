@@ -1,4 +1,5 @@
 
+
 import { ProductCard } from '@/components/ProductCard';
 import { getProducts } from '@/lib/products';
 import type { Product } from '@/lib/types';
@@ -47,7 +48,7 @@ export default async function Home() {
     ]
 
     return (
-        <div className="space-y-12">
+        <div className="space-y-16">
             {/* Hero Carousel Section */}
             <section>
                  <Carousel
@@ -57,7 +58,7 @@ export default async function Home() {
                     <CarouselContent>
                         {carouselSlides.map((slide, index) => (
                              <CarouselItem key={index}>
-                                <div className="relative text-center h-[60vh] md:h-[70vh] rounded-2xl overflow-hidden shadow-2xl flex items-center justify-center">
+                                <div className="relative text-center h-[60vh] md:h-[70vh] rounded-2xl overflow-hidden shadow-2xl flex items-center justify-center p-4">
                                     <div className="absolute inset-0 z-0">
                                         <Image
                                             src={slide.image}
@@ -69,11 +70,11 @@ export default async function Home() {
                                         />
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-black/20"></div>
                                     </div>
-                                    <div className="relative z-10 text-white p-4">
+                                    <div className="relative z-10 text-white max-w-4xl mx-auto">
                                         <h1 className="text-5xl font-headline font-bold sm:text-6xl lg:text-7xl drop-shadow-lg">
                                             {slide.title}
                                         </h1>
-                                        <p className="mt-4 max-w-2xl mx-auto text-lg text-slate-100 drop-shadow-md">
+                                        <p className="mt-4 text-lg text-slate-100 drop-shadow-md">
                                             {slide.description}
                                         </p>
                                         <Button asChild size="lg" className="mt-8 shadow-lg">
@@ -90,31 +91,17 @@ export default async function Home() {
             </section>
 
             {/* Featured Products Section */}
-            <section id="featured" className="space-y-8 py-16">
+            <section id="featured" className="space-y-8">
                 <div className="text-center">
                     <h2 className="text-4xl font-headline font-bold">Productos Destacados</h2>
                     <p className="mt-2 text-muted-foreground">Nuestra selección especial, elegida para ti.</p>
                 </div>
                 {featuredProducts.length > 0 ? (
-                    <Carousel 
-                        opts={{
-                            align: "start",
-                            loop: true,
-                        }}
-                        className="w-full max-w-6xl mx-auto"
-                    >
-                    <CarouselContent>
+                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                         {featuredProducts.map((product) => (
-                        <CarouselItem key={product.id} className="md:basis-1/2 lg:basis-1/3">
-                            <div className="p-2">
-                            <ProductCard product={product} />
-                            </div>
-                        </CarouselItem>
+                            <ProductCard key={product.id} product={product} />
                         ))}
-                    </CarouselContent>
-                    <CarouselPrevious className='hidden sm:flex' />
-                    <CarouselNext className='hidden sm:flex' />
-                    </Carousel>
+                    </div>
                 ) : (
                     <div className="text-center text-muted-foreground py-10">
                         <p>No hay productos destacados para mostrar.</p>
@@ -125,7 +112,7 @@ export default async function Home() {
             <Separator className="w-1/2 mx-auto"/>
 
             {/* About Us Section */}
-            <section className="grid md:grid-cols-2 gap-12 items-center py-16">
+            <section id="about" className="grid md:grid-cols-2 gap-12 items-center py-16">
                 <div className="relative aspect-square rounded-2xl overflow-hidden shadow-2xl">
                      <iframe
                         src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d105073.45344445679!2d-58.503338254488!3d-34.6158237244917!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x95bcca3b4ef90cbd%3A0xa0b3812e88e88e87!2sBuenos%20Aires%2C%20CABA%2C%20Argentina!5e0!3m2!1sen!2sus!4v1718042456479!5m2!1sen!2sus"
@@ -141,21 +128,21 @@ export default async function Home() {
                 </div>
                 <div className='space-y-6'>
                     <h2 className="text-4xl font-headline font-bold">Sobre Nosotros</h2>
-                    <p className="text-muted-foreground leading-relaxed">
+                    <p className="text-muted-foreground leading-relaxed text-lg">
                         En Joya, creemos que cada pieza de joyería es una forma de arte y una expresión personal. Nacimos de la pasión por el diseño y la artesanía, creando joyas que no solo adornan, sino que también inspiran.
                     </p>
-                    <p className="text-muted-foreground leading-relaxed">
+                    <p className="text-muted-foreground leading-relaxed text-lg">
                         Utilizamos materiales de la más alta calidad y técnicas tradicionales para dar vida a diseños contemporáneos y atemporales. Cada creación es un tesoro destinado a ser amado por generaciones.
                     </p>
-                    <div className='flex gap-4'>
-                         <Button asChild className="shadow-md">
+                    <div className='flex flex-wrap gap-4 pt-4'>
+                         <Button asChild className="shadow-md" size="lg">
                             <Link href="https://instagram.com" target="_blank" rel="noopener noreferrer">
                                 <Instagram className="mr-2" /> Síguenos en Instagram
                             </Link>
                         </Button>
-                         <Button asChild variant="outline" className="shadow-md">
-                            <Link href="https://www.google.com/maps" target="_blank" rel="noopener noreferrer">
-                                <MapPin className="mr-2" /> Visítanos
+                         <Button asChild variant="outline" className="shadow-md" size="lg">
+                            <Link href="#featured">
+                                <MapPin className="mr-2" /> Nuestros Productos
                             </Link>
                         </Button>
                     </div>
@@ -164,3 +151,5 @@ export default async function Home() {
         </div>
     );
 }
+
+    
