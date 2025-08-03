@@ -181,10 +181,12 @@ export default function CheckoutPage() {
                             },
                         }}
                         customization={{
-                           paymentMethods: {
-                               maxInstallments: 1
-                           },
-                           visual: {
+                            paymentMethods: {
+                                creditCard: 'all',
+                                debitCard: 'all',
+                                mercadoPago: 'all',
+                            },
+                            visual: {
                                style: {
                                    theme: 'flat',
                                }
@@ -249,3 +251,5 @@ export default function CheckoutPage() {
     </div>
   );
 }
+
+    
