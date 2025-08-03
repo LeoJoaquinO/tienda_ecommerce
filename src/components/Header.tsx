@@ -23,7 +23,6 @@ export default function Header() {
     { href: '/', label: 'Inicio' },
     { href: '/tienda', label: 'Tienda' },
     { href: '/#about', label: 'Sobre Nosotros' },
-    { href: '/admin', label: 'Admin' },
   ];
 
   return (
@@ -96,5 +95,3 @@ export default function Header() {
     </header>
   );
 }
-
-    

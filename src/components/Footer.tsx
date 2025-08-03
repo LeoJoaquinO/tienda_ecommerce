@@ -7,7 +7,6 @@ export default function Footer() {
         { href: '/', label: 'Inicio' },
         { href: '/tienda', label: 'Tienda' },
         { href: '/#about', label: 'Sobre Nosotros' },
-        { href: '/admin', label: 'Admin' },
     ];
 
   return (

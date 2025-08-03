@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 import './globals.css';
 import { cn } from '@/lib/utils';
@@ -6,6 +7,7 @@ import { CartProvider } from '@/contexts/CartContext';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { ThemeProvider } from '@/components/ThemeProvider';
+import WhatsAppButton from '@/components/WhatsAppButton';
 
 export const metadata: Metadata = {
   title: 'Joya - Elegancia Atemporal',
@@ -39,6 +41,7 @@ export default function RootLayout({
                 </main>
                 <Footer />
               </div>
+              <WhatsAppButton />
               <Toaster />
             </CartProvider>
         </ThemeProvider>
