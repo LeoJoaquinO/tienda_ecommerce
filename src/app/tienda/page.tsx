@@ -1,13 +1,15 @@
+
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { ProductCard } from '@/components/ProductCard';
 import { getProducts } from '@/lib/products';
 import { Separator } from '@/components/ui/separator';
-import { Percent, Tag, Loader2 } from 'lucide-react';
+import { Percent, Tag, Loader2, Search } from 'lucide-react';
 import type { Product } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
 
 function CategoryFilters({ categories, selected, onSelect, disabled }: { categories: string[], selected: string, onSelect: (category: string) => void, disabled: boolean }) {
     return (
@@ -35,11 +37,11 @@ function CategoryFilters({ categories, selected, onSelect, disabled }: { categor
     )
 }
 
-
 export default function TiendaPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -54,17 +56,42 @@ export default function TiendaPage() {
 
         } catch (error) {
             console.error("Failed to fetch products:", error);
-            // Optionally, set an error state here to show a message to the user
         }
         setIsLoading(false);
     }
     fetchProducts();
   }, []);
 
+  const filteredProducts = useMemo(() => {
+      let items = products;
+
+      if (searchQuery) {
+          items = items.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
+      }
+
+      if (selectedCategory !== 'All') {
+          items = items.filter(p => p.category === selectedCategory);
+      }
+
+      return items;
+  }, [products, searchQuery, selectedCategory]);
+
+
   const offerProducts = products.filter(p => p.salePrice && p.salePrice > 0);
-  const filteredProducts = selectedCategory === 'All'
-    ? products
-    : products.filter(p => p.category === selectedCategory);
+
+  const productsGroupedByCategory = useMemo(() => {
+    if (selectedCategory !== 'All') {
+      return null;
+    }
+    return filteredProducts.reduce((acc, product) => {
+      const category = product.category;
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push(product);
+      return acc;
+    }, {} as Record<string, Product[]>);
+  }, [filteredProducts, selectedCategory]);
 
   return (
     <div className="space-y-12">
@@ -84,7 +111,7 @@ export default function TiendaPage() {
             </div>
           ) : offerProducts.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mt-8">
-                  {offerProducts.map((product) => (
+                  {offerProducts.slice(0, 3).map((product) => (
                       <ProductCard key={product.id} product={product} />
                   ))}
               </div>
@@ -96,12 +123,21 @@ export default function TiendaPage() {
       <Separator />
 
       <section className="space-y-8">
-          <div className="text-center space-y-4">
+          <div className="text-center space-y-6">
               <div className="flex justify-center items-center gap-4">
                 <Tag className="w-10 h-10 text-primary" />
                 <h2 className="text-4xl font-headline font-bold">Todos los Productos</h2>
               </div>
-              <p className="mt-2 text-muted-foreground">Explora nuestro catálogo completo.</p>
+               <div className="relative w-full max-w-lg mx-auto">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Input 
+                        type="search"
+                        placeholder="Buscar por nombre..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10"
+                    />
+                </div>
               <CategoryFilters categories={categories} selected={selectedCategory} onSelect={setSelectedCategory} disabled={isLoading}/>
           </div>
           
@@ -109,6 +145,19 @@ export default function TiendaPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
               {[...Array(8)].map((_, i) => <Skeleton key={i} className="h-96" />)}
             </div>
+          ) : productsGroupedByCategory ? (
+              <div className="space-y-12">
+                {Object.entries(productsGroupedByCategory).map(([category, catProducts]) => (
+                  <div key={category}>
+                    <h3 className="text-2xl font-bold font-headline mb-4">{category}</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+                      {catProducts.map((product) => (
+                        <ProductCard key={product.id} product={product} />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
           ) : filteredProducts.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
                 {filteredProducts.map((product) => (
@@ -116,7 +165,7 @@ export default function TiendaPage() {
                 ))}
               </div>
           ) : (
-              <p className="text-center text-muted-foreground pt-8">No se encontraron productos en esta categoría.</p>
+              <p className="text-center text-muted-foreground pt-8">No se encontraron productos que coincidan con tu búsqueda.</p>
           )}
       </section>
     </div>

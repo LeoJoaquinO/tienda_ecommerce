@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -14,10 +14,16 @@ import {
   type CarouselApi,
 } from "@/components/ui/carousel";
 import { cn } from '@/lib/utils';
+import Autoplay from "embla-carousel-autoplay"
+
 
 export function HeroCarousel() {
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
+
+  const plugin = useRef(
+    Autoplay({ delay: 3000, stopOnInteraction: true })
+  )
 
   const carouselSlides = [
     {
@@ -63,7 +69,14 @@ export function HeroCarousel() {
 
   return (
     <div>
-        <Carousel setApi={setApi} opts={{ loop: true }} className="w-full">
+        <Carousel 
+            setApi={setApi} 
+            opts={{ loop: true }} 
+            plugins={[plugin.current]}
+            onMouseEnter={plugin.current.stop}
+            onMouseLeave={plugin.current.reset}
+            className="w-full"
+        >
             <CarouselContent>
                 {carouselSlides.map((slide, index) => (
                     <CarouselItem key={index}>
@@ -94,8 +107,8 @@ export function HeroCarousel() {
                     </CarouselItem>
                 ))}
             </CarouselContent>
-            <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2 z-20 hidden sm:flex" />
-            <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 z-20 hidden sm:flex" />
+            <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2 z-20" />
+            <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 z-20" />
         </Carousel>
         <div className="flex justify-center items-center gap-2 mt-4">
             {carouselSlides.map((_, index) => (
@@ -113,5 +126,3 @@ export function HeroCarousel() {
     </div>
   );
 }
-
-
