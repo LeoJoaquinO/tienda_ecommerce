@@ -178,18 +178,15 @@ export default function CheckoutPage() {
                             amount: totalPrice,
                         }}
                         customization={{
-                            paymentMethods: {
+                             paymentMethods: {
                                 creditCard: 'all',
                                 debitCard: 'all',
                                 mercadoPago: 'all',
                             },
-                            visual: {
-                               style: {
-                                   theme: 'flat',
-                               }
-                           }
                         }}
                         onSubmit={processPayment}
+                        onReady={() => console.log('Payment Brick is ready')}
+                        onError={(error) => console.error('Payment Brick error:', error)}
                     />
                 </CardContent>
             </Card>
@@ -248,3 +245,5 @@ export default function CheckoutPage() {
     </div>
   );
 }
+
+    
