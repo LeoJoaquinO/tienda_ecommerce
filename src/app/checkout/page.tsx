@@ -20,9 +20,10 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
-import { Loader2, Ticket } from "lucide-react";
+import { Loader2, Ticket, Lock } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { initMercadoPago, Payment } from '@mercadopago/sdk-react';
+import { cn } from "@/lib/utils";
 
 const shippingSchema = z.object({
   name: z.string().min(2, "El nombre es requerido."),
@@ -32,13 +33,13 @@ const shippingSchema = z.object({
   postalCode: z.string().min(4, "El código postal es requerido."),
 });
 
-// Initialize Mercado Pago SDK
+type ShippingFormData = z.infer<typeof shippingSchema>;
+
 if (process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY) {
     initMercadoPago(process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY, { locale: 'es-AR' });
 } else {
     console.error("Mercado Pago public key is not configured.");
 }
-
 
 export default function CheckoutPage() {
   const { cartItems, subtotal, appliedCoupon, discount, totalPrice, clearCart, cartCount } = useCart();
@@ -46,8 +47,10 @@ export default function CheckoutPage() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isReady, setIsReady] = useState(false);
+  const [step, setStep] = useState<'shipping' | 'payment'>('shipping');
+  const [shippingData, setShippingData] = useState<ShippingFormData | null>(null);
 
-  const form = useForm<z.infer<typeof shippingSchema>>({
+  const form = useForm<ShippingFormData>({
     resolver: zodResolver(shippingSchema),
     defaultValues: {
       name: "",
@@ -58,17 +61,19 @@ export default function CheckoutPage() {
     },
   });
 
-  const onSubmit = async (values: z.infer<typeof shippingSchema>) => {
-    // The payment will be handled by the Mercado Pago Brick,
-    // so this function will likely be triggered by the Brick's onSubmit.
-    // The form data from `values` will be combined with the payment data.
-    console.log("Shipping details:", values);
-    // The processPayment function will handle the rest.
+  const handleShippingSubmit = (values: ShippingFormData) => {
+    setShippingData(values);
+    setStep('payment');
   };
 
   const processPayment = async (formData: any) => {
     setIsLoading(true);
-    const shippingDetails = form.getValues();
+
+    if (!shippingData) {
+        toast({ title: "Error", description: "Faltan los datos de envío.", variant: "destructive"});
+        setIsLoading(false);
+        return;
+    }
 
     try {
         const payload = {
@@ -76,7 +81,7 @@ export default function CheckoutPage() {
             appliedCoupon,
             totalPrice,
             discount,
-            shippingInfo: shippingDetails,
+            shippingInfo: shippingData,
             paymentData: formData,
         };
 
@@ -98,7 +103,7 @@ export default function CheckoutPage() {
         });
 
         clearCart();
-        router.push('/'); // Redirect to home or a success page
+        router.push('/');
 
     } catch (error) {
         console.error("Payment processing error:", error);
@@ -112,12 +117,15 @@ export default function CheckoutPage() {
     }
   }
 
-  // Effect to ensure the page doesn't render until hydration is complete
   useEffect(() => {
     setIsReady(true);
   }, []);
 
-  if (!isReady || cartCount === 0 && !isLoading) {
+  if (!isReady) {
+    return <div className="flex justify-center items-center min-h-[50vh]"><Loader2 className="h-8 w-8 animate-spin"/></div>
+  }
+
+  if (cartCount === 0 && !isLoading) {
     return (
         <div className="text-center py-12">
             <h1 className="text-2xl font-semibold">Tu carrito está vacío</h1>
@@ -143,53 +151,79 @@ export default function CheckoutPage() {
     <div className="grid lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
       <div className="lg:col-span-1">
         <h1 className="text-3xl font-headline font-bold mb-6">Finalizar Compra</h1>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            
-            <Card>
-                <CardHeader><CardTitle>1. Información de Envío</CardTitle></CardHeader>
+        
+        <div className="flex items-center gap-4 mb-8">
+            <div className={cn("flex items-center gap-2", step === 'shipping' ? 'text-primary font-bold' : 'text-muted-foreground')}>
+                <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-sm", step === 'shipping' ? 'bg-primary text-primary-foreground' : 'bg-muted')}>1</div>
+                <span>Envío</span>
+            </div>
+            <Separator className="flex-1" />
+            <div className={cn("flex items-center gap-2", step === 'payment' ? 'text-primary font-bold' : 'text-muted-foreground')}>
+                <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-sm", step === 'payment' ? 'bg-primary text-primary-foreground' : 'bg-muted')}>2</div>
+                <span>Pago</span>
+            </div>
+        </div>
+
+        {step === 'shipping' && (
+            <Form {...form}>
+                <form onSubmit={form.handleSubmit(handleShippingSubmit)} className="space-y-8">
+                    <Card>
+                        <CardHeader><CardTitle>1. Información de Envío</CardTitle></CardHeader>
+                        <CardContent className="space-y-4">
+                            <FormField control={form.control} name="name" render={({ field }) => (
+                                <FormItem><FormLabel>Nombre Completo</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                            )}/>
+                            <FormField control={form.control} name="email" render={({ field }) => (
+                                <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
+                            )}/>
+                            <FormField control={form.control} name="address" render={({ field }) => (
+                                <FormItem><FormLabel>Dirección</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                            )}/>
+                            <div className="grid grid-cols-2 gap-4">
+                            <FormField control={form.control} name="city" render={({ field }) => (
+                                <FormItem><FormLabel>Ciudad</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                )}/>
+                            <FormField control={form.control} name="postalCode" render={({ field }) => (
+                                <FormItem><FormLabel>Código Postal</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                )}/>
+                            </div>
+                            <Button type="submit" size="lg" className="w-full !mt-8">Continuar al Pago</Button>
+                        </CardContent>
+                    </Card>
+                </form>
+            </Form>
+        )}
+
+        {step === 'payment' && (
+             <Card>
+                <CardHeader>
+                    <CardTitle className="flex justify-between items-center">
+                        <span>2. Método de Pago</span>
+                        <Button variant="link" onClick={() => setStep('shipping')}>Editar datos</Button>
+                    </CardTitle>
+                </CardHeader>
                 <CardContent className="space-y-4">
-                    <FormField control={form.control} name="name" render={({ field }) => (
-                        <FormItem><FormLabel>Nombre Completo</FormLabel><FormControl><Input {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>
-                    )}/>
-                    <FormField control={form.control} name="email" render={({ field }) => (
-                        <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>
-                    )}/>
-                    <FormField control={form.control} name="address" render={({ field }) => (
-                        <FormItem><FormLabel>Dirección</FormLabel><FormControl><Input {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>
-                    )}/>
-                    <div className="grid grid-cols-2 gap-4">
-                    <FormField control={form.control} name="city" render={({ field }) => (
-                        <FormItem><FormLabel>Ciudad</FormLabel><FormControl><Input {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>
-                        )}/>
-                    <FormField control={form.control} name="postalCode" render={({ field }) => (
-                        <FormItem><FormLabel>Código Postal</FormLabel><FormControl><Input {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>
-                        )}/>
-                    </div>
-                </CardContent>
-            </Card>
-            
-            <Card>
-                <CardHeader><CardTitle>2. Método de Pago</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">Completa los datos de tu tarjeta de forma segura.</p>
+                  <p className="text-sm text-muted-foreground flex items-center gap-2"><Lock className="h-4 w-4"/>Completa los datos de tu tarjeta de forma segura.</p>
                    <Payment
                         initialization={{
                             amount: totalPrice,
+                            payer: {
+                                email: shippingData?.email || '',
+                            }
                         }}
                         customization={{
                              paymentMethods: {
+                                mercadoPago: 'all',
                                 creditCard: 'all',
                                 debitCard: 'all',
-                                mercadoPago: 'all',
                             },
                         }}
                         onSubmit={processPayment}
                     />
                 </CardContent>
             </Card>
-          </form>
-        </Form>
+        )}
+
       </div>
 
       <div className="lg:col-span-1">
@@ -238,8 +272,17 @@ export default function CheckoutPage() {
                     </div>
                 </CardContent>
             </Card>
+             {isLoading && (
+                <div className="absolute inset-0 bg-white/80 dark:bg-black/80 flex flex-col items-center justify-center rounded-lg">
+                    <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+                    <p className="text-lg font-semibold">Procesando tu pago...</p>
+                    <p className="text-muted-foreground">Por favor, no cierres ni recargues esta página.</p>
+                </div>
+            )}
         </div>
       </div>
     </div>
   );
 }
+
+    
