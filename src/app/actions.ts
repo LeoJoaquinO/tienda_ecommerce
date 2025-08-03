@@ -3,6 +3,21 @@
 import { revalidatePath } from "next/cache";
 import { createProduct, deleteProduct, updateProduct } from "@/lib/products";
 import { z } from "zod";
+import DOMPurify from 'isomorphic-dompurify';
+
+// Helper function to sanitize form data
+function sanitizeData(data: Record<string, any>): Record<string, any> {
+    const sanitizedData: Record<string, any> = {};
+    for (const key in data) {
+        if (typeof data[key] === 'string') {
+            sanitizedData[key] = DOMPurify.sanitize(data[key]);
+        } else {
+            sanitizedData[key] = data[key];
+        }
+    }
+    return sanitizedData;
+}
+
 
 const productSchema = z.object({
     name: z.string().min(1, "El nombre es requerido."),
@@ -20,14 +35,16 @@ const productSchema = z.object({
 
 export async function addProductAction(formData: FormData) {
     const rawData = Object.fromEntries(formData.entries());
+    const sanitizedData = sanitizeData(rawData);
+
     const validatedFields = productSchema.safeParse({
-      ...rawData,
-      price: parseFloat(rawData.price as string),
-      discountPercentage: rawData.discountPercentage ? parseFloat(rawData.discountPercentage as string) : null,
-      offerStartDate: rawData.offerStartDate ? new Date(rawData.offerStartDate as string) : null,
-      offerEndDate: rawData.offerEndDate ? new Date(rawData.offerEndDate as string) : null,
-      stock: parseInt(rawData.stock as string, 10),
-      featured: rawData.featured === 'on',
+      ...sanitizedData,
+      price: parseFloat(sanitizedData.price as string),
+      discountPercentage: sanitizedData.discountPercentage ? parseFloat(sanitizedData.discountPercentage as string) : null,
+      offerStartDate: sanitizedData.offerStartDate ? new Date(sanitizedData.offerStartDate as string) : null,
+      offerEndDate: sanitizedData.offerEndDate ? new Date(sanitizedData.offerEndDate as string) : null,
+      stock: parseInt(sanitizedData.stock as string, 10),
+      featured: sanitizedData.featured === 'on',
     });
 
     if (!validatedFields.success) {
@@ -50,14 +67,16 @@ export async function addProductAction(formData: FormData) {
 
 export async function updateProductAction(id: number, formData: FormData) {
     const rawData = Object.fromEntries(formData.entries());
+    const sanitizedData = sanitizeData(rawData);
+
     const validatedFields = productSchema.safeParse({
-        ...rawData,
-        price: parseFloat(rawData.price as string),
-        discountPercentage: rawData.discountPercentage ? parseFloat(rawData.discountPercentage as string) : null,
-        offerStartDate: rawData.offerStartDate ? new Date(rawData.offerStartDate as string) : null,
-        offerEndDate: rawData.offerEndDate ? new Date(rawData.offerEndDate as string) : null,
-        stock: parseInt(rawData.stock as string, 10),
-        featured: rawData.featured === 'on',
+        ...sanitizedData,
+        price: parseFloat(sanitizedData.price as string),
+        discountPercentage: sanitizedData.discountPercentage ? parseFloat(sanitizedData.discountPercentage as string) : null,
+        offerStartDate: sanitizedData.offerStartDate ? new Date(sanitizedData.offerStartDate as string) : null,
+        offerEndDate: sanitizedData.offerEndDate ? new Date(sanitizedData.offerEndDate as string) : null,
+        stock: parseInt(sanitizedData.stock as string, 10),
+        featured: sanitizedData.featured === 'on',
     });
 
     if (!validatedFields.success) {
