@@ -4,6 +4,9 @@
 import type { CartItem, Product, Coupon } from '@/lib/types';
 import React, { createContext, useState, useEffect, ReactNode, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { ToastAction } from '@/components/ui/toast';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
 interface CartContextType {
   cartItems: CartItem[];
@@ -72,6 +75,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     toast({
       title: "¡Agregado!",
       description: `${product.name} fue agregado al carrito.`,
+      action: <ToastAction asChild altText="Ver carrito"><Button variant="secondary" size="sm" asChild><Link href="/cart">Ver Carrito</Link></Button></ToastAction>,
     });
   };
 
