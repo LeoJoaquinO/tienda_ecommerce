@@ -1,7 +1,8 @@
+
 "use client";
 
-import type { CartItem, Product } from '@/lib/types';
-import React, { createContext, useState, useEffect, ReactNode } from 'react';
+import type { CartItem, Product, Coupon } from '@/lib/types';
+import React, { createContext, useState, useEffect, ReactNode, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 interface CartContextType {
@@ -11,13 +12,19 @@ interface CartContextType {
   updateQuantity: (productId: number, quantity: number) => void;
   clearCart: () => void;
   cartCount: number;
+  subtotal: number;
   totalPrice: number;
+  appliedCoupon: Coupon | null;
+  applyCoupon: (coupon: Coupon) => void;
+  removeCoupon: () => void;
+  discount: number;
 }
 
 export const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -25,11 +32,30 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     if (savedCart) {
       setCartItems(JSON.parse(savedCart));
     }
+    const savedCoupon = localStorage.getItem('appliedCoupon');
+    if (savedCoupon) {
+        const coupon = JSON.parse(savedCoupon) as Coupon;
+        // Basic validation on load
+        if (new Date(coupon.expiryDate ?? '9999-12-31') > new Date()) {
+            setAppliedCoupon(coupon);
+        } else {
+            localStorage.removeItem('appliedCoupon');
+        }
+    }
   }, []);
 
   useEffect(() => {
     localStorage.setItem('cartItems', JSON.stringify(cartItems));
   }, [cartItems]);
+
+  useEffect(() => {
+    if (appliedCoupon) {
+      localStorage.setItem('appliedCoupon', JSON.stringify(appliedCoupon));
+    } else {
+      localStorage.removeItem('appliedCoupon');
+    }
+  }, [appliedCoupon]);
+
 
   const addToCart = (product: Product, quantity = 1) => {
     setCartItems(prevItems => {
@@ -72,16 +98,45 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const clearCart = () => {
     setCartItems([]);
+    setAppliedCoupon(null);
   };
 
+  const applyCoupon = (coupon: Coupon) => {
+    setAppliedCoupon(coupon);
+  }
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+    toast({ title: "Cupón eliminado" });
+  }
+
   const cartCount = cartItems.reduce((count, item) => count + item.quantity, 0);
-  const totalPrice = cartItems.reduce((total, item) => {
-    const price = item.product.salePrice ?? item.product.price;
-    return total + price * item.quantity;
-  }, 0);
+
+  const subtotal = useMemo(() => {
+    return cartItems.reduce((total, item) => {
+        const price = item.product.salePrice ?? item.product.price;
+        return total + price * item.quantity;
+    }, 0);
+  }, [cartItems]);
+
+  const discount = useMemo(() => {
+      if (!appliedCoupon) return 0;
+      if (appliedCoupon.discountType === 'percentage') {
+          return subtotal * (appliedCoupon.discountValue / 100);
+      }
+      if (appliedCoupon.discountType === 'fixed') {
+          return Math.min(appliedCoupon.discountValue, subtotal); // Cannot discount more than the subtotal
+      }
+      return 0;
+  }, [appliedCoupon, subtotal]);
+
+  const totalPrice = useMemo(() => {
+      return subtotal - discount;
+  }, [subtotal, discount]);
+
 
   return (
-    <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, updateQuantity, clearCart, cartCount, totalPrice }}>
+    <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, updateQuantity, clearCart, cartCount, subtotal, totalPrice, appliedCoupon, applyCoupon, removeCoupon, discount }}>
       {children}
     </CartContext.Provider>
   );

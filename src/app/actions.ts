@@ -1,7 +1,9 @@
+
 "use server";
 
 import { revalidatePath } from "next/cache";
 import { createProduct, deleteProduct, updateProduct } from "@/lib/products";
+import { createCoupon } from "@/lib/coupons";
 import { z } from "zod";
 import DOMPurify from 'isomorphic-dompurify';
 
@@ -109,5 +111,48 @@ export async function deleteProductAction(id: number) {
     } catch (e: any) {
         console.error(e);
         return { error: e.message || 'No se pudo eliminar el producto.' }
+    }
+}
+
+
+const couponSchema = z.object({
+    code: z.string().min(3, "El código debe tener al menos 3 caracteres.").max(50, "El código no puede tener más de 50 caracteres."),
+    discountType: z.enum(['percentage', 'fixed'], { required_error: "El tipo de descuento es requerido."}),
+    discountValue: z.coerce.number().positive("El valor del descuento debe ser un número positivo."),
+    expiryDate: z.coerce.date().optional().nullable(),
+}).refine(data => {
+    if (data.discountType === 'percentage') {
+        return data.discountValue <= 100;
+    }
+    return true;
+}, {
+    message: "El porcentaje de descuento no puede ser mayor a 100.",
+    path: ["discountValue"],
+});
+
+export async function addCouponAction(formData: FormData) {
+    const rawData = Object.fromEntries(formData.entries());
+    const sanitizedData = sanitizeData(rawData);
+    
+    const validatedFields = couponSchema.safeParse(sanitizedData);
+
+    if (!validatedFields.success) {
+        console.error("Validation failed", validatedFields.error.flatten().fieldErrors);
+        return {
+            error: "Datos de cupón inválidos. Por favor, revisa los campos.",
+            fieldErrors: validatedFields.error.flatten().fieldErrors,
+        };
+    }
+
+    try {
+        await createCoupon(validatedFields.data);
+        revalidatePath("/admin");
+        return { message: "Cupón creado exitosamente." };
+    } catch (e: any) {
+        console.error(e);
+        if (e.message.includes('UNIQUE constraint failed')) {
+            return { error: `El código de cupón '${validatedFields.data.code}' ya existe.` };
+        }
+        return { error: e.message || "No se pudo crear el cupón." };
     }
 }

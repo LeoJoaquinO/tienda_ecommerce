@@ -4,7 +4,8 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { getProducts } from '@/lib/products';
-import type { Product } from '@/lib/types';
+import { getCoupons } from '@/lib/coupons';
+import type { Product, Coupon } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -17,7 +18,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PlusCircle, Edit, Trash2, LogIn, LogOut, Loader2, Package, Tag, Wallet, Calendar as CalendarIcon, BarChart, AlertTriangle, ShoppingCart } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, LogIn, LogOut, Loader2, Package, Tag, Wallet, Calendar as CalendarIcon, BarChart, AlertTriangle, ShoppingCart, Ticket } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -31,12 +32,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { addProductAction, updateProductAction, deleteProductAction } from '@/app/actions';
+import { addProductAction, updateProductAction, deleteProductAction, addCouponAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { BarChart as RechartsBarChart, Bar as RechartsBar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 // ############################################################################
 // Component: ProductForm
@@ -111,6 +113,65 @@ function ProductForm({ product, onFinished }: { product?: Product, onFinished: (
     );
 }
 
+// ############################################################################
+// Component: CouponForm
+// ############################################################################
+function CouponForm({ onFinished }: { onFinished: () => void }) {
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const { toast } = useToast();
+    const [expiryDate, setExpiryDate] = useState<Date | undefined>(undefined);
+
+    async function handleAction(formData: FormData) {
+        setIsSubmitting(true);
+        if (expiryDate) formData.set('expiryDate', expiryDate.toISOString());
+
+        const result = await addCouponAction(formData);
+        if (result?.error) {
+            toast({ title: 'Error de Validación', description: result.error, variant: 'destructive' });
+        } else {
+            toast({ title: 'Éxito', description: result.message });
+            onFinished();
+        }
+        setIsSubmitting(false);
+    }
+    
+    return (
+        <form action={handleAction} className="space-y-4">
+            <div><Label htmlFor="code">Código del Cupón</Label><Input id="code" name="code" placeholder="VERANO20" required /></div>
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <Label htmlFor="discountType">Tipo de Descuento</Label>
+                    <Select name="discountType" required defaultValue="percentage">
+                        <SelectTrigger><SelectValue placeholder="Seleccionar tipo..." /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="percentage">Porcentaje (%)</SelectItem>
+                            <SelectItem value="fixed">Monto Fijo ($)</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div>
+                    <Label htmlFor="discountValue">Valor</Label>
+                    <Input id="discountValue" name="discountValue" type="number" step="0.01" min="0" placeholder="Ej: 20" required />
+                </div>
+            </div>
+             <div>
+                <Label>Fecha de Expiración (Opcional)</Label>
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !expiryDate && "text-muted-foreground")}>
+                            <CalendarIcon className="mr-2 h-4 w-4" />{expiryDate ? format(expiryDate, "PPP") : <span>Elegir fecha</span>}
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={expiryDate} onSelect={setExpiryDate} initialFocus /></PopoverContent>
+                </Popover>
+            </div>
+            <DialogFooter>
+                <DialogClose asChild><Button variant="ghost">Cancelar</Button></DialogClose>
+                <Button type="submit" disabled={isSubmitting}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Crear Cupón</Button>
+            </DialogFooter>
+        </form>
+    );
+}
 
 // ############################################################################
 // Component: MetricsTab
@@ -120,7 +181,7 @@ function MetricsTab({ products, isLoading }: { products: Product[], isLoading: b
     const totalStock = products.reduce((acc, p) => acc + p.stock, 0);
     const totalInventoryValue = products.reduce((acc, p) => acc + (p.price * p.stock), 0);
     const productsOnSale = products.filter(p => p.salePrice && p.salePrice > 0).length;
-    const lowStockProducts = products.filter(p => p.stock <= 5);
+    const lowStockProducts = products.filter(p => p.stock <= 3);
 
     const categoryData = Object.values(products.reduce((acc, product) => {
         const category = product.category || 'Sin Categoría';
@@ -145,7 +206,7 @@ function MetricsTab({ products, isLoading }: { products: Product[], isLoading: b
                         </ChartContainer>
                     ) : <div className="flex justify-center items-center h-80"><BarChart className="h-8 w-8 text-muted-foreground" /><p className="text-muted-foreground ml-4">No hay datos de categoría.</p></div>}
                 </CardContent></Card>
-                <Card className="shadow-md"><CardHeader><CardTitle className="flex items-center gap-2"><AlertTriangle className="text-amber-500"/>Alertas de Inventario</CardTitle><CardDescription>Productos con bajo stock (5 unidades o menos).</CardDescription></CardHeader><CardContent>
+                <Card className="shadow-md"><CardHeader><CardTitle className="flex items-center gap-2"><AlertTriangle className="text-amber-500"/>Alertas de Inventario</CardTitle><CardDescription>Productos con bajo stock (3 unidades o menos).</CardDescription></CardHeader><CardContent>
                     {isLoading ? <div className="flex justify-center items-center h-80"><Loader2 className="h-8 w-8 animate-spin" /></div> : lowStockProducts.length > 0 ? (
                         <Table><TableHeader><TableRow><TableHead>Producto</TableHead><TableHead className="text-right">Stock Restante</TableHead></TableRow></TableHeader><TableBody>
                             {lowStockProducts.map(p => <TableRow key={p.id}><TableCell className="font-medium">{p.name}</TableCell><TableCell className="text-right font-bold text-destructive">{p.stock}</TableCell></TableRow>)}
@@ -190,41 +251,87 @@ function ProductsTab({ products, isLoading, onEdit, onDelete, onAdd }: { product
 }
 
 // ############################################################################
+// Component: CouponsTab
+// ############################################################################
+function CouponsTab({ coupons, isLoading, onAdd }: { coupons: Coupon[], isLoading: boolean, onAdd: () => void }) {
+    return (
+        <Card className="shadow-lg">
+            <CardHeader className="flex flex-row items-center justify-between">
+                <div><CardTitle>Gestionar Cupones</CardTitle><CardDescription>Crea y gestiona códigos de descuento.</CardDescription></div>
+                <Button onClick={onAdd}><PlusCircle className="mr-2 h-4 w-4" />Crear Cupón</Button>
+            </CardHeader>
+            <CardContent className='p-0'>
+                {isLoading ? <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div> : (
+                    <Table><TableHeader><TableRow><TableHead>Código</TableHead><TableHead>Tipo</TableHead><TableHead>Valor</TableHead><TableHead>Expiración</TableHead><TableHead>Activo</TableHead></TableRow></TableHeader><TableBody>
+                        {coupons.map(coupon => (
+                            <TableRow key={coupon.id}>
+                                <TableCell className="font-medium text-primary">{coupon.code}</TableCell>
+                                <TableCell>{coupon.discountType === 'percentage' ? 'Porcentaje' : 'Monto Fijo'}</TableCell>
+                                <TableCell>{coupon.discountType === 'percentage' ? `${coupon.discountValue}%` : `$${coupon.discountValue}`}</TableCell>
+                                <TableCell>{coupon.expiryDate ? format(new Date(coupon.expiryDate), 'PPP') : 'Nunca'}</TableCell>
+                                <TableCell>{new Date(coupon.expiryDate ?? '9999-12-31') > new Date() ? 'Sí' : 'No'}</TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody></Table>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
+
+// ############################################################################
 // Component: AdminDashboard
 // ############################################################################
 function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     const [products, setProducts] = useState<Product[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [dialogOpen, setDialogOpen] = useState(false);
+    const [coupons, setCoupons] = useState<Coupon[]>([]);
+    const [isProductsLoading, setIsProductsLoading] = useState(true);
+    const [isCouponsLoading, setIsCouponsLoading] = useState(true);
+    const [dialogType, setDialogType] = useState<'product' | 'coupon' | null>(null);
     const [editingProduct, setEditingProduct] = useState<Product | undefined>(undefined);
     const { toast } = useToast();
 
     const fetchAndSetProducts = async () => {
-        setIsLoading(true);
+        setIsProductsLoading(true);
         try {
             const fetchedProducts = await getProducts();
             setProducts(fetchedProducts);
         } catch (error) {
             toast({ title: 'Error al cargar productos', description: (error as Error).message, variant: 'destructive' });
         }
-        setIsLoading(false);
+        setIsProductsLoading(false);
+    }
+    
+    const fetchAndSetCoupons = async () => {
+        setIsCouponsLoading(true);
+        try {
+            const fetchedCoupons = await getCoupons();
+            setCoupons(fetchedCoupons);
+        } catch (error) {
+            toast({ title: 'Error al cargar cupones', description: (error as Error).message, variant: 'destructive' });
+        }
+        setIsCouponsLoading(false);
     }
 
-    useEffect(() => { fetchAndSetProducts(); }, []);
+    useEffect(() => { 
+        fetchAndSetProducts();
+        fetchAndSetCoupons();
+    }, []);
     
-    const handleOpenDialog = (product?: Product) => {
+    const handleOpenDialog = (type: 'product' | 'coupon', product?: Product) => {
         setEditingProduct(product);
-        setDialogOpen(true);
+        setDialogType(type);
     };
 
     const handleCloseDialog = () => {
-        setDialogOpen(false);
+        setDialogType(null);
         setEditingProduct(undefined);
     };
 
     const onFormFinished = () => {
         handleCloseDialog();
-        fetchAndSetProducts();
+        if (dialogType === 'product') fetchAndSetProducts();
+        if (dialogType === 'coupon') fetchAndSetCoupons();
     }
     
     const handleDelete = async (id: number) => {
@@ -242,27 +349,32 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     return (
     <div className="space-y-6">
         <div className="flex justify-between items-start">
-            <div><h1 className="text-3xl font-bold font-headline">Panel de Administración</h1><p className="text-muted-foreground">Métricas y gestión de productos.</p></div>
+            <div><h1 className="text-3xl font-bold font-headline">Panel de Administración</h1><p className="text-muted-foreground">Métricas, gestión de productos y cupones.</p></div>
             <Button variant="outline" onClick={onLogout}><LogOut className="mr-2 h-4 w-4" />Cerrar Sesión</Button>
         </div>
 
         <Tabs defaultValue="overview">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="overview">Visión General</TabsTrigger>
                 <TabsTrigger value="products">Productos</TabsTrigger>
+                <TabsTrigger value="coupons">Cupones</TabsTrigger>
             </TabsList>
             <TabsContent value="overview" className="mt-6">
-                <MetricsTab products={products} isLoading={isLoading} />
+                <MetricsTab products={products} isLoading={isProductsLoading} />
             </TabsContent>
             <TabsContent value="products" className="mt-6">
-                <ProductsTab products={products} isLoading={isLoading} onAdd={() => handleOpenDialog()} onEdit={handleOpenDialog} onDelete={handleDelete} />
+                <ProductsTab products={products} isLoading={isProductsLoading} onAdd={() => handleOpenDialog('product')} onEdit={(p) => handleOpenDialog('product', p)} onDelete={handleDelete} />
+            </TabsContent>
+            <TabsContent value="coupons" className="mt-6">
+                <CouponsTab coupons={coupons} isLoading={isCouponsLoading} onAdd={() => handleOpenDialog('coupon')} />
             </TabsContent>
         </Tabs>
 
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <Dialog open={dialogType !== null} onOpenChange={(isOpen) => !isOpen && handleCloseDialog()}>
             <DialogContent className="sm:max-w-[625px]">
-                <DialogHeader><DialogTitle>{editingProduct ? 'Editar Producto' : 'Añadir Nuevo Producto'}</DialogTitle></DialogHeader>
-                <ProductForm product={editingProduct} onFinished={onFormFinished} />
+                <DialogHeader><DialogTitle>{dialogType === 'product' ? (editingProduct ? 'Editar Producto' : 'Añadir Nuevo Producto') : 'Crear Nuevo Cupón'}</DialogTitle></DialogHeader>
+                {dialogType === 'product' && <ProductForm product={editingProduct} onFinished={onFormFinished} />}
+                {dialogType === 'coupon' && <CouponForm onFinished={onFormFinished} />}
             </DialogContent>
         </Dialog>
     </div>
@@ -319,5 +431,3 @@ export default function AdminPage() {
 
   return <AdminDashboard onLogout={handleLogout} />;
 }
-
-    

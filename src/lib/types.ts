@@ -1,3 +1,4 @@
+
 export type Product = {
   id: number;
   name: string;
@@ -17,4 +18,13 @@ export type Product = {
 export type CartItem = {
   product: Product;
   quantity: number;
+};
+
+export type Coupon = {
+  id: number;
+  code: string;
+  discountType: 'percentage' | 'fixed';
+  discountValue: number;
+  expiryDate: Date | null;
+  isActive: boolean;
 };

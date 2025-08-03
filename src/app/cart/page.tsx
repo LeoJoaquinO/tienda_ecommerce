@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -6,11 +7,36 @@ import { useCart } from '@/hooks/useCart';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Trash2, ShoppingBag } from 'lucide-react';
+import { Trash2, ShoppingBag, Ticket, XCircle } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
+import { getCouponByCode } from '@/lib/coupons';
 
 export default function CartPage() {
-  const { cartItems, removeFromCart, updateQuantity, totalPrice, cartCount } = useCart();
+  const { cartItems, removeFromCart, updateQuantity, subtotal, cartCount, appliedCoupon, applyCoupon, removeCoupon, discount, totalPrice } = useCart();
+  const [couponCode, setCouponCode] = useState("");
+  const [isLoadingCoupon, setIsLoadingCoupon] = useState(false);
+  const { toast } = useToast();
+
+  const handleApplyCoupon = async () => {
+      if (!couponCode) return;
+      setIsLoadingCoupon(true);
+      try {
+        const coupon = await getCouponByCode(couponCode);
+        if (coupon) {
+            applyCoupon(coupon);
+            toast({ title: "Éxito", description: "Cupón aplicado correctamente." });
+        } else {
+            toast({ title: "Error", description: "El cupón no es válido o ha expirado.", variant: "destructive" });
+        }
+      } catch (error) {
+        toast({ title: "Error", description: (error as Error).message, variant: "destructive" });
+      }
+      setIsLoadingCoupon(false);
+      setCouponCode("");
+  }
+
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -27,7 +53,7 @@ export default function CartPage() {
             </CardContent>
         </Card>
       ) : (
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-3 gap-8 items-start">
           <div className="md:col-span-2 space-y-4">
             {cartItems.map(({ product, quantity }) => (
               <Card key={product.id} className="flex items-center p-4">
@@ -65,10 +91,28 @@ export default function CartPage() {
                 <CardTitle className="font-headline">Resumen del Pedido</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {!appliedCoupon && (
+                    <div className="flex gap-2">
+                        <Input placeholder="Código de Cupón" value={couponCode} onChange={(e) => setCouponCode(e.target.value.toUpperCase())} />
+                        <Button onClick={handleApplyCoupon} disabled={isLoadingCoupon || !couponCode}>
+                            {isLoadingCoupon ? <Loader2 className="animate-spin" /> : "Aplicar"}
+                        </Button>
+                    </div>
+                )}
                 <div className="flex justify-between">
                   <span>Subtotal</span>
-                  <span>${totalPrice.toLocaleString('es-AR')}</span>
+                  <span>${subtotal.toLocaleString('es-AR')}</span>
                 </div>
+                 {appliedCoupon && (
+                    <div className="flex justify-between items-center text-primary">
+                        <div className="flex items-center gap-2">
+                            <Ticket className="h-4 w-4"/>
+                            <span>Cupón: {appliedCoupon.code}</span>
+                            <button onClick={removeCoupon} className="text-destructive"><XCircle className="h-4 w-4"/></button>
+                        </div>
+                        <span>-${discount.toLocaleString('es-AR')}</span>
+                    </div>
+                 )}
                 <div className="flex justify-between">
                   <span>Envío</span>
                   <span>Gratis</span>

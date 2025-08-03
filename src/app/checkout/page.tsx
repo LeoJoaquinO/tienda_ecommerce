@@ -21,7 +21,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Ticket, XCircle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
 const shippingSchema = z.object({
@@ -36,7 +36,7 @@ const shippingSchema = z.object({
 });
 
 export default function CheckoutPage() {
-  const { cartItems, totalPrice, clearCart } = useCart();
+  const { cartItems, subtotal, appliedCoupon, discount, totalPrice, clearCart, cartCount } = useCart();
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -57,12 +57,39 @@ export default function CheckoutPage() {
     setIsLoading(true);
 
     try {
+      // Create a new cart representation for checkout that includes the discount
+      const checkoutItems = [
+        ...cartItems.map(item => ({
+            id: String(item.product.id),
+            title: item.product.name,
+            quantity: item.quantity,
+            unit_price: item.product.salePrice ?? item.product.price,
+            currency_id: 'ARS',
+            picture_url: item.product.image,
+            description: item.product.description,
+        }))
+      ];
+      
+      // If a discount is applied, add it as a separate line item.
+      // Mercado Pago doesn't support a top-level discount field in the same way.
+      if (appliedCoupon && discount > 0) {
+          checkoutItems.push({
+              id: appliedCoupon.code,
+              title: `Descuento: ${appliedCoupon.code}`,
+              quantity: 1,
+              unit_price: -discount, // The discount is a negative value
+              currency_id: 'ARS',
+              picture_url: '',
+              description: 'Cupón de descuento aplicado',
+          });
+      }
+
       const response = await fetch('/api/create-preference', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(cartItems),
+        body: JSON.stringify(checkoutItems),
       });
 
       const data = await response.json();
@@ -90,7 +117,7 @@ export default function CheckoutPage() {
     }
   }
 
-  if (cartItems.length === 0 && !isLoading) {
+  if (cartCount === 0 && !isLoading) {
     return (
         <div className="text-center py-12">
             <h1 className="text-2xl font-semibold">Tu carrito está vacío</h1>
@@ -194,8 +221,17 @@ export default function CheckoutPage() {
                     <div className="space-y-2">
                         <div className="flex justify-between">
                             <p className="text-muted-foreground">Subtotal</p>
-                            <p>${totalPrice.toLocaleString('es-AR')}</p>
+                            <p>${subtotal.toLocaleString('es-AR')}</p>
                         </div>
+                        {appliedCoupon && (
+                            <div className="flex justify-between text-primary">
+                                <div className="flex items-center gap-2">
+                                    <Ticket className="h-4 w-4"/>
+                                    <span>Cupón: {appliedCoupon.code}</span>
+                                </div>
+                                <span>-${discount.toLocaleString('es-AR')}</span>
+                            </div>
+                        )}
                         <div className="flex justify-between">
                             <p className="text-muted-foreground">Envío</p>
                             <p>Gratis</p>
@@ -213,5 +249,4 @@ export default function CheckoutPage() {
     </div>
   );
 }
-
     
