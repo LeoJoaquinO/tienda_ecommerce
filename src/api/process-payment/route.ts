@@ -73,11 +73,10 @@ export async function POST(req: NextRequest) {
                 issuer_id: paymentData.issuer_id,
                 payer: {
                     email: paymentData.payer.email,
-                    // Note: You might need to collect first name, last name, and identification
-                    // in your checkout form for a complete implementation.
                     first_name: shippingInfo.name.split(' ')[0],
                     last_name: shippingInfo.name.split(' ').slice(1).join(' ') || shippingInfo.name.split(' ')[0],
                     identification: paymentData.payer.identification,
+                    entity_type: 'individual', // This is the required field that was missing
                 },
                 // Pass our internal order ID to track it via webhooks
                 external_reference: String(orderId),
@@ -99,5 +98,3 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 }
-
-    

@@ -185,8 +185,6 @@ export default function CheckoutPage() {
                             },
                         }}
                         onSubmit={processPayment}
-                        onReady={() => console.log('Payment Brick is ready')}
-                        onError={(error) => console.error('Payment Brick error:', error)}
                     />
                 </CardContent>
             </Card>
@@ -245,5 +243,3 @@ export default function CheckoutPage() {
     </div>
   );
 }
-
-    
