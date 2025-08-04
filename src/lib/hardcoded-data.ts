@@ -1,3 +1,4 @@
+
 'use server';
 
 import type { Product, Coupon, Order, SalesMetrics, OrderData, OrderStatus } from './types';
@@ -30,6 +31,9 @@ let localProducts: Product[] = [
         stock: 8,
         featured: true,
         aiHint: "sapphire ring",
+        discountPercentage: null,
+        offerStartDate: null,
+        offerEndDate: null,
         salePrice: null,
     },
     {
@@ -43,6 +47,9 @@ let localProducts: Product[] = [
         stock: 12,
         featured: false,
         aiHint: "emerald earrings",
+        discountPercentage: null,
+        offerStartDate: null,
+        offerEndDate: null,
         salePrice: null,
     },
     {
@@ -56,6 +63,9 @@ let localProducts: Product[] = [
         stock: 25,
         featured: true,
         aiHint: "silver bracelet",
+        discountPercentage: null,
+        offerStartDate: null,
+        offerEndDate: null,
         salePrice: null,
     },
     {
@@ -69,6 +79,9 @@ let localProducts: Product[] = [
         stock: 5,
         featured: true,
         aiHint: "luxury watch",
+        discountPercentage: null,
+        offerStartDate: null,
+        offerEndDate: null,
         salePrice: null,
     },
     {
@@ -82,6 +95,9 @@ let localProducts: Product[] = [
         stock: 20,
         featured: false,
         aiHint: "gold choker",
+        discountPercentage: null,
+        offerStartDate: null,
+        offerEndDate: null,
         salePrice: null,
     },
     {
@@ -95,6 +111,9 @@ let localProducts: Product[] = [
         stock: 3,
         featured: false,
         aiHint: "solitaire ring",
+        discountPercentage: null,
+        offerStartDate: null,
+        offerEndDate: null,
         salePrice: null,
     },
     {
@@ -108,6 +127,9 @@ let localProducts: Product[] = [
         stock: 30,
         featured: false,
         aiHint: "silver hoops",
+        discountPercentage: null,
+        offerStartDate: null,
+        offerEndDate: null,
         salePrice: null,
     }
 ].map(p => ({ ...p, salePrice: _calculateSalePrice(p) }));
@@ -202,7 +224,8 @@ export async function getCouponsFromHardcoded(): Promise<Coupon[]> {
 }
 
 export async function getCouponByIdFromHardcoded(id: number): Promise<Coupon | undefined> {
-    return localCoupons.find(c => c.id === id);
+    const coupon = localCoupons.find(c => c.id === id);
+    return coupon ? JSON.parse(JSON.stringify(coupon)) : undefined;
 }
 
 export async function getCouponByCodeFromHardcoded(code: string): Promise<Coupon | undefined> {
@@ -229,8 +252,9 @@ export async function updateCouponInHardcoded(id: number, couponData: Partial<Om
     if (couponData.code && localCoupons.some(c => c.id !== id && c.code.toUpperCase() === couponData.code!.toUpperCase())) {
         throw new Error(`El código de cupón '${couponData.code}' ya existe.`);
     }
-    localProducts[couponIndex] = { ...localCoupons[couponIndex], ...couponData, salePrice: null };
-    return localCoupons[couponIndex];
+    const updatedCoupon = { ...localCoupons[couponIndex], ...couponData };
+    localCoupons[couponIndex] = updatedCoupon;
+    return updatedCoupon;
 }
 
 export async function deleteCouponFromHardcoded(id: number): Promise<void> {
