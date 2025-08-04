@@ -7,8 +7,8 @@ import { getProducts } from './products';
 
 
 // --- Hardcoded Data for Demonstration ---
-// NOTE: In a real application, this would be empty and populated by real orders.
-// We are pre-filling it here to demonstrate the new metrics panel.
+// NOTE: This should be empty in a real production environment.
+// It is pre-filled here to demonstrate the metrics panel without a database connection.
 let hardcodedOrders: any[] = [
     { id: 101, customerName: 'Juan Perez', customerEmail: 'juan@example.com', total: 255, status: 'paid', createdAt: new Date('2024-07-20T10:30:00Z'), items: [{ product: {id: 1, salePrice: 102, price: 120}, quantity: 1 }, { product: {id: 2, salePrice: 150, price: 150}, quantity: 1 }] },
     { id: 102, customerName: 'Ana Gomez', customerEmail: 'ana@example.com', total: 95, status: 'paid', createdAt: new Date('2024-07-21T14:00:00Z'), items: [{ product: {id: 3, salePrice: 85.5, price: 95}, quantity: 1 }] },
@@ -39,6 +39,8 @@ function handleDbError(error: any, context: string): never {
  */
 export async function createOrder(orderData: OrderData): Promise<number> {
     // --- Hardcoded Logic ---
+    // This logic runs if you haven't switched to a database yet.
+    // It's for local development and demonstration purposes.
     const newOrder = { 
         id: nextOrderId++, 
         ...orderData, 
@@ -46,7 +48,6 @@ export async function createOrder(orderData: OrderData): Promise<number> {
     };
     hardcodedOrders.push(newOrder);
     console.log("createOrder called (hardcoded). Order created:", newOrder);
-    // In a real scenario, you'd also decrement stock here.
     orderData.items.forEach(item => {
         console.log(`(Hardcoded) Decrementing stock for product ${item.product.id} by ${item.quantity}`);
     });
@@ -97,6 +98,7 @@ export async function createOrder(orderData: OrderData): Promise<number> {
  */
 export async function updateOrderStatus(orderId: number, status: OrderStatus, paymentId?: string): Promise<void> {
     // --- Hardcoded Logic ---
+    // This logic runs if you haven't switched to a database yet.
     const orderIndex = hardcodedOrders.findIndex(o => o.id === orderId);
     if (orderIndex !== -1) {
         hardcodedOrders[orderIndex].status = status;
@@ -122,11 +124,12 @@ type OrderItem = {
 
 /**
  * Retrieves the items for a given order and restocks them.
+ * This is used when a payment is cancelled or fails.
  */
 export async function restockItemsForOrder(orderId: number): Promise<void> {
      // --- Hardcoded Logic ---
+    // This logic runs if you haven't switched to a database yet.
     console.log(`(Hardcoded) Restocking items for cancelled/failed order ${orderId}`);
-    // This part is complex to simulate without a real DB state, but we log the intent.
     return Promise.resolve();
 
     // --- Database Logic ---
@@ -164,10 +167,11 @@ export async function restockItemsForOrder(orderId: number): Promise<void> {
 }
 
 /**
- * Retrieves sales metrics from the database.
+ * Retrieves sales metrics for the admin dashboard.
  */
 export async function getSalesMetrics(): Promise<SalesMetrics> {
     // --- Hardcoded Logic ---
+    // This logic runs if you haven't switched to a database yet.
     const paidOrders = hardcodedOrders.filter(o => o.status === 'paid');
     const totalRevenue = paidOrders.reduce((sum, order) => sum + order.total, 0);
     const totalSales = paidOrders.length;

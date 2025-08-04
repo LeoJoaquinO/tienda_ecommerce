@@ -4,6 +4,8 @@ import pool from './db';
 import { RowDataPacket } from 'mysql2';
 
 // --- Hardcoded Data for Initial Setup ---
+// This logic runs if you haven't switched to a database yet.
+// It's for local development and demonstration purposes.
 let hardcodedCoupons: Coupon[] = [
     { id: 1, code: "JOYA10", discountType: "percentage", discountValue: 10, expiryDate: new Date('2025-12-31'), isActive: true },
     { id: 2, code: "ENVIOFREE", discountType: "fixed", discountValue: 50, expiryDate: new Date('2025-12-31'), isActive: true },
@@ -43,7 +45,7 @@ function handleDbError(error: any, context: string): never {
 
 
 export async function getCoupons(): Promise<Coupon[]> {
-    // Hardcoded logic
+    // --- Hardcoded Logic ---
     return Promise.resolve(hardcodedCoupons);
 
     // --- Database Logic ---
@@ -58,7 +60,7 @@ export async function getCoupons(): Promise<Coupon[]> {
 }
 
 export async function getCouponByCode(code: string): Promise<Coupon | undefined> {
-    // Hardcoded logic
+    // --- Hardcoded Logic ---
     const coupon = hardcodedCoupons.find(c => c.code.toUpperCase() === code.toUpperCase());
     if (coupon && isCouponActive(coupon)) {
         return Promise.resolve(coupon);
@@ -68,10 +70,9 @@ export async function getCouponByCode(code: string): Promise<Coupon | undefined>
     // --- Database Logic ---
     /*
     try {
-        const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM coupons WHERE code = ?', [code]);
+        const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM coupons WHERE code = ? AND is_active = TRUE AND (expiry_date IS NULL OR expiry_date > NOW())', [code.toUpperCase()]);
         if (rows.length > 0) {
-            const coupon = rowToCoupon(rows[0]);
-            return isCouponActive(coupon) ? coupon : undefined;
+            return rowToCoupon(rows[0]);
         }
         return undefined;
     } catch (error) {
@@ -81,7 +82,7 @@ export async function getCouponByCode(code: string): Promise<Coupon | undefined>
 }
 
 export async function createCoupon(coupon: Omit<Coupon, 'id'>): Promise<Coupon> {
-    // Hardcoded logic
+    // --- Hardcoded Logic ---
     const newId = hardcodedCoupons.length > 0 ? Math.max(...hardcodedCoupons.map(c => c.id)) + 1 : 1;
     const existingCoupon = hardcodedCoupons.find(c => c.code.toUpperCase() === coupon.code.toUpperCase());
     if (existingCoupon) {
@@ -115,10 +116,9 @@ export async function createCoupon(coupon: Omit<Coupon, 'id'>): Promise<Coupon> 
 
 
 export async function updateCoupon(id: number, coupon: Partial<Omit<Coupon, 'id'>>): Promise<Coupon> {
-    // Hardcoded logic
+    // --- Hardcoded Logic ---
     const index = hardcodedCoupons.findIndex(c => c.id === id);
     if (index !== -1) {
-        // Check for duplicate code on update
         const existingCoupon = hardcodedCoupons.find(c => c.code.toUpperCase() === coupon.code?.toUpperCase() && c.id !== id);
         if (existingCoupon) {
             throw new Error(`Error: El código de cupón '${coupon.code}' ya existe.`);
@@ -152,7 +152,7 @@ export async function updateCoupon(id: number, coupon: Partial<Omit<Coupon, 'id'
 
 
 export async function deleteCoupon(id: number): Promise<void> {
-    // Hardcoded logic
+    // --- Hardcoded Logic ---
     const index = hardcodedCoupons.findIndex(c => c.id === id);
     if (index !== -1) {
         hardcodedCoupons.splice(index, 1);
@@ -170,9 +170,8 @@ export async function deleteCoupon(id: number): Promise<void> {
 }
 
 
-// Needed for DB logic, even if not used by hardcoded version yet
 export async function getCouponById(id: number): Promise<Coupon | undefined> {
-    // Hardcoded logic
+    // --- Hardcoded Logic ---
     const coupon = hardcodedCoupons.find(c => c.id === id);
     return Promise.resolve(coupon);
     

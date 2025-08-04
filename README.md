@@ -133,10 +133,10 @@ Now, we'll connect Vercel to your GitHub repository and tell it your secret keys
 Your site is live, but it's still using the hardcoded sample data. Let's switch it to use your new live database and configure your payment webhook.
 
 1.  **Create the Database Tables:**
-    *   Your Vercel Postgres database is currently empty. We need to create the `products`, `orders`, and other tables.
+    *   Your Vercel Postgres database is currently empty. We need to create the `products`, `orders`, `coupons`, and other tables.
     *   On your Vercel dashboard, go to the **Storage** tab, select your database, and then click on the **"Query"** tab.
-    *   Copy the SQL commands from the `database.sql` file in your project and paste them into the query editor on Vercel.
-    *   Click **"Run"**. This will create the necessary table structure.
+    *   Open the `database.sql` file in your project, **copy the entire content**, and paste it into the query editor on Vercel.
+    *   Click **"Run"**. This will create the necessary table structure for all your store's features.
 
 2.  **Switch to Live Data Mode:**
     *   We need to tell the application to use the database.

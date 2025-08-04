@@ -155,7 +155,7 @@ Your project currently uses hardcoded sample data. Now, we'll set up your real d
     ```bash
     mysql -h your_mysql_host -u your_mysql_username -p your_mysql_database_name < database.sql
     ```
-    This creates the table structure.
+    This creates the table structure for products, coupons, and orders.
 
 2.  **Switch to Live Data Mode:** You need to edit three files to tell the app to use the database instead of the hardcoded data.
     *   Open `src/lib/products.ts`, `src/lib/coupons.ts`, and `src/lib/orders.ts` with nano.
