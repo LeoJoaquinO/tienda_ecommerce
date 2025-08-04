@@ -10,7 +10,7 @@ import { ThemeProvider } from '@/components/ThemeProvider';
 import WhatsAppButton from '@/components/WhatsAppButton';
 import Script from 'next/script';
 import CartSidebar from '@/components/CartSidebar';
-import { getProducts } from '@/lib/products';
+import { getProducts } from '@/lib/data';
 
 export const metadata: Metadata = {
   title: 'Joya - Elegancia Atemporal',

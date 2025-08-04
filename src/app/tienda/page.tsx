@@ -1,13 +1,9 @@
 
 import { Suspense } from 'react';
-import { ProductCard } from '@/components/ProductCard';
-import { getProducts } from '@/lib/products';
+import { getProducts } from '@/lib/data';
 import { Separator } from '@/components/ui/separator';
 import { Percent, Tag, Search } from 'lucide-react';
-import type { Product } from '@/lib/types';
-import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Input } from '@/components/ui/input';
 import { TiendaPageClient } from './TiendaPageClient';
 
 async function TiendaContent() {

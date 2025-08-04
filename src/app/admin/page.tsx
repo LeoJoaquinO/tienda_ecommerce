@@ -1,10 +1,9 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { getProducts } from '@/lib/products';
-import { getCoupons } from '@/lib/coupons';
-import { getSalesMetrics, getOrders } from '@/lib/orders';
+import { getProducts, getCoupons, getSalesMetrics } from '@/lib/data';
 import type { Product, Coupon, SalesMetrics, Order, Subscriber } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -549,7 +548,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
             </TabsContent>
             <TabsContent value="coupons" className="mt-6">
                 <CouponsTab coupons={coupons} isLoading={isLoading} onAdd={() => handleOpenCouponDialog()} onEdit={handleOpenCouponDialog} onDelete={handleDeleteCoupon} onExport={exportCouponsToCSV} />
-            </TabsContent>
+            </Ato>
              <TabsContent value="subscribers" className="mt-6">
                 <SubscribersTab />
             </TabsContent>

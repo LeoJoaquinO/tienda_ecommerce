@@ -11,7 +11,7 @@ import { Trash2, ShoppingBag, Ticket, XCircle, Loader2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { getCouponByCode } from '@/lib/coupons';
+import { getCouponByCode } from '@/lib/data';
 
 export default function CartPage() {
   const { cartItems, removeFromCart, updateQuantity, subtotal, cartCount, appliedCoupon, applyCoupon, removeCoupon, discount, totalPrice } = useCart();

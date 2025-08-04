@@ -1,7 +1,6 @@
 
-
 import { ProductCard } from '@/components/ProductCard';
-import { getProducts } from '@/lib/products';
+import { getProducts } from '@/lib/data';
 import type { Product } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';

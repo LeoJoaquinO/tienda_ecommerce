@@ -12,7 +12,6 @@ export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
         
-        // We only care about payment notifications
         if (body.type === 'payment') {
             const paymentId = body.data.id;
             
@@ -22,7 +21,6 @@ export async function POST(req: NextRequest) {
 
             if (!payment || !payment.external_reference) {
                 console.warn(`Payment not found or external_reference missing for ID: ${paymentId}`);
-                // Return 200 to acknowledge receipt and prevent Mercado Pago from retrying.
                 return NextResponse.json({ status: 'ok' });
             }
 
@@ -39,11 +37,8 @@ export async function POST(req: NextRequest) {
                 console.log(`Order ${orderId} successfully updated to 'paid'.`);
             } else if (['cancelled', 'rejected'].includes(paymentStatus!)) {
                 newStatus = paymentStatus === 'cancelled' ? 'cancelled' : 'failed';
-                
-                // Update status AND restock items
                 await updateOrderStatus(orderId, newStatus, String(paymentId));
                 await restockItemsForOrder(orderId);
-
                 console.log(`Order ${orderId} updated to '${newStatus}' and items have been restocked.`);
             } else if (paymentStatus === 'in_process' || paymentStatus === 'pending') {
                 newStatus = 'pending';
@@ -55,7 +50,6 @@ export async function POST(req: NextRequest) {
             }
         }
     
-        // Acknowledge receipt to Mercado Pago
         return NextResponse.json({ status: 'ok' });
 
     } catch (error) {

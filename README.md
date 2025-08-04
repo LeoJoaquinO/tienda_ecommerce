@@ -11,6 +11,7 @@ Joya is a modern, stylish, and full-featured e-commerce storefront built with Ne
 
 -   **Modern Tech Stack:** Built with Next.js, React, and TypeScript for a fast and reliable user experience.
 -   **Elegant Design:** A clean and professional design using Tailwind CSS and ShadCN UI components.
+-   **Dual Data Mode:** Works with hardcoded sample data out-of-the-box for easy local development. Automatically switches to a live database when production environment variables are provided.
 -   **Fully Responsive:** Looks great on all devices, from desktops to mobile phones.
 -   **Product Management:** An admin dashboard to easily create, edit, and delete products.
 -   **Shopping Cart:** A persistent client-side shopping cart that remembers items between visits.
@@ -34,11 +35,20 @@ To get a local copy up and running on your computer, follow these simple steps.
     ```sh
     npm install
     ```
-4.  **Set up Environment Variables:**
+4.  **Set up Environment Variables (Optional for Local Dev):**
     *   Rename the `.env.example` file to `.env.local`.
-    *   Open `.env.local` and add your **Mercado Pago Test Credentials**. You can find your Public Key and Access Token in your [Mercado Pago Developer Dashboard](https://www.mercadopago.com/developers/panel/credentials).
+    *   The application will run with **hardcoded sample data** by default. You do not need to fill in any keys to run the app locally.
+    *   If you *want* to connect to a local or remote database for development, add your database credentials (`DB_HOST`, `DB_USER`, etc.) to `.env.local`.
+    *   For payment testing, you can add your **Mercado Pago Test Credentials**. You can find your PublicKey and Access Token in your [Mercado Pago Developer Dashboard](https://www.mercadopago.com/developers/panel/credentials).
     ```env
-    # Use your TEST credentials for local development
+    # --- DATABASE (OPTIONAL FOR LOCAL DEV) ---
+    # If these are not set, the app will use hardcoded sample data.
+    # DB_HOST="your_mysql_host"
+    # DB_USER="your_mysql_username"
+    # DB_PASSWORD="your_mysql_password"
+    # DB_DATABASE="your_mysql_database_name"
+    
+    # --- MERCADO PAGO (USE TEST CREDENTIALS) ---
     MERCADOPAGO_ACCESS_TOKEN="YOUR_TEST_ACCESS_TOKEN"
     NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY="YOUR_TEST_PUBLIC_KEY"
     NEXT_PUBLIC_SITE_URL="http://localhost:9002"
@@ -49,7 +59,7 @@ To get a local copy up and running on your computer, follow these simple steps.
     ```
 6.  Open [http://localhost:9002](http://localhost:9002) with your browser to see the result.
 
-By default, the application runs with **hardcoded sample data** so you can start developing without needing a database. The admin panel will appear to work, but changes won't be saved permanently until you connect a database during deployment.
+With the default setup (no database credentials), the admin panel will appear to work, but changes won't be saved permanently.
 
 ---
 
@@ -112,7 +122,7 @@ Now, we'll connect Vercel to your GitHub repository and tell it your secret keys
     *   Find your `joya-store` repository and click **"Import"**.
 
 2.  **Configure Environment Variables:**
-    *   This is the most important step for security. You'll see a section called **"Environment Variables"**. This is where you'll put your secret keys.
+    *   This is the most important step. In the "Environment Variables" section, add all of the following keys. The app will automatically use the database because these variables are present.
     *   **Database Variables:** Add the following keys, one by one, copying the values from your Vercel Postgres database page.
         *   `DB_HOST`: The host of your database.
         *   `DB_USER`: The username for your database.
@@ -130,32 +140,13 @@ Now, we'll connect Vercel to your GitHub repository and tell it your secret keys
 
 ### Part 4: Final Setup
 
-Your site is live, but it's still using the hardcoded sample data. Let's switch it to use your new live database and configure your payment webhook.
-
 1.  **Create the Database Tables:**
-    *   Your Vercel Postgres database is currently empty. We need to create the `products`, `orders`, `coupons`, and other tables.
+    *   Your Vercel Postgres database is currently empty. We need to create the `products`, `orders`, and `coupons` tables.
     *   On your Vercel dashboard, go to the **Storage** tab, select your database, and then click on the **"Query"** tab.
     *   Open the `database.sql` file in your project, **copy the entire content**, and paste it into the query editor on Vercel.
-    *   Click **"Run"**. This will create the necessary table structure for all your store's features.
+    *   Click **"Run"**. This will create the necessary table structure.
 
-2.  **Switch to Live Data Mode:**
-    *   We need to tell the application to use the database.
-    *   Open `src/lib/products.ts`, `src/lib/coupons.ts` and `src/lib/orders.ts` in your local code editor.
-    *   In each file, you will see commented-out sections of code labeled `--- Database Logic ---`.
-    *   **DELETE or COMMENT OUT** the lines that contain the hardcoded logic.
-    *   **UNCOMMENT** all the database logic sections that use `pool.query`.
-    *   Save the files.
-
-3.  **Redeploy the Changes:**
-    *   In your terminal, commit and push the changes you just made:
-    ```bash
-    git add src/lib/products.ts src/lib/coupons.ts src/lib/orders.ts
-    git commit -m "Switch to live database mode"
-    git push
-    ```
-    *   Vercel will automatically detect the push and redeploy your application with the new settings.
-
-4.  **Configure Mercado Pago Webhook (CRITICAL):**
+2.  **Configure Mercado Pago Webhook (CRITICAL):**
     *   After your site is live with HTTPS, you must tell Mercado Pago where to send payment updates.
     *   Go to your **Mercado Pago Developer Dashboard**.
     *   Navigate to **Your Applications > (Your App Name) > Webhooks**.

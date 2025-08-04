@@ -42,7 +42,6 @@ type CheckoutPayload = {
 };
 
 export async function POST(req: NextRequest) {
-    let orderId: number | null = null;
     try {
         const payload: CheckoutPayload = await req.json();
         const { cartItems, appliedCoupon, totalPrice, discount, shippingInfo, paymentData } = payload;
@@ -50,9 +49,9 @@ export async function POST(req: NextRequest) {
         if (!cartItems || cartItems.length === 0) {
             return NextResponse.json({ error: 'El carrito está vacío.' }, { status: 400 });
         }
-
+        
         // 1. Create the order in our database *before* processing payment.
-        orderId = await createOrder({
+        const { orderId, error: createOrderError } = await createOrder({
             customerName: shippingInfo.name,
             customerEmail: shippingInfo.email,
             total: totalPrice,
@@ -64,6 +63,14 @@ export async function POST(req: NextRequest) {
             shippingCity: shippingInfo.city,
             shippingPostalCode: shippingInfo.postalCode,
         });
+
+        if (createOrderError || !orderId) {
+             return NextResponse.json(
+                { error: createOrderError || "Failed to create order." }, 
+                { status: 500 }
+            );
+        }
+
 
         // 2. Prepare the payment object for Mercado Pago
         const paymentRequestBody: PaymentCreateData = {
@@ -81,9 +88,7 @@ export async function POST(req: NextRequest) {
                     identification: paymentData.payer.identification,
                     entity_type: 'individual',
                 },
-                // Pass our internal order ID to track it via webhooks
                 external_reference: String(orderId),
-                // The webhook URL is configured in your Mercado Pago dashboard
                 notification_url: `${process.env.NEXT_PUBLIC_SITE_URL}/api/mercadopago-webhook`,
             }
         };
@@ -91,7 +96,6 @@ export async function POST(req: NextRequest) {
         // 3. Create the payment
         const paymentResult = await paymentClient.create(paymentRequestBody);
         
-        // 4. Return the payment result to the frontend
         return NextResponse.json(paymentResult);
 
     } catch (error: any) {
