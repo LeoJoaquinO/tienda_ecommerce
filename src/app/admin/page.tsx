@@ -592,10 +592,12 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         </Tabs>
 
         <Dialog open={dialogType !== null} onOpenChange={(isOpen) => !isOpen && handleCloseDialog()}>
-            <DialogContent className="sm:max-w-[625px]">
+            <DialogContent className="sm:max-w-[625px] grid-rows-[auto,1fr,auto] max-h-[90vh]">
                 <DialogHeader><DialogTitle>{dialogType === 'product' ? (editingProduct ? 'Editar Producto' : 'Añadir Nuevo Producto') : (editingCoupon ? 'Editar Cupón' : 'Crear Nuevo Cupón')}</DialogTitle></DialogHeader>
-                {dialogType === 'product' && <ProductForm product={editingProduct} onFinished={onFormFinished} />}
-                {dialogType === 'coupon' && <CouponForm coupon={editingCoupon} onFinished={onFormFinished} />}
+                <div className="overflow-y-auto pr-4">
+                    {dialogType === 'product' && <ProductForm product={editingProduct} onFinished={onFormFinished} />}
+                    {dialogType === 'coupon' && <CouponForm coupon={editingCoupon} onFinished={onFormFinished} />}
+                </div>
             </DialogContent>
         </Dialog>
     </div>
@@ -652,3 +654,5 @@ export default function AdminPage() {
 
   return <AdminDashboard onLogout={handleLogout} />;
 }
+
+    
