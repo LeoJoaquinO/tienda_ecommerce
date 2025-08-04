@@ -186,23 +186,23 @@ function _calculateSalePrice(product: Omit<Product, 'salePrice'>): number | null
     return null;
 }
 
-export async function getProductsFromHardcoded(): Promise<Product[]> {
+export async function getProducts(): Promise<Product[]> {
     return JSON.parse(JSON.stringify(localProducts));
 }
 
-export async function getProductByIdFromHardcoded(id: number): Promise<Product | undefined> {
+export async function getProductById(id: number): Promise<Product | undefined> {
     const product = localProducts.find((p) => p.id === id);
     return product ? JSON.parse(JSON.stringify(product)) : undefined;
 }
 
-export async function createProductInHardcoded(product: Omit<Product, 'id' | 'salePrice'>): Promise<Product> {
+export async function createProduct(product: Omit<Product, 'id' | 'salePrice'>): Promise<Product> {
     const newId = (localProducts.reduce((max, p) => Math.max(p.id, max), 0)) + 1;
     const newProduct: Product = { ...product, id: newId, salePrice: null };
     localProducts.unshift({ ...newProduct, salePrice: _calculateSalePrice(newProduct) });
     return newProduct;
 }
 
-export async function updateProductInHardcoded(id: number, productData: Partial<Omit<Product, 'id' | 'salePrice'>>): Promise<Product> {
+export async function updateProduct(id: number, productData: Partial<Omit<Product, 'id' | 'salePrice'>>): Promise<Product> {
     const productIndex = localProducts.findIndex(p => p.id === id);
     if (productIndex === -1) throw new Error("Product not found");
     const updatedProduct = { ...localProducts[productIndex], ...productData };
@@ -210,7 +210,7 @@ export async function updateProductInHardcoded(id: number, productData: Partial<
     return localProducts[productIndex];
 }
 
-export async function deleteProductFromHardcoded(id: number): Promise<void> {
+export async function deleteProduct(id: number): Promise<void> {
     const productIndex = localProducts.findIndex(p => p.id === id);
     if (productIndex === -1) {
         console.warn(`Attempted to delete product with id ${id}, but it was not found.`);
@@ -219,16 +219,16 @@ export async function deleteProductFromHardcoded(id: number): Promise<void> {
     localProducts.splice(productIndex, 1);
 }
 
-export async function getCouponsFromHardcoded(): Promise<Coupon[]> {
+export async function getCoupons(): Promise<Coupon[]> {
     return JSON.parse(JSON.stringify(localCoupons));
 }
 
-export async function getCouponByIdFromHardcoded(id: number): Promise<Coupon | undefined> {
+export async function getCouponById(id: number): Promise<Coupon | undefined> {
     const coupon = localCoupons.find(c => c.id === id);
     return coupon ? JSON.parse(JSON.stringify(coupon)) : undefined;
 }
 
-export async function getCouponByCodeFromHardcoded(code: string): Promise<Coupon | undefined> {
+export async function getCouponByCode(code: string): Promise<Coupon | undefined> {
     const coupon = localCoupons.find((c) => c.code.toUpperCase() === code.toUpperCase());
     if (coupon && coupon.isActive && (!coupon.expiryDate || new Date(coupon.expiryDate) > new Date())) {
         return JSON.parse(JSON.stringify(coupon));
@@ -236,7 +236,7 @@ export async function getCouponByCodeFromHardcoded(code: string): Promise<Coupon
     return undefined;
 }
 
-export async function createCouponInHardcoded(coupon: Omit<Coupon, 'id'>): Promise<Coupon> {
+export async function createCoupon(coupon: Omit<Coupon, 'id'>): Promise<Coupon> {
     if (localCoupons.some(c => c.code.toUpperCase() === coupon.code.toUpperCase())) {
         throw new Error(`El código de cupón '${coupon.code}' ya existe.`);
     }
@@ -246,7 +246,7 @@ export async function createCouponInHardcoded(coupon: Omit<Coupon, 'id'>): Promi
     return newCoupon;
 }
 
-export async function updateCouponInHardcoded(id: number, couponData: Partial<Omit<Coupon, 'id'>>): Promise<Coupon> {
+export async function updateCoupon(id: number, couponData: Partial<Omit<Coupon, 'id'>>): Promise<Coupon> {
     const couponIndex = localCoupons.findIndex(c => c.id === id);
     if (couponIndex === -1) throw new Error("Coupon not found");
     if (couponData.code && localCoupons.some(c => c.id !== id && c.code.toUpperCase() === couponData.code!.toUpperCase())) {
@@ -257,7 +257,7 @@ export async function updateCouponInHardcoded(id: number, couponData: Partial<Om
     return updatedCoupon;
 }
 
-export async function deleteCouponFromHardcoded(id: number): Promise<void> {
+export async function deleteCoupon(id: number): Promise<void> {
     const couponIndex = localCoupons.findIndex(c => c.id === id);
     if (couponIndex === -1) {
         console.warn(`Attempted to delete coupon with id ${id}, but it was not found.`);
@@ -266,7 +266,7 @@ export async function deleteCouponFromHardcoded(id: number): Promise<void> {
     localCoupons.splice(couponIndex, 1);
 }
 
-export async function getSalesMetricsFromHardcoded(): Promise<SalesMetrics> {
+export async function getSalesMetrics(): Promise<SalesMetrics> {
     const paidOrders = localOrders.filter(o => o.status === 'paid');
     const totalRevenue = paidOrders.reduce((sum, o) => sum + o.total, 0);
     const totalSales = paidOrders.length;
@@ -290,7 +290,7 @@ export async function getSalesMetricsFromHardcoded(): Promise<SalesMetrics> {
     return { totalRevenue, totalSales, topSellingProducts };
 }
 
-export async function createOrderInHardcoded(orderData: OrderData): Promise<{orderId?: number, error?: string}> {
+export async function createOrder(orderData: OrderData): Promise<{orderId?: number, error?: string}> {
     for (const item of orderData.items) {
         const product = localProducts.find(p => p.id === item.product.id);
         if (!product || product.stock < item.quantity) {
@@ -310,7 +310,7 @@ export async function createOrderInHardcoded(orderData: OrderData): Promise<{ord
     return { orderId: newOrder.id };
 }
 
-export async function updateOrderStatusInHardcoded(orderId: number, status: OrderStatus, paymentId?: string): Promise<void> {
+export async function updateOrderStatus(orderId: number, status: OrderStatus, paymentId?: string): Promise<void> {
     const order = localOrders.find(o => o.id === orderId);
     if (order) {
         order.status = status;
@@ -318,7 +318,7 @@ export async function updateOrderStatusInHardcoded(orderId: number, status: Orde
     }
 }
 
-export async function restockItemsForOrderInHardcoded(orderId: number): Promise<void> {
+export async function restockItemsForOrder(orderId: number): Promise<void> {
     const order = localOrders.find(o => o.id === orderId);
     if (order) {
         for (const item of order.items) {
