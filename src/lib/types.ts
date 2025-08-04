@@ -43,6 +43,20 @@ export type OrderData = {
     paymentId?: string | null;
 }
 
+export type Order = {
+  id: number;
+  customerName: string;
+  customerEmail: string;
+  total: number;
+  status: OrderStatus;
+  createdAt: Date;
+  items: CartItem[];
+  couponCode?: string | null;
+  discountAmount?: number;
+  paymentId?: string;
+};
+
+
 export type SalesMetrics = {
     totalRevenue: number;
     totalSales: number;
@@ -52,3 +66,11 @@ export type SalesMetrics = {
         count: number;
     }[];
 };
+
+export type Subscriber = {
+  id: number;
+  email: string;
+  created_at: Date;
+};
+
+    

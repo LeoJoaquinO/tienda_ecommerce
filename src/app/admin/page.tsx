@@ -5,8 +5,9 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { getProducts } from '@/lib/products';
 import { getCoupons } from '@/lib/coupons';
-import { getSalesMetrics } from '@/lib/orders';
-import type { Product, Coupon, SalesMetrics } from '@/lib/types';
+import { getSalesMetrics, getOrders } from '@/lib/orders';
+import { getSubscribers } from '@/lib/subscribers';
+import type { Product, Coupon, SalesMetrics, Order, Subscriber } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -19,7 +20,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PlusCircle, Edit, Trash2, LogIn, LogOut, Loader2, Package, Tag, Wallet, Calendar as CalendarIcon, BarChart, AlertTriangle, ShoppingCart, Ticket, Badge, TrendingUp, DollarSign, CheckCircle, XCircle, Download, Link as LinkIcon, Briefcase, Truck, Send } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, LogIn, LogOut, Loader2, Package, Tag, Wallet, Calendar as CalendarIcon, BarChart, AlertTriangle, ShoppingCart, Ticket, Badge, TrendingUp, DollarSign, CheckCircle, XCircle, Download, Link as LinkIcon, Briefcase, Truck, Send, Users, Mail } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -143,7 +144,6 @@ function ProductForm({ product, formId }: { product?: Product, formId: string })
 function CouponForm({ coupon, formId }: { coupon?: Coupon, formId: string }) {
     const [expiryDate, setExpiryDate] = useState<Date | undefined>(coupon?.expiryDate ? new Date(coupon.expiryDate) : undefined);
     
-    // This is a hidden component to pass date values to the form handler
     const HiddenDateInputs = () => (
         <input type="hidden" name="expiryDate" value={expiryDate?.toISOString() ?? ''} />
     );
@@ -366,58 +366,46 @@ function CouponsTab({ coupons, isLoading, onAdd, onEdit, onDelete, onExport }: {
 }
 
 // ############################################################################
-// Component: IntegrationsTab
+// Component: SubscribersTab
 // ############################################################################
-function IntegrationsTab() {
-    const integrations = [
-        {
-            title: "Software de Contabilidad",
-            description: "Sincroniza tus ventas e inventario con tu software contable.",
-            icon: Briefcase,
-            comingSoon: true,
-        },
-        {
-            title: "Plataformas de Envío",
-            description: "Calcula costos y genera etiquetas de envío automáticamente.",
-            icon: Truck,
-            comingSoon: true,
-        },
-        {
-            title: "Email Marketing",
-            description: "Añade clientes a tus listas de correo para campañas.",
-            icon: Send,
-            comingSoon: true,
-        },
-    ];
-
+function SubscribersTab({ subscribers, isLoading, onExport }: { subscribers: Subscriber[], isLoading: boolean, onExport: () => void }) {
     return (
-        <div className="space-y-6">
-             <CardHeader className="px-0">
-                <CardTitle>Integraciones Externas</CardTitle>
-                <CardDescription>Conecta tu tienda con otras herramientas para potenciar tu negocio.</CardDescription>
+        <Card className="shadow-lg">
+            <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                    <CardTitle>Gestionar Suscriptores</CardTitle>
+                    <CardDescription>Visualiza y exporta tu lista de suscriptores para campañas de marketing.</CardDescription>
+                </div>
+                <Button onClick={onExport} variant="outline"><Download className="mr-2 h-4 w-4" />Exportar a CSV</Button>
             </CardHeader>
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {integrations.map((integration, index) => (
-                    <Card key={index} className="shadow-lg flex flex-col">
-                        <CardHeader className="flex flex-row items-start justify-between">
-                            <div className="space-y-1.5">
-                                <CardTitle className="text-xl">{integration.title}</CardTitle>
-                                <CardDescription>{integration.description}</CardDescription>
-                            </div>
-                            <integration.icon className="h-8 w-8 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent className="flex-1"></CardContent>
-                        <CardFooter className="flex justify-between items-center">
-                            <Badge variant="outline">Próximamente</Badge>
-                            <Button disabled>
-                                <LinkIcon className="mr-2 h-4 w-4" />
-                                Conectar
-                            </Button>
-                        </CardFooter>
-                    </Card>
-                ))}
-            </div>
-        </div>
+            <CardContent className="p-0">
+                {isLoading ? (
+                    <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div>
+                ) : subscribers.length > 0 ? (
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead><Mail className="inline-block mr-2 h-4 w-4" />Email</TableHead>
+                                <TableHead><CalendarIcon className="inline-block mr-2 h-4 w-4" />Fecha de Suscripción</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {subscribers.map(subscriber => (
+                                <TableRow key={subscriber.id}>
+                                    <TableCell className="font-medium">{subscriber.email}</TableCell>
+                                    <TableCell>{format(new Date(subscriber.created_at), 'PPP, pp')}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                ) : (
+                    <div className="text-center p-10 text-muted-foreground">
+                        <Users className="mx-auto h-12 w-12" />
+                        <p className="mt-4">Aún no tienes suscriptores.</p>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
     );
 }
 
@@ -428,6 +416,7 @@ function IntegrationsTab() {
 function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     const [products, setProducts] = useState<Product[]>([]);
     const [coupons, setCoupons] = useState<Coupon[]>([]);
+    const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
     const [salesMetrics, setSalesMetrics] = useState<SalesMetrics | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [dialogType, setDialogType] = useState<'product' | 'coupon' | null>(null);
@@ -441,14 +430,16 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     const fetchData = async () => {
         setIsLoading(true);
         try {
-            const [fetchedProducts, fetchedCoupons, fetchedMetrics] = await Promise.all([
+            const [fetchedProducts, fetchedCoupons, fetchedMetrics, fetchedSubscribers] = await Promise.all([
                 getProducts(),
                 getCoupons(),
                 getSalesMetrics(),
+                getSubscribers(),
             ]);
             setProducts(fetchedProducts);
             setCoupons(fetchedCoupons);
             setSalesMetrics(fetchedMetrics);
+            setSubscribers(fetchedSubscribers);
         } catch (error) {
             toast({ title: 'Error al cargar los datos del panel', description: (error as Error).message, variant: 'destructive' });
         }
@@ -556,10 +547,22 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         toast({ title: 'Éxito', description: 'Datos de cupones exportados a CSV.' });
     };
 
+    const exportSubscribersToCSV = () => {
+        const headers = ['Email', 'Subscribed At'];
+        const rows = subscribers.map(s => [
+            s.email,
+            format(new Date(s.created_at), 'yyyy-MM-dd HH:mm:ss')
+        ].join(','));
+
+        const csvContent = [headers.join(','), ...rows].join('\n');
+        downloadCSV(csvContent, 'subscribers.csv');
+        toast({ title: 'Éxito', description: 'Lista de suscriptores exportada a CSV.' });
+    };
+
     return (
     <div className="space-y-6">
         <div className="flex justify-between items-start">
-            <div><h1 className="text-3xl font-bold font-headline">Panel de Administración</h1><p className="text-muted-foreground">Métricas, gestión de productos y cupones.</p></div>
+            <div><h1 className="text-3xl font-bold font-headline">Panel de Administración</h1><p className="text-muted-foreground">Métricas, gestión de productos, cupones y más.</p></div>
             <Button variant="outline" onClick={onLogout}><LogOut className="mr-2 h-4 w-4" />Cerrar Sesión</Button>
         </div>
 
@@ -568,7 +571,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                 <TabsTrigger value="overview">Visión General</TabsTrigger>
                 <TabsTrigger value="products">Productos</TabsTrigger>
                 <TabsTrigger value="coupons">Cupones</TabsTrigger>
-                <TabsTrigger value="integrations">Integraciones</TabsTrigger>
+                <TabsTrigger value="subscribers">Suscriptores</TabsTrigger>
             </TabsList>
             <TabsContent value="overview" className="mt-6">
                 <MetricsTab products={products} salesMetrics={salesMetrics} isLoading={isLoading} />
@@ -579,8 +582,8 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
             <TabsContent value="coupons" className="mt-6">
                 <CouponsTab coupons={coupons} isLoading={isLoading} onAdd={() => handleOpenCouponDialog()} onEdit={handleOpenCouponDialog} onDelete={handleDeleteCoupon} onExport={exportCouponsToCSV} />
             </TabsContent>
-             <TabsContent value="integrations" className="mt-6">
-                <IntegrationsTab />
+             <TabsContent value="subscribers" className="mt-6">
+                <SubscribersTab subscribers={subscribers} isLoading={isLoading} onExport={exportSubscribersToCSV} />
             </TabsContent>
         </Tabs>
 
@@ -614,7 +617,6 @@ export default function AdminPage() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    // Hardcoded credentials for demonstration
     if (email === 'admin@joya.com' && password === 'password123') {
         setIsAuthenticated(true);
         setError('');
