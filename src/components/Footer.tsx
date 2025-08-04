@@ -14,7 +14,7 @@ export default function Footer() {
   return (
     <footer className="bg-secondary/50 border-t">
       <div className="container py-8 md:py-12 text-secondary-foreground">
-        <div className="grid md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             <div className="space-y-4 md:col-span-1">
                 <h3 className="font-headline text-2xl font-semibold">Joya</h3>
                 <p className="text-sm text-muted-foreground">&copy; {new Date().getFullYear()} Joya. Todos los derechos reservados.</p>
