@@ -59,7 +59,7 @@ export default function CartPage() {
               <Card key={product.id} className="flex items-center p-4">
                 <div className="relative w-24 h-24 rounded-md overflow-hidden">
                     <Image
-                      src={product.image}
+                      src={product.images[0] ?? "https://placehold.co/100x100.png"}
                       alt={product.name}
                       fill
                       className="object-cover"

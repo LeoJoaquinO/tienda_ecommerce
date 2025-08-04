@@ -235,7 +235,7 @@ export default function CheckoutPage() {
                         <div key={item.product.id} className="flex justify-between items-center">
                             <div className="flex items-center gap-4">
                                 <div className="relative w-16 h-16 rounded-md overflow-hidden border">
-                                    <Image src={item.product.image} alt={item.product.name} fill className="object-cover" data-ai-hint={item.product.aiHint}/>
+                                    <Image src={item.product.images[0] ?? "https://placehold.co/100x100.png"} alt={item.product.name} fill className="object-cover" data-ai-hint={item.product.aiHint}/>
                                 </div>
                                 <div>
                                 <p className="font-semibold">{item.product.name}</p>
@@ -284,5 +284,3 @@ export default function CheckoutPage() {
     </div>
   );
 }
-
-    

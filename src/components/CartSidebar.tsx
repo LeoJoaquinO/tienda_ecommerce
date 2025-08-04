@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -45,7 +46,7 @@ export default function CartSidebar() {
                         <div className="flex justify-start items-center gap-4">
                         <div className="relative h-20 w-20 overflow-hidden rounded">
                             <Image
-                            src={product.image}
+                            src={product.images[0] ?? "https://placehold.co/100x100.png"}
                             alt={product.name}
                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                             fill
@@ -58,6 +59,7 @@ export default function CartSidebar() {
                             <Link
                             href={`/products/${product.id}`}
                             className="line-clamp-2 hover:text-primary"
+                            onClick={() => setIsSidebarOpen(false)}
                             >
                             {product.name}
                             </Link>
