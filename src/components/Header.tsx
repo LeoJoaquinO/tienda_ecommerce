@@ -25,6 +25,8 @@ import {
 import { ThemeToggle } from './ThemeToggle';
 import React from 'react';
 import { cn } from '@/lib/utils';
+import { getProducts } from '@/lib/data';
+import type { Product } from '@/lib/types';
 
 
 const ListItem = React.forwardRef<
@@ -54,10 +56,20 @@ const ListItem = React.forwardRef<
 ListItem.displayName = "ListItem"
 
 
-export default function Header({ categories }: { categories: string[] }) {
+export default function Header() {
   const { cartCount, setIsSidebarOpen } = useCart();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [categories, setCategories] = useState<string[]>([]);
   
+  useEffect(() => {
+    async function fetchCategories() {
+      const products = await getProducts();
+      const uniqueCategories = [...new Set(products.map(p => p.category))];
+      setCategories(uniqueCategories);
+    }
+    fetchCategories();
+  }, []);
+
   const navLinks = [
     { href: '/', label: 'Inicio' },
     { href: '/#about', label: 'Sobre Nosotros' },

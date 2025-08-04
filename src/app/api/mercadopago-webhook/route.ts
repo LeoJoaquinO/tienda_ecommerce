@@ -1,6 +1,7 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import { MercadoPagoConfig, Payment } from 'mercadopago';
-import { updateOrderStatus, restockItemsForOrder } from '@/lib/orders';
+import { updateOrderStatus, restockItemsForOrder } from '@/lib/data';
 import type { OrderStatus } from '@/lib/types';
 
 const client = new MercadoPagoConfig({ 
@@ -11,7 +12,6 @@ export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
         
-        // We only care about payment notifications
         if (body.type === 'payment') {
             const paymentId = body.data.id;
             
@@ -21,7 +21,6 @@ export async function POST(req: NextRequest) {
 
             if (!payment || !payment.external_reference) {
                 console.warn(`Payment not found or external_reference missing for ID: ${paymentId}`);
-                // Return 200 to acknowledge receipt and prevent Mercado Pago from retrying.
                 return NextResponse.json({ status: 'ok' });
             }
 
@@ -34,22 +33,23 @@ export async function POST(req: NextRequest) {
             
             if (paymentStatus === 'approved') {
                 newStatus = 'paid';
-                await updateOrderStatus(orderId, newStatus);
+                await updateOrderStatus(orderId, newStatus, String(paymentId));
                 console.log(`Order ${orderId} successfully updated to 'paid'.`);
             } else if (['cancelled', 'rejected'].includes(paymentStatus!)) {
                 newStatus = paymentStatus === 'cancelled' ? 'cancelled' : 'failed';
-                
-                // Update status AND restock items
-                await updateOrderStatus(orderId, newStatus);
+                await updateOrderStatus(orderId, newStatus, String(paymentId));
                 await restockItemsForOrder(orderId);
-
                 console.log(`Order ${orderId} updated to '${newStatus}' and items have been restocked.`);
-            } else {
+            } else if (paymentStatus === 'in_process' || paymentStatus === 'pending') {
+                newStatus = 'pending';
+                await updateOrderStatus(orderId, newStatus, String(paymentId));
+                 console.log(`Order ${orderId} status updated to 'pending'.`);
+            }
+            else {
                 console.log(`Ignoring payment status '${paymentStatus}' for order ${orderId}.`);
             }
         }
     
-        // Acknowledge receipt to Mercado Pago
         return NextResponse.json({ status: 'ok' });
 
     } catch (error) {

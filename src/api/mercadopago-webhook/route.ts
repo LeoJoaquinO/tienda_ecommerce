@@ -1,7 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { MercadoPagoConfig, Payment } from 'mercadopago';
-import { updateOrderStatus, restockItemsForOrder } from '@/lib/orders';
+import { updateOrderStatus, restockItemsForOrder } from '@/lib/data';
 import type { OrderStatus } from '@/lib/types';
 
 const client = new MercadoPagoConfig({ 

@@ -2,8 +2,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createProduct, deleteProduct, updateProduct } from "@/lib/products";
-import { createCoupon, deleteCoupon, updateCoupon } from "@/lib/coupons";
+import { createProduct, deleteProduct, updateProduct, createCoupon, deleteCoupon, updateCoupon } from "@/lib/data";
 import { z } from "zod";
 import DOMPurify from 'isomorphic-dompurify';
 import { addSubscriber } from "@/lib/subscribers";
@@ -257,5 +256,3 @@ export async function addSubscriberAction(formData: FormData) {
     return { error: e.message || "No se pudo procesar la suscripción." };
   }
 }
-
-    
