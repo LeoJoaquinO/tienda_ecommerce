@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { getProducts, getCoupons, getSalesMetrics } from '@/lib/data';
-import type { Product, Coupon, SalesMetrics, Order, Subscriber } from '@/lib/types';
+import type { Product, Coupon, SalesMetrics } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -17,7 +17,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PlusCircle, Edit, Trash2, LogIn, LogOut, Loader2, Package, Tag, Wallet, Calendar as CalendarIcon, BarChart, AlertTriangle, ShoppingCart, Ticket, Badge, TrendingUp, DollarSign, CheckCircle, XCircle, Download, Link as LinkIcon, Briefcase, Truck, Send, Users, Mail, ExternalLink } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, LogIn, LogOut, Loader2, Package, Tag, Wallet, Calendar as CalendarIcon, BarChart, AlertTriangle, ShoppingCart, Ticket, Badge, TrendingUp, DollarSign, CheckCircle, XCircle, Download, ExternalLink } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -622,3 +622,5 @@ export default function AdminPage() {
 
   return <AdminDashboard onLogout={handleLogout} />;
 }
+
+    

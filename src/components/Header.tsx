@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { ShoppingCart, Menu, ChevronDown } from 'lucide-react';
+import { ShoppingCart, Menu } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
@@ -26,8 +26,6 @@ import { ThemeToggle } from './ThemeToggle';
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { getProducts } from '@/lib/data';
-import type { Product } from '@/lib/types';
-
 
 const ListItem = React.forwardRef<
   React.ElementRef<"a">,
@@ -201,3 +199,5 @@ export default function Header() {
     </header>
   );
 }
+
+    
