@@ -1,3 +1,4 @@
+
 'use server';
 
 import type { Product, Coupon, SalesMetrics, OrderData, OrderStatus } from './types';
@@ -136,5 +137,5 @@ export async function restockItemsForOrder(orderId: number): Promise<void> {
         return db.restockItemsForOrderInDb(orderId);
     }
     const hardcoded = await import('./hardcoded-data');
-    return hardcoded.restockItemsForOrderInHardcoded(orderId);
+    return hardcoded.restockItemsForOrderInHardcoded(order.id);
 }
