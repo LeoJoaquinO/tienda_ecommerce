@@ -17,7 +17,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PlusCircle, Edit, Trash2, LogIn, LogOut, Loader2, Package, Tag, Wallet, Calendar as CalendarIcon, BarChart, AlertTriangle, ShoppingCart, Ticket, Badge, TrendingUp, DollarSign, CheckCircle, XCircle, Download, ExternalLink } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, LogIn, LogOut, Loader2, Package, Tag, Wallet, Calendar as CalendarIcon, BarChart, AlertTriangle, ShoppingCart, Ticket, Badge, TrendingUp, DollarSign, CheckCircle, XCircle, Download, ExternalLink, Mail } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -527,50 +527,50 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     };
 
     return (
-    <div className="space-y-6">
-        <div className="flex justify-between items-start">
-            <div><h1 className="text-3xl font-bold font-headline">Panel de Administración</h1><p className="text-muted-foreground">Métricas, gestión de productos, cupones y más.</p></div>
-            <Button variant="outline" onClick={onLogout}><LogOut className="mr-2 h-4 w-4" />Cerrar Sesión</Button>
+        <div className="space-y-6">
+            <div className="flex justify-between items-start">
+                <div><h1 className="text-3xl font-bold font-headline">Panel de Administración</h1><p className="text-muted-foreground">Métricas, gestión de productos, cupones y más.</p></div>
+                <Button variant="outline" onClick={onLogout}><LogOut className="mr-2 h-4 w-4" />Cerrar Sesión</Button>
+            </div>
+
+            <Tabs defaultValue="overview">
+                <TabsList className="grid w-full grid-cols-4">
+                    <TabsTrigger value="overview">Visión General</TabsTrigger>
+                    <TabsTrigger value="products">Productos</TabsTrigger>
+                    <TabsTrigger value="coupons">Cupones</TabsTrigger>
+                    <TabsTrigger value="subscribers">Suscriptores</TabsTrigger>
+                </TabsList>
+                <TabsContent value="overview" className="mt-6">
+                    <MetricsTab products={products} salesMetrics={salesMetrics} isLoading={isLoading} />
+                </TabsContent>
+                <TabsContent value="products" className="mt-6">
+                    <ProductsTab products={products} isLoading={isLoading} onAdd={() => handleOpenProductDialog()} onEdit={handleOpenProductDialog} onDelete={handleDeleteProduct} onExport={exportProductsToCSV} />
+                </TabsContent>
+                <TabsContent value="coupons" className="mt-6">
+                    <CouponsTab coupons={coupons} isLoading={isLoading} onAdd={() => handleOpenCouponDialog()} onEdit={handleOpenCouponDialog} onDelete={handleDeleteCoupon} onExport={exportCouponsToCSV} />
+                </TabsContent>
+                 <TabsContent value="subscribers" className="mt-6">
+                    <SubscribersTab />
+                </TabsContent>
+            </Tabs>
+
+            <Dialog open={dialogType !== null} onOpenChange={(isOpen) => !isOpen && handleCloseDialog()}>
+                <DialogContent className="sm:max-w-[625px] grid-rows-[auto_1fr_auto] max-h-[90vh] flex flex-col">
+                    <DialogHeader>
+                        <DialogTitle>{dialogType === 'product' ? (editingProduct ? 'Editar Producto' : 'Añadir Nuevo Producto') : (editingCoupon ? 'Editar Cupón' : 'Crear Nuevo Cupón')}</DialogTitle>
+                    </DialogHeader>
+                    <div className="overflow-y-auto pr-4 -mr-4">
+                        {dialogType === 'product' && <ProductForm product={editingProduct} formId={formId} />}
+                        {dialogType === 'coupon' && <CouponForm coupon={editingCoupon} formId={formId} />}
+                    </div>
+                     <DialogFooter>
+                        <DialogClose asChild><Button variant="ghost">Cancelar</Button></DialogClose>
+                        <Button type="button" onClick={handleFormSubmit} disabled={isSubmitting}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Guardar Cambios</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
-
-        <Tabs defaultValue="overview">
-            <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="overview">Visión General</TabsTrigger>
-                <TabsTrigger value="products">Productos</TabsTrigger>
-                <TabsTrigger value="coupons">Cupones</TabsTrigger>
-                <TabsTrigger value="subscribers">Suscriptores</TabsTrigger>
-            </TabsList>
-            <TabsContent value="overview" className="mt-6">
-                <MetricsTab products={products} salesMetrics={salesMetrics} isLoading={isLoading} />
-            </TabsContent>
-            <TabsContent value="products" className="mt-6">
-                <ProductsTab products={products} isLoading={isLoading} onAdd={() => handleOpenProductDialog()} onEdit={handleOpenProductDialog} onDelete={handleDeleteProduct} onExport={exportProductsToCSV} />
-            </TabsContent>
-            <TabsContent value="coupons" className="mt-6">
-                <CouponsTab coupons={coupons} isLoading={isLoading} onAdd={() => handleOpenCouponDialog()} onEdit={handleOpenCouponDialog} onDelete={handleDeleteCoupon} onExport={exportCouponsToCSV} />
-            </TabsContent>
-             <TabsContent value="subscribers" className="mt-6">
-                <SubscribersTab />
-            </TabsContent>
-        </Tabs>
-
-        <Dialog open={dialogType !== null} onOpenChange={(isOpen) => !isOpen && handleCloseDialog()}>
-            <DialogContent className="sm:max-w-[625px] grid-rows-[auto_1fr_auto] max-h-[90vh] flex flex-col">
-                <DialogHeader>
-                    <DialogTitle>{dialogType === 'product' ? (editingProduct ? 'Editar Producto' : 'Añadir Nuevo Producto') : (editingCoupon ? 'Editar Cupón' : 'Crear Nuevo Cupón')}</DialogTitle>
-                </DialogHeader>
-                <div className="overflow-y-auto pr-4 -mr-4">
-                    {dialogType === 'product' && <ProductForm product={editingProduct} formId={formId} />}
-                    {dialogType === 'coupon' && <CouponForm coupon={editingCoupon} formId={formId} />}
-                </div>
-                 <DialogFooter>
-                    <DialogClose asChild><Button variant="ghost">Cancelar</Button></DialogClose>
-                    <Button type="button" onClick={handleFormSubmit} disabled={isSubmitting}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Guardar Cambios</Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    </div>
-  );
+    );
 }
 
 // ############################################################################
@@ -622,5 +622,3 @@ export default function AdminPage() {
 
   return <AdminDashboard onLogout={handleLogout} />;
 }
-
-    

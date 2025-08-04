@@ -5,12 +5,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import DOMPurify from 'isomorphic-dompurify';
 import { addSubscriber } from "@/lib/subscribers";
-import * as data from '@/lib/data';
+import { createProduct, updateProduct, deleteProduct, createCoupon, updateCoupon, deleteCoupon } from '@/lib/data';
 import type { Product, Coupon } from '@/lib/types';
-
-
-const USE_DB = !!process.env.DB_HOST;
-
 
 // Helper function to sanitize form data
 function sanitizeData(data: Record<string, any>): Record<string, any> {
@@ -40,85 +36,6 @@ const productSchema = z.object({
     aiHint: z.string().optional(),
     featured: z.boolean().optional(),
 });
-
-// These are now internal functions, not exported
-async function _createProductInDb(product: Omit<Product, 'id' | 'salePrice'>): Promise<Product> {
-    const { name, description, shortDescription, price, images, category, stock, featured, aiHint, discountPercentage, offerStartDate, offerEndDate } = product;
-    const imagesString = images.join(',');
-    try {
-        const [result] = await (await data.getPool()).query<any>(
-            'INSERT INTO products (name, description, short_description, price, images, category, stock, featured, ai_hint, discount_percentage, offer_start_date, offer_end_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [name, description, shortDescription, price, imagesString, category, stock, featured || false, aiHint || null, discountPercentage || null, offerStartDate || null, offerEndDate || null]
-        );
-        const [rows] = await (await data.getPool()).query<any>('SELECT * FROM products WHERE id = ?', [result.insertId]);
-        if (rows.length === 0) throw new Error('Failed to retrieve product after creation.');
-        return data._rowToProduct(rows[0]);
-    } catch (error) {
-        data.handleDbError(error, 'creating a product');
-    }
-}
-
-async function _updateProductInDb(id: number, productData: Partial<Omit<Product, 'id' | 'salePrice'>>): Promise<Product> {
-    const existingProduct = await data.getProductById(id);
-    if(!existingProduct) throw new Error("Product not found");
-
-    const fieldsToUpdate = { ...existingProduct, ...productData };
-    const imagesString = fieldsToUpdate.images?.join(',');
-    
-    const dbFields = {
-        name: fieldsToUpdate.name,
-        description: fieldsToUpdate.description,
-        short_description: fieldsToUpdate.shortDescription,
-        price: fieldsToUpdate.price,
-        images: imagesString,
-        category: fieldsToUpdate.category,
-        stock: fieldsToUpdate.stock,
-        featured: fieldsToUpdate.featured,
-        ai_hint: fieldsToUpdate.aiHint,
-        discount_percentage: fieldsToUpdate.discountPercentage,
-        offer_start_date: fieldsToUpdate.offerStartDate,
-        offer_end_date: fieldsToUpdate.offerEndDate,
-    }
-
-    const fieldNames = Object.keys(dbFields);
-    const setClause = fieldNames.map(field => `${field} = ?`).join(', ');
-    const values = [...fieldNames.map(field => (dbFields as any)[field]), id];
-    
-    try {
-        await (await data.getPool()).query(`UPDATE products SET ${setClause} WHERE id = ?`, values);
-        const updatedProduct = await data.getProductById(id);
-        if (!updatedProduct) throw new Error('Failed to retrieve product after update.');
-        return updatedProduct;
-    } catch (error) {
-        data.handleDbError(error, `updating product with id ${id}`);
-    }
-}
-
-async function _deleteProductFromDb(id: number): Promise<void> {
-    try {
-        const [result] = await (await data.getPool()).query<any>('DELETE FROM products WHERE id = ?', [id]);
-        if (result.affectedRows === 0) {
-            console.warn(`Attempted to delete product with id ${id}, but it was not found.`);
-        }
-    } catch (error) {
-        data.handleDbError(error, `deleting product with id ${id}`);
-    }
-}
-
-async function createProduct(product: Omit<Product, 'id' | 'salePrice'>) {
-    if (USE_DB) return _createProductInDb(product);
-    return data.createHardcodedProduct(product);
-}
-
-async function updateProduct(id: number, product: Partial<Omit<Product, 'id' | 'salePrice'>>) {
-    if (USE_DB) return _updateProductInDb(id, product);
-    return data.updateHardcodedProduct(id, product);
-}
-
-async function deleteProduct(id: number) {
-    if (USE_DB) return _deleteProductFromDb(id);
-    return data.deleteHardcodedProduct(id);
-}
 
 
 export async function addProductAction(formData: FormData) {
@@ -235,72 +152,6 @@ const couponSchema = z.object({
     path: ["discountValue"],
 });
 
-// Internal DB functions for coupons
-async function _createCouponInDb(coupon: Omit<Coupon, 'id'>): Promise<Coupon> {
-    const { code, discountType, discountValue, expiryDate, isActive } = coupon;
-    try {
-        const [result] = await (await data.getPool()).query<any>(
-            'INSERT INTO coupons (code, discount_type, discount_value, expiry_date, is_active) VALUES (?, ?, ?, ?, ?)',
-            [code.toUpperCase(), discountType, discountValue, expiryDate, isActive]
-        );
-        const [rows] = await (await data.getPool()).query<any>('SELECT * FROM coupons WHERE id = ?', [result.insertId]);
-        if (rows.length === 0) throw new Error('Failed to retrieve coupon after creation.');
-        return data._rowToCoupon(rows[0]);
-    } catch (error: any) {
-        if (error.code === 'ER_DUP_ENTRY') {
-             throw new Error(`El código de cupón '${code}' ya existe.`);
-        }
-        data.handleDbError(error, 'creating a coupon');
-    }
-}
-
-async function _updateCouponInDb(id: number, couponData: Partial<Omit<Coupon, 'id'>>): Promise<Coupon> {
-    const existingCoupon = await data.getCouponById(id);
-    if (!existingCoupon) throw new Error(`Coupon with ID ${id} not found.`);
-    
-    const fieldsToUpdate = { ...existingCoupon, ...couponData};
-    const { code, discountType, discountValue, expiryDate, isActive } = fieldsToUpdate;
-
-    try {
-        await (await data.getPool()).query(
-            'UPDATE coupons SET code = ?, discount_type = ?, discount_value = ?, expiry_date = ?, is_active = ? WHERE id = ?',
-            [code?.toUpperCase(), discountType, discountValue, expiryDate, isActive, id]
-        );
-        const [rows] = await (await data.getPool()).query<any>('SELECT * FROM coupons WHERE id = ?', [id]);
-        if (rows.length === 0) throw new Error('Failed to retrieve coupon after update.');
-        return data._rowToCoupon(rows[0]);
-    } catch (error: any) {
-         if (error.code === 'ER_DUP_ENTRY') {
-             throw new Error(`El código de cupón '${code}' ya existe.`);
-        }
-        data.handleDbError(error, `updating coupon with id ${id}`);
-    }
-}
-
-async function _deleteCouponFromDb(id: number): Promise<void> {
-    try {
-        await (await data.getPool()).query('DELETE FROM coupons WHERE id = ?', [id]);
-    } catch (error) {
-        data.handleDbError(error, `deleting coupon with id ${id}`);
-    }
-}
-
-
-async function createCoupon(coupon: Omit<Coupon, 'id'>) {
-    if (USE_DB) return _createCouponInDb(coupon);
-    return data.createHardcodedCoupon(coupon);
-}
-
-async function updateCoupon(id: number, couponData: Partial<Omit<Coupon, 'id'>>) {
-     if (USE_DB) return _updateCouponInDb(id, couponData);
-    return data.updateHardcodedCoupon(id, couponData);
-}
-
-async function deleteCoupon(id: number) {
-     if (USE_DB) return _deleteCouponFromDb(id);
-    return data.deleteHardcodedCoupon(id);
-}
-
 
 export async function addCouponAction(formData: FormData) {
     const rawData = Object.fromEntries(formData.entries());
@@ -404,5 +255,3 @@ export async function addSubscriberAction(formData: FormData) {
     return { error: e.message || "No se pudo procesar la suscripción." };
   }
 }
-
-    
