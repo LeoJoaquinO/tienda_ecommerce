@@ -213,7 +213,7 @@ export default function CheckoutPage() {
                         }}
                         customization={{
                              paymentMethods: {
-                                mercadoPago: 'all',
+                                mercadoPago: ['account_money'],
                                 creditCard: 'all',
                                 debitCard: 'all',
                             },
