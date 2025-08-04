@@ -9,6 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 import { addSubscriberAction } from "@/app/actions";
 import { useRef } from "react";
 
+const mailchimpConfigured = !!process.env.NEXT_PUBLIC_MAILCHIMP_CONFIGURED;
+
 function NewsletterForm() {
     const { toast } = useToast();
     const formRef = useRef<HTMLFormElement>(null);
@@ -35,8 +37,15 @@ function NewsletterForm() {
 
     return (
         <form ref={formRef} onSubmit={handleSubmit} className="flex gap-2">
-            <Input type="email" name="email" placeholder="tu@email.com" className="bg-background" required />
-            <Button type="submit" size="icon"><Send/></Button>
+            <Input 
+                type="email" 
+                name="email" 
+                placeholder="tu@email.com" 
+                className="bg-background" 
+                required 
+                disabled={!mailchimpConfigured} 
+            />
+            <Button type="submit" size="icon" disabled={!mailchimpConfigured}><Send/></Button>
         </form>
     );
 }
@@ -84,7 +93,12 @@ export default function Footer() {
             
             <div className="space-y-4">
                 <h4 className="font-semibold text-lg">Newsletter</h4>
-                <p className="text-sm text-muted-foreground">Suscríbete para recibir ofertas y novedades.</p>
+                <p className="text-sm text-muted-foreground">
+                    {mailchimpConfigured 
+                        ? "Suscríbete para recibir ofertas y novedades."
+                        : "La suscripción no está disponible."
+                    }
+                </p>
                 <NewsletterForm />
             </div>
         </div>

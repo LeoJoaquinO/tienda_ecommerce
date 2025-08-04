@@ -143,6 +143,12 @@ Now, let's get your code from GitHub onto the server.
     MERCADOPAGO_ACCESS_TOKEN="your_production_mercadopago_access_token"
     NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY="your_production_mercadopago_public_key"
 
+    # Mailchimp Production Credentials (Optional)
+    # Find these in your Mailchimp Account > Extras > API Keys
+    MAILCHIMP_API_KEY="your_mailchimp_api_key"
+    MAILCHIMP_SERVER_PREFIX="your_mailchimp_server_prefix" # e.g., us21
+    MAILCHIMP_AUDIENCE_ID="your_mailchimp_audience_id"
+
     # Your public domain (e.g., https://your_domain.com)
     NEXT_PUBLIC_SITE_URL="https://your_domain.com"
     ```

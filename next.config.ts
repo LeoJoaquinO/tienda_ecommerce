@@ -60,8 +60,29 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'tascani.vtexassets.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'acdn-us.mitiendanube.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'holiclothing.com.ar',
+        port: '',
+        pathname: '/**',
+      }
     ],
   },
+   env: {
+    NEXT_PUBLIC_MAILCHIMP_CONFIGURED: !!(process.env.MAILCHIMP_API_KEY && process.env.MAILCHIMP_SERVER_PREFIX && process.env.MAILCHIMP_AUDIENCE_ID),
+  }
 };
 
 export default nextConfig;

@@ -16,6 +16,7 @@ Joya is a modern, stylish, and full-featured e-commerce storefront built with Ne
 -   **Product Management:** An admin dashboard to easily create, edit, and delete products.
 -   **Shopping Cart:** A persistent client-side shopping cart that remembers items between visits.
 -   **Secure Payments:** Ready for production with a secure server-side integration for Mercado Pago using the Checkout API (Payment Bricks).
+-   **Newsletter Integration:** Connects to Mailchimp for easy subscriber management.
 -   **AI Recommendations:** Includes a Genkit-powered AI agent for intelligent product recommendations.
 -   **Easy Deployment:** Comes with multiple deployment guides for different needs.
 
@@ -40,6 +41,7 @@ To get a local copy up and running on your computer, follow these simple steps.
     *   The application will run with **hardcoded sample data** by default. You do not need to fill in any keys to run the app locally.
     *   If you *want* to connect to a local or remote database for development, add your database credentials (`DB_HOST`, `DB_USER`, etc.) to `.env.local`.
     *   For payment testing, you can add your **Mercado Pago Test Credentials**. You can find your PublicKey and Access Token in your [Mercado Pago Developer Dashboard](https://www.mercadopago.com/developers/panel/credentials).
+    *   For the newsletter form to work, you will need to add your **Mailchimp Credentials**.
     ```env
     # --- DATABASE (OPTIONAL FOR LOCAL DEV) ---
     # If these are not set, the app will use hardcoded sample data.
@@ -52,6 +54,12 @@ To get a local copy up and running on your computer, follow these simple steps.
     MERCADOPAGO_ACCESS_TOKEN="YOUR_TEST_ACCESS_TOKEN"
     NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY="YOUR_TEST_PUBLIC_KEY"
     NEXT_PUBLIC_SITE_URL="http://localhost:9002"
+
+    # --- MAILCHIMP (OPTIONAL) ---
+    # To enable the newsletter subscription form.
+    # MAILCHIMP_API_KEY="your_mailchimp_api_key"
+    # MAILCHIMP_SERVER_PREFIX="your_mailchimp_server_prefix" # e.g., us21
+    # MAILCHIMP_AUDIENCE_ID="your_mailchimp_audience_id"
     ```
 5.  **Run the development server:**
     ```sh
@@ -59,7 +67,7 @@ To get a local copy up and running on your computer, follow these simple steps.
     ```
 6.  Open [http://localhost:9002](http://localhost:9002) with your browser to see the result.
 
-With the default setup (no database credentials), the admin panel will appear to work, but changes won't be saved permanently.
+With the default setup (no database or Mailchimp credentials), the admin panel will appear to work (but changes won't persist), and the newsletter form will be disabled.
 
 ---
 
@@ -122,8 +130,8 @@ Now, we'll connect Vercel to your GitHub repository and tell it your secret keys
     *   Find your `joya-store` repository and click **"Import"**.
 
 2.  **Configure Environment Variables:**
-    *   This is the most important step. In the "Environment Variables" section, add all of the following keys. The app will automatically use the database because these variables are present.
-    *   **Database Variables:** Add the following keys, one by one, copying the values from your Vercel Postgres database page.
+    *   This is the most important step. In the "Environment Variables" section, add all of the following keys. 
+    *   **Database Variables:** Add the following keys, one by one, copying the values from your Vercel Postgres database page. The app will automatically use the database because these variables are present.
         *   `DB_HOST`: The host of your database.
         *   `DB_USER`: The username for your database.
         *   `DB_PASSWORD`: The password for your database.
@@ -131,6 +139,10 @@ Now, we'll connect Vercel to your GitHub repository and tell it your secret keys
     *   **Mercado Pago Variables:** Get these from your [Mercado Pago Developer Dashboard](https://www.mercadopago.com/developers). Use your **Production** credentials.
         *   `MERCADOPAGO_ACCESS_TOKEN`: Your Production "Access Token".
         *   `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY`: Your Production "Public Key".
+    *   **Mailchimp Variables (Optional):** To enable the newsletter form, you need to add these. You can find them in your Mailchimp account under Account > Extras > API Keys.
+        *   `MAILCHIMP_API_KEY`: Your Mailchimp API Key.
+        *   `MAILCHIMP_SERVER_PREFIX`: The server prefix from your API key (e.g., "us21").
+        *   `MAILCHIMP_AUDIENCE_ID`: Your Audience ID.
     *   **Site URL Variable:** Vercel will assign you a domain. You need to add it here so Mercado Pago knows where to send users back to. You can find this on your Vercel project's "Domains" page.
         *   `NEXT_PUBLIC_SITE_URL`: The full URL of your site (e.g., `https://joya-store-abcdef.vercel.app`).
     *   Double-check that all keys are copied correctly.
