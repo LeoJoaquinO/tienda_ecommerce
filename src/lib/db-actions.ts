@@ -124,7 +124,7 @@ export async function updateProductInDb(id: number, productData: Partial<Omit<Pr
     }
 
     const fieldNames = Object.keys(dbFields);
-    const setClause = fieldNames.map(field => `${field} = ?`).join(', ');
+    const setClause = fieldNames.map(field => `${'`'}${field}${'`'} = ?`).join(', ');
     const values = [...fieldNames.map(field => (dbFields as any)[field]), id];
     
     try {

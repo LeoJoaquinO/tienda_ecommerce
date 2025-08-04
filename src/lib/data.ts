@@ -1,7 +1,6 @@
-
 'use server';
 
-import type { Product, Coupon, SalesMetrics, OrderData, OrderStatus, Order } from './types';
+import type { Product, Coupon, SalesMetrics, OrderData, OrderStatus } from './types';
 
 const USE_DB = !!process.env.DB_HOST;
 
@@ -10,8 +9,8 @@ export async function getProducts(): Promise<Product[]> {
         const db = await import('./db-actions');
         return db.getProductsFromDb();
     }
-    const data = await import('./hardcoded-data');
-    return data.getProductsFromHardcoded();
+    const hardcoded = await import('./hardcoded-data');
+    return hardcoded.getProductsFromHardcoded();
 }
 
 export async function getProductById(id: number): Promise<Product | undefined> {
@@ -19,8 +18,8 @@ export async function getProductById(id: number): Promise<Product | undefined> {
         const db = await import('./db-actions');
         return db.getProductByIdFromDb(id);
     }
-    const data = await import('./hardcoded-data');
-    return data.getProductByIdFromHardcoded(id);
+    const hardcoded = await import('./hardcoded-data');
+    return hardcoded.getProductByIdFromHardcoded(id);
 }
 
 export async function createProduct(product: Omit<Product, 'id' | 'salePrice'>): Promise<Product> {
@@ -28,8 +27,8 @@ export async function createProduct(product: Omit<Product, 'id' | 'salePrice'>):
         const db = await import('./db-actions');
         return db.createProductInDb(product);
     }
-    const data = await import('./hardcoded-data');
-    return data.createProductInHardcoded(product);
+    const hardcoded = await import('./hardcoded-data');
+    return hardcoded.createProductInHardcoded(product);
 }
 
 export async function updateProduct(id: number, productData: Partial<Omit<Product, 'id' | 'salePrice'>>): Promise<Product> {
@@ -37,8 +36,8 @@ export async function updateProduct(id: number, productData: Partial<Omit<Produc
         const db = await import('./db-actions');
         return db.updateProductInDb(id, productData);
     }
-    const data = await import('./hardcoded-data');
-    return data.updateProductInHardcoded(id, productData);
+    const hardcoded = await import('./hardcoded-data');
+    return hardcoded.updateProductInHardcoded(id, productData);
 }
 
 export async function deleteProduct(id: number): Promise<void> {
@@ -46,8 +45,8 @@ export async function deleteProduct(id: number): Promise<void> {
         const db = await import('./db-actions');
         return db.deleteProductFromDb(id);
     }
-    const data = await import('./hardcoded-data');
-    return data.deleteProductFromHardcoded(id);
+    const hardcoded = await import('./hardcoded-data');
+    return hardcoded.deleteProductFromHardcoded(id);
 }
 
 export async function getCoupons(): Promise<Coupon[]> {
@@ -55,8 +54,8 @@ export async function getCoupons(): Promise<Coupon[]> {
         const db = await import('./db-actions');
         return db.getCouponsFromDb();
     }
-    const data = await import('./hardcoded-data');
-    return data.getCouponsFromHardcoded();
+    const hardcoded = await import('./hardcoded-data');
+    return hardcoded.getCouponsFromHardcoded();
 }
 
 export async function getCouponById(id: number): Promise<Coupon | undefined> {
@@ -64,8 +63,8 @@ export async function getCouponById(id: number): Promise<Coupon | undefined> {
         const db = await import('./db-actions');
         return db.getCouponByIdFromDb(id);
     }
-    const data = await import('./hardcoded-data');
-    return data.getCouponByIdFromHardcoded(id);
+    const hardcoded = await import('./hardcoded-data');
+    return hardcoded.getCouponByIdFromHardcoded(id);
 }
 
 export async function getCouponByCode(code: string): Promise<Coupon | undefined> {
@@ -73,8 +72,8 @@ export async function getCouponByCode(code: string): Promise<Coupon | undefined>
         const db = await import('./db-actions');
         return db.getCouponByCodeFromDb(code);
     }
-    const data = await import('./hardcoded-data');
-    return data.getCouponByCodeFromHardcoded(code);
+    const hardcoded = await import('./hardcoded-data');
+    return hardcoded.getCouponByCodeFromHardcoded(code);
 }
 
 export async function createCoupon(coupon: Omit<Coupon, 'id'>): Promise<Coupon> {
@@ -82,8 +81,8 @@ export async function createCoupon(coupon: Omit<Coupon, 'id'>): Promise<Coupon> 
         const db = await import('./db-actions');
         return db.createCouponInDb(coupon);
     }
-    const data = await import('./hardcoded-data');
-    return data.createCouponInHardcoded(coupon);
+    const hardcoded = await import('./hardcoded-data');
+    return hardcoded.createCouponInHardcoded(coupon);
 }
 
 export async function updateCoupon(id: number, couponData: Partial<Omit<Coupon, 'id'>>): Promise<Coupon> {
@@ -91,8 +90,8 @@ export async function updateCoupon(id: number, couponData: Partial<Omit<Coupon, 
         const db = await import('./db-actions');
         return db.updateCouponInDb(id, couponData);
     }
-    const data = await import('./hardcoded-data');
-    return data.updateCouponInHardcoded(id, couponData);
+    const hardcoded = await import('./hardcoded-data');
+    return hardcoded.updateCouponInHardcoded(id, couponData);
 }
 
 export async function deleteCoupon(id: number): Promise<void> {
@@ -100,8 +99,8 @@ export async function deleteCoupon(id: number): Promise<void> {
         const db = await import('./db-actions');
         return db.deleteCouponFromDb(id);
     }
-    const data = await import('./hardcoded-data');
-    return data.deleteCouponFromHardcoded(id);
+    const hardcoded = await import('./hardcoded-data');
+    return hardcoded.deleteCouponFromHardcoded(id);
 }
 
 export async function getSalesMetrics(): Promise<SalesMetrics> {
@@ -109,8 +108,8 @@ export async function getSalesMetrics(): Promise<SalesMetrics> {
         const db = await import('./db-actions');
         return db.getSalesMetricsFromDb();
     }
-    const data = await import('./hardcoded-data');
-    return data.getSalesMetricsFromHardcoded();
+    const hardcoded = await import('./hardcoded-data');
+    return hardcoded.getSalesMetricsFromHardcoded();
 }
 
 export async function createOrder(orderData: OrderData): Promise<{orderId?: number, error?: string}> {
@@ -118,8 +117,8 @@ export async function createOrder(orderData: OrderData): Promise<{orderId?: numb
         const db = await import('./db-actions');
         return db.createOrderInDb(orderData);
     }
-    const data = await import('./hardcoded-data');
-    return data.createOrderInHardcoded(orderData);
+    const hardcoded = await import('./hardcoded-data');
+    return hardcoded.createOrderInHardcoded(orderData);
 }
 
 export async function updateOrderStatus(orderId: number, status: OrderStatus, paymentId?: string): Promise<void> {
@@ -127,8 +126,8 @@ export async function updateOrderStatus(orderId: number, status: OrderStatus, pa
         const db = await import('./db-actions');
         return db.updateOrderStatusInDb(orderId, status, paymentId);
     }
-    const data = await import('./hardcoded-data');
-    return data.updateOrderStatusInHardcoded(orderId, status, paymentId);
+    const hardcoded = await import('./hardcoded-data');
+    return hardcoded.updateOrderStatusInHardcoded(orderId, status, paymentId);
 }
 
 export async function restockItemsForOrder(orderId: number): Promise<void> {
@@ -136,6 +135,6 @@ export async function restockItemsForOrder(orderId: number): Promise<void> {
         const db = await import('./db-actions');
         return db.restockItemsForOrderInDb(orderId);
     }
-    const data = await import('./hardcoded-data');
-    return data.restockItemsForOrderInHardcoded(orderId);
+    const hardcoded = await import('./hardcoded-data');
+    return hardcoded.restockItemsForOrderInHardcoded(orderId);
 }

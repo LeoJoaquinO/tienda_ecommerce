@@ -30,3 +30,4 @@ export function getPool(): mysql.Pool {
 
     return pool;
 }
+
