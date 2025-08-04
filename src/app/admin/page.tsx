@@ -83,8 +83,17 @@ function ProductForm({ product, onFinished }: { product?: Product, onFinished: (
 
     async function handleAction(formData: FormData) {
         setIsSubmitting(true);
-        if (startDate) formData.set('offerStartDate', startDate.toISOString());
-        if (endDate) formData.set('offerEndDate', endDate.toISOString());
+        // Dates must be handled manually as FormData only supports strings/blobs
+        if (startDate) {
+            formData.set('offerStartDate', startDate.toISOString());
+        } else {
+            formData.delete('offerStartDate');
+        }
+        if (endDate) {
+            formData.set('offerEndDate', endDate.toISOString());
+        } else {
+            formData.delete('offerEndDate');
+        }
 
         const result = await action(formData);
         if (result?.error) {
@@ -163,8 +172,11 @@ function CouponForm({ coupon, onFinished }: { coupon?: Coupon, onFinished: () =>
 
     async function handleAction(formData: FormData) {
         setIsSubmitting(true);
-        if (expiryDate) formData.set('expiryDate', expiryDate.toISOString());
-        else formData.delete('expiryDate');
+        if (expiryDate) {
+            formData.set('expiryDate', expiryDate.toISOString());
+        } else {
+            formData.delete('expiryDate');
+        }
 
         const result = await action(formData);
         if (result?.error) {
@@ -654,5 +666,3 @@ export default function AdminPage() {
 
   return <AdminDashboard onLogout={handleLogout} />;
 }
-
-    
