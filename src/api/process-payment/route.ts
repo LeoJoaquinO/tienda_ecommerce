@@ -60,6 +60,9 @@ export async function POST(req: NextRequest) {
             items: cartItems,
             couponCode: appliedCoupon?.code,
             discountAmount: discount,
+            shippingAddress: shippingInfo.address,
+            shippingCity: shippingInfo.city,
+            shippingPostalCode: shippingInfo.postalCode,
         });
 
         // 2. Prepare the payment object for Mercado Pago

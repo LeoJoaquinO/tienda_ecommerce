@@ -30,7 +30,7 @@ export type Coupon = {
   isActive: boolean;
 };
 
-export type OrderStatus = 'pending' | 'paid' | 'failed' | 'cancelled';
+export type OrderStatus = 'pending' | 'paid' | 'failed' | 'cancelled' | 'shipped' | 'delivered';
 
 export type OrderData = {
     customerName: string;
@@ -41,6 +41,9 @@ export type OrderData = {
     couponCode?: string | null;
     discountAmount?: number;
     paymentId?: string | null;
+    shippingAddress: string;
+    shippingCity: string;
+    shippingPostalCode: string;
 }
 
 export type Order = {
@@ -54,6 +57,9 @@ export type Order = {
   couponCode?: string | null;
   discountAmount?: number;
   paymentId?: string;
+  shippingAddress: string;
+  shippingCity: string;
+  shippingPostalCode: string;
 };
 
 

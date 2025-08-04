@@ -1,7 +1,8 @@
 
 
+
 import pool from './db';
-import type { OrderData, OrderStatus, SalesMetrics, Product } from './types';
+import type { OrderData, OrderStatus, SalesMetrics, Product, Order } from './types';
 import { RowDataPacket, OkPacket } from 'mysql2';
 import { getProducts } from './products';
 
@@ -10,11 +11,11 @@ import { getProducts } from './products';
 // NOTE: This should be empty in a real production environment.
 // It is pre-filled here to demonstrate the metrics panel without a database connection.
 let hardcodedOrders: any[] = [
-    { id: 101, customerName: 'Juan Perez', customerEmail: 'juan@example.com', total: 255, status: 'paid', createdAt: new Date('2024-07-20T10:30:00Z'), items: [{ product: {id: 1, salePrice: 102, price: 120}, quantity: 1 }, { product: {id: 2, salePrice: 150, price: 150}, quantity: 1 }] },
-    { id: 102, customerName: 'Ana Gomez', customerEmail: 'ana@example.com', total: 95, status: 'paid', createdAt: new Date('2024-07-21T14:00:00Z'), items: [{ product: {id: 3, salePrice: 85.5, price: 95}, quantity: 1 }] },
-    { id: 103, customerName: 'Carlos Ruiz', customerEmail: 'carlos@example.com', total: 245, status: 'paid', createdAt: new Date('2024-07-22T11:00:00Z'), items: [{ product: {id: 4, price: 135}, quantity: 1 }, { product: {id: 5, price: 110}, quantity: 1 }] },
-    { id: 104, customerName: 'Lucia Fernandez', customerEmail: 'lucia@example.com', total: 85.5, status: 'paid', createdAt: new Date(), items: [{ product: {id: 3, salePrice: 85.5, price: 95}, quantity: 1 }] },
-    { id: 105, customerName: 'Test Pending', customerEmail: 'pending@test.com', total: 100, status: 'pending', createdAt: new Date(), items: [{ product: {id: 1, salePrice: 102, price: 120}, quantity: 1 }] },
+    { id: 101, customerName: 'Juan Perez', customerEmail: 'juan@example.com', total: 255, status: 'paid', createdAt: new Date('2024-07-20T10:30:00Z'), items: [{ product: {id: 1, salePrice: 102, price: 120}, quantity: 1 }, { product: {id: 2, salePrice: 150, price: 150}, quantity: 1 }], shippingAddress: 'Av. Falsa 123', shippingCity: 'Springfield', shippingPostalCode: 'B6500' },
+    { id: 102, customerName: 'Ana Gomez', customerEmail: 'ana@example.com', total: 95, status: 'paid', createdAt: new Date('2024-07-21T14:00:00Z'), items: [{ product: {id: 3, salePrice: 85.5, price: 95}, quantity: 1 }], shippingAddress: 'Calle Siempreviva 742', shippingCity: 'Springfield', shippingPostalCode: 'B6500' },
+    { id: 103, customerName: 'Carlos Ruiz', customerEmail: 'carlos@example.com', total: 245, status: 'paid', createdAt: new Date('2024-07-22T11:00:00Z'), items: [{ product: {id: 4, price: 135}, quantity: 1 }, { product: {id: 5, price: 110}, quantity: 1 }], shippingAddress: 'Boulevard del Ocaso 45', shippingCity: 'Shelbyville', shippingPostalCode: 'B6501' },
+    { id: 104, customerName: 'Lucia Fernandez', customerEmail: 'lucia@example.com', total: 85.5, status: 'paid', createdAt: new Date(), items: [{ product: {id: 3, salePrice: 85.5, price: 95}, quantity: 1 }], shippingAddress: 'Avenida de los Chicos 100', shippingCity: 'Capital City', shippingPostalCode: 'C1000' },
+    { id: 105, customerName: 'Test Pending', customerEmail: 'pending@test.com', total: 100, status: 'pending', createdAt: new Date(), items: [{ product: {id: 1, salePrice: 102, price: 120}, quantity: 1 }], shippingAddress: 'Laboratorio de Pruebas 1', shippingCity: 'Testville', shippingPostalCode: 'T357' },
 ];
 let nextOrderId = 106;
 
@@ -60,8 +61,8 @@ export async function createOrder(orderData: OrderData): Promise<number> {
         await connection.beginTransaction();
 
         const [orderResult] = await connection.query<OkPacket>(
-            'INSERT INTO orders (customer_name, customer_email, total, status, coupon_code, discount_amount) VALUES (?, ?, ?, ?, ?, ?)',
-            [orderData.customerName, orderData.customerEmail, orderData.total, orderData.status, orderData.couponCode, orderData.discountAmount]
+            'INSERT INTO orders (customer_name, customer_email, total, status, coupon_code, discount_amount, shipping_address, shipping_city, shipping_postal_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [orderData.customerName, orderData.customerEmail, orderData.total, orderData.status, orderData.couponCode, orderData.discountAmount, orderData.shippingAddress, orderData.shippingCity, orderData.shippingPostalCode]
         );
         const orderId = orderResult.insertId;
 
@@ -165,6 +166,70 @@ export async function restockItemsForOrder(orderId: number): Promise<void> {
     }
     */
 }
+
+
+function rowToOrder(row: RowDataPacket): Order {
+     return {
+        id: row.id,
+        customerName: row.customer_name,
+        customerEmail: row.customer_email,
+        total: parseFloat(row.total),
+        status: row.status,
+        createdAt: new Date(row.created_at),
+        items: [], // Items need to be fetched separately
+        couponCode: row.coupon_code,
+        discountAmount: row.discount_amount ? parseFloat(row.discount_amount) : undefined,
+        paymentId: row.payment_id,
+        shippingAddress: row.shipping_address,
+        shippingCity: row.shipping_city,
+        shippingPostalCode: row.shipping_postal_code,
+    };
+}
+
+
+/**
+ * Fetches all orders from the database.
+ */
+export async function getOrders(): Promise<Order[]> {
+    // --- Hardcoded Logic ---
+    return Promise.resolve(hardcodedOrders as Order[]);
+
+    // --- Database Logic ---
+    /*
+    try {
+        const [orderRows] = await pool.query<RowDataPacket[]>('SELECT * FROM orders ORDER BY created_at DESC');
+        const orders = orderRows.map(rowToOrder);
+
+        for (const order of orders) {
+            const [itemRows] = await pool.query<RowDataPacket[]>(`
+                SELECT oi.quantity, oi.price, p.id as product_id, p.name, p.images 
+                FROM order_items oi
+                JOIN products p ON oi.product_id = p.id
+                WHERE oi.order_id = ?
+            `, [order.id]);
+
+            order.items = itemRows.map(itemRow => ({
+                quantity: itemRow.quantity,
+                product: {
+                    id: itemRow.product_id,
+                    name: itemRow.name,
+                    price: parseFloat(itemRow.price),
+                    images: itemRow.images ? itemRow.images.split(',') : [],
+                    // Fill in other product fields as needed or leave them partial
+                    description: '',
+                    category: '',
+                    stock: 0,
+                }
+            }));
+        }
+
+        return orders;
+    } catch (error) {
+        handleDbError(error, 'fetching orders');
+    }
+    */
+}
+
 
 /**
  * Retrieves sales metrics for the admin dashboard.
