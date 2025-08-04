@@ -1,4 +1,3 @@
-
 'use server';
 
 import type { Product, Coupon, Order, SalesMetrics, OrderData, OrderStatus } from './types';
@@ -31,6 +30,7 @@ let localProducts: Product[] = [
         stock: 8,
         featured: true,
         aiHint: "sapphire ring",
+        salePrice: null,
     },
     {
         id: 3,
@@ -43,6 +43,7 @@ let localProducts: Product[] = [
         stock: 12,
         featured: false,
         aiHint: "emerald earrings",
+        salePrice: null,
     },
     {
         id: 4,
@@ -55,6 +56,7 @@ let localProducts: Product[] = [
         stock: 25,
         featured: true,
         aiHint: "silver bracelet",
+        salePrice: null,
     },
     {
         id: 5,
@@ -67,6 +69,7 @@ let localProducts: Product[] = [
         stock: 5,
         featured: true,
         aiHint: "luxury watch",
+        salePrice: null,
     },
     {
         id: 6,
@@ -79,6 +82,7 @@ let localProducts: Product[] = [
         stock: 20,
         featured: false,
         aiHint: "gold choker",
+        salePrice: null,
     },
     {
         id: 7,
@@ -91,6 +95,7 @@ let localProducts: Product[] = [
         stock: 3,
         featured: false,
         aiHint: "solitaire ring",
+        salePrice: null,
     },
     {
         id: 8,
@@ -103,6 +108,7 @@ let localProducts: Product[] = [
         stock: 30,
         featured: false,
         aiHint: "silver hoops",
+        salePrice: null,
     }
 ].map(p => ({ ...p, salePrice: _calculateSalePrice(p) }));
 
@@ -169,7 +175,7 @@ export async function getProductByIdFromHardcoded(id: number): Promise<Product |
 
 export async function createProductInHardcoded(product: Omit<Product, 'id' | 'salePrice'>): Promise<Product> {
     const newId = (localProducts.reduce((max, p) => Math.max(p.id, max), 0)) + 1;
-    const newProduct: Product = { ...product, id: newId };
+    const newProduct: Product = { ...product, id: newId, salePrice: null };
     localProducts.unshift({ ...newProduct, salePrice: _calculateSalePrice(newProduct) });
     return newProduct;
 }
@@ -223,7 +229,7 @@ export async function updateCouponInHardcoded(id: number, couponData: Partial<Om
     if (couponData.code && localCoupons.some(c => c.id !== id && c.code.toUpperCase() === couponData.code!.toUpperCase())) {
         throw new Error(`El código de cupón '${couponData.code}' ya existe.`);
     }
-    localCoupons[couponIndex] = { ...localCoupons[couponIndex], ...couponData };
+    localProducts[couponIndex] = { ...localCoupons[couponIndex], ...couponData, salePrice: null };
     return localCoupons[couponIndex];
 }
 
