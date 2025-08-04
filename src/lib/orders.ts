@@ -1,6 +1,7 @@
 
 
 
+
 import pool from './db';
 import type { OrderData, OrderStatus, SalesMetrics, Product, Order } from './types';
 import { RowDataPacket, OkPacket } from 'mysql2';
