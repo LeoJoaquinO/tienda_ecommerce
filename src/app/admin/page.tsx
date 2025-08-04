@@ -548,7 +548,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
             </TabsContent>
             <TabsContent value="coupons" className="mt-6">
                 <CouponsTab coupons={coupons} isLoading={isLoading} onAdd={() => handleOpenCouponDialog()} onEdit={handleOpenCouponDialog} onDelete={handleDeleteCoupon} onExport={exportCouponsToCSV} />
-            </Ato>
+            </TabsContent>
              <TabsContent value="subscribers" className="mt-6">
                 <SubscribersTab />
             </TabsContent>

@@ -1,61 +1,40 @@
-
 'use server';
 
-import type { Product, Coupon, Order, SalesMetrics, OrderData } from './types';
-import * as hardcodedData from './hardcoded-data';
-import * as dbActions from './db-actions';
+import type { Product, Coupon, Order, SalesMetrics } from './types';
+import { getProducts as getProductsAction } from './products';
+import { getCoupons as getCouponsAction } from './coupons';
+import { getOrders as getOrdersAction, getSalesMetrics as getSalesMetricsAction } from './orders';
+import { getProductById as getProductByIdAction, getCouponById as getCouponByIdAction, getCouponByCode as getCouponByCodeAction } from './products';
 
-// This file acts as a broker. It checks if a database is configured and
-// routes the request to either the database actions or the hardcoded data fallback.
-// This ensures server-only database code is never bundled on the client.
-
-const USE_DB = !!process.env.DB_HOST;
+// This file serves as the primary data-fetching layer for components.
+// It safely calls Server Actions, which in turn decide whether to use
+// the database or hardcoded data. This completely decouples pages
+// from the database logic, fixing the build errors.
 
 export async function getProducts(): Promise<Product[]> {
-    if (USE_DB) {
-        return dbActions.getProductsFromDb();
-    }
-    return hardcodedData.getProducts();
+    return getProductsAction();
 }
 
 export async function getProductById(id: number): Promise<Product | undefined> {
-    if (USE_DB) {
-        return dbActions.getProductByIdFromDb(id);
-    }
-    return hardcodedData.getProductById(id);
+    return getProductByIdAction(id);
 }
 
 export async function getCoupons(): Promise<Coupon[]> {
-    if (USE_DB) {
-        return dbActions.getCouponsFromDb();
-    }
-    return hardcodedData.getCoupons();
+    return getCouponsAction();
 }
 
 export async function getCouponById(id: number): Promise<Coupon | undefined> {
-    if (USE_DB) {
-        return dbActions.getCouponByIdFromDb(id);
-    }
-    return hardcodedData.getCouponById(id);
+    return getCouponByIdAction(id);
 }
 
 export async function getCouponByCode(code: string): Promise<Coupon | undefined> {
-    if (USE_DB) {
-        return dbActions.getCouponByCodeFromDb(code);
-    }
-    return hardcodedData.getCouponByCode(code);
+    return getCouponByCodeAction(code);
 }
 
 export async function getOrders(): Promise<Order[]> {
-    if (USE_DB) {
-        return dbActions.getOrdersFromDb();
-    }
-    return hardcodedData.getOrders();
+    return getOrdersAction();
 }
 
 export async function getSalesMetrics(): Promise<SalesMetrics> {
-    if (USE_DB) {
-        return dbActions.getSalesMetricsFromDb();
-    }
-    return hardcodedData.getSalesMetrics();
+    return getSalesMetricsAction();
 }
