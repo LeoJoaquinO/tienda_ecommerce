@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -6,7 +5,6 @@ import Image from 'next/image';
 import { getProducts } from '@/lib/products';
 import { getCoupons } from '@/lib/coupons';
 import { getSalesMetrics, getOrders } from '@/lib/orders';
-import { getSubscribers } from '@/lib/subscribers';
 import type { Product, Coupon, SalesMetrics, Order, Subscriber } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,7 +18,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PlusCircle, Edit, Trash2, LogIn, LogOut, Loader2, Package, Tag, Wallet, Calendar as CalendarIcon, BarChart, AlertTriangle, ShoppingCart, Ticket, Badge, TrendingUp, DollarSign, CheckCircle, XCircle, Download, Link as LinkIcon, Briefcase, Truck, Send, Users, Mail } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, LogIn, LogOut, Loader2, Package, Tag, Wallet, Calendar as CalendarIcon, BarChart, AlertTriangle, ShoppingCart, Ticket, Badge, TrendingUp, DollarSign, CheckCircle, XCircle, Download, Link as LinkIcon, Briefcase, Truck, Send, Users, Mail, ExternalLink } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -53,6 +51,7 @@ import { BarChart as RechartsBarChart, Bar as RechartsBar, XAxis, YAxis, Tooltip
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import Link from 'next/link';
 
 // ############################################################################
 // Helper: CSV Export
@@ -368,42 +367,26 @@ function CouponsTab({ coupons, isLoading, onAdd, onEdit, onDelete, onExport }: {
 // ############################################################################
 // Component: SubscribersTab
 // ############################################################################
-function SubscribersTab({ subscribers, isLoading, onExport }: { subscribers: Subscriber[], isLoading: boolean, onExport: () => void }) {
+function SubscribersTab() {
     return (
         <Card className="shadow-lg">
-            <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                    <CardTitle>Gestionar Suscriptores</CardTitle>
-                    <CardDescription>Visualiza y exporta tu lista de suscriptores para campañas de marketing.</CardDescription>
-                </div>
-                <Button onClick={onExport} variant="outline"><Download className="mr-2 h-4 w-4" />Exportar a CSV</Button>
+            <CardHeader>
+                <CardTitle>Gestionar Suscriptores</CardTitle>
+                <CardDescription>Tu lista de suscriptores ahora se gestiona directamente en Mailchimp.</CardDescription>
             </CardHeader>
-            <CardContent className="p-0">
-                {isLoading ? (
-                    <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div>
-                ) : subscribers.length > 0 ? (
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead><Mail className="inline-block mr-2 h-4 w-4" />Email</TableHead>
-                                <TableHead><CalendarIcon className="inline-block mr-2 h-4 w-4" />Fecha de Suscripción</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {subscribers.map(subscriber => (
-                                <TableRow key={subscriber.id}>
-                                    <TableCell className="font-medium">{subscriber.email}</TableCell>
-                                    <TableCell>{format(new Date(subscriber.created_at), 'PPP, pp')}</TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                ) : (
-                    <div className="text-center p-10 text-muted-foreground">
-                        <Users className="mx-auto h-12 w-12" />
-                        <p className="mt-4">Aún no tienes suscriptores.</p>
-                    </div>
-                )}
+            <CardContent>
+                <div className="flex flex-col items-center justify-center text-center p-10 bg-secondary/50 rounded-lg">
+                    <Mail className="h-12 w-12 text-primary" />
+                    <p className="mt-4 max-w-md text-muted-foreground">
+                        Todas las suscripciones a través del newsletter se añaden automáticamente a tu audiencia de Mailchimp.
+                    </p>
+                    <Button asChild className="mt-6">
+                        <Link href="https://login.mailchimp.com/" target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="mr-2 h-4 w-4"/>
+                            Ir a Mailchimp
+                        </Link>
+                    </Button>
+                </div>
             </CardContent>
         </Card>
     );
@@ -416,7 +399,6 @@ function SubscribersTab({ subscribers, isLoading, onExport }: { subscribers: Sub
 function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     const [products, setProducts] = useState<Product[]>([]);
     const [coupons, setCoupons] = useState<Coupon[]>([]);
-    const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
     const [salesMetrics, setSalesMetrics] = useState<SalesMetrics | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [dialogType, setDialogType] = useState<'product' | 'coupon' | null>(null);
@@ -430,16 +412,14 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     const fetchData = async () => {
         setIsLoading(true);
         try {
-            const [fetchedProducts, fetchedCoupons, fetchedMetrics, fetchedSubscribers] = await Promise.all([
+            const [fetchedProducts, fetchedCoupons, fetchedMetrics] = await Promise.all([
                 getProducts(),
                 getCoupons(),
                 getSalesMetrics(),
-                getSubscribers(),
             ]);
             setProducts(fetchedProducts);
             setCoupons(fetchedCoupons);
             setSalesMetrics(fetchedMetrics);
-            setSubscribers(fetchedSubscribers);
         } catch (error) {
             toast({ title: 'Error al cargar los datos del panel', description: (error as Error).message, variant: 'destructive' });
         }
@@ -547,18 +527,6 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         toast({ title: 'Éxito', description: 'Datos de cupones exportados a CSV.' });
     };
 
-    const exportSubscribersToCSV = () => {
-        const headers = ['Email', 'Subscribed At'];
-        const rows = subscribers.map(s => [
-            s.email,
-            format(new Date(s.created_at), 'yyyy-MM-dd HH:mm:ss')
-        ].join(','));
-
-        const csvContent = [headers.join(','), ...rows].join('\n');
-        downloadCSV(csvContent, 'subscribers.csv');
-        toast({ title: 'Éxito', description: 'Lista de suscriptores exportada a CSV.' });
-    };
-
     return (
     <div className="space-y-6">
         <div className="flex justify-between items-start">
@@ -583,7 +551,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                 <CouponsTab coupons={coupons} isLoading={isLoading} onAdd={() => handleOpenCouponDialog()} onEdit={handleOpenCouponDialog} onDelete={handleDeleteCoupon} onExport={exportCouponsToCSV} />
             </TabsContent>
              <TabsContent value="subscribers" className="mt-6">
-                <SubscribersTab subscribers={subscribers} isLoading={isLoading} onExport={exportSubscribersToCSV} />
+                <SubscribersTab />
             </TabsContent>
         </Tabs>
 
@@ -655,5 +623,3 @@ export default function AdminPage() {
 
   return <AdminDashboard onLogout={handleLogout} />;
 }
-
-    

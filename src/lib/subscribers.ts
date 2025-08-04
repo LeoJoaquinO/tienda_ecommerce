@@ -1,70 +1,51 @@
-
-import pool from './db';
-import { RowDataPacket } from 'mysql2';
+import mailchimp from "@mailchimp/mailchimp_marketing";
 import type { Subscriber } from './types';
 
-// This file is designed to work with a database.
-// The hardcoded logic is minimal as this feature is database-dependent.
-let hardcodedSubscribers: Subscriber[] = [
-    { id: 1, email: 'test1@example.com', created_at: new Date() },
-    { id: 2, email: 'test2@example.com', created_at: new Date() },
-];
-let nextId = 3;
+// Configure Mailchimp client
+if (process.env.MAILCHIMP_API_KEY && process.env.MAILCHIMP_SERVER_PREFIX) {
+    mailchimp.setConfig({
+        apiKey: process.env.MAILCHIMP_API_KEY,
+        server: process.env.MAILCHIMP_SERVER_PREFIX,
+    });
+}
 
 
-function handleDbError(error: any, context: string): never {
-    if (error.code === 'ECONNREFUSED') {
-        const friendlyError = 'Could not connect to the database. Please ensure the database server is running and the connection details in your .env.local file are correct.';
-        console.error(`Database connection refused during ${context}:`, friendlyError);
-        throw new Error(friendlyError);
+function handleApiError(error: any, context: string): never {
+    console.error(`Mailchimp API error during ${context}:`, error);
+    // Try to parse a Mailchimp-specific error response
+    if (error.response?.body?.title) {
+        throw new Error(`Mailchimp: ${error.response.body.title} - ${error.response.body.detail}`);
     }
-    console.error(`Failed to ${context}:`, error);
-    throw new Error(`A database error occurred during ${context}.`);
+    throw new Error(`An error occurred while communicating with Mailchimp.`);
 }
 
 
 export async function addSubscriber(email: string): Promise<void> {
-    // --- Hardcoded Logic ---
-    if (hardcodedSubscribers.find(s => s.email === email)) {
-        throw new Error("Este email ya está suscripto.");
+    const listId = process.env.MAILCHIMP_AUDIENCE_ID;
+
+    if (!listId || !process.env.MAILCHIMP_API_KEY || !process.env.MAILCHIMP_SERVER_PREFIX) {
+        console.error("Mailchimp environment variables are not set. Cannot add subscriber.");
+        throw new Error("La integración con el servicio de newsletter no está configurada.");
     }
-    hardcodedSubscribers.push({ id: nextId++, email, created_at: new Date() });
-    console.log(`(Hardcoded) New subscriber added: ${email}`);
-    return Promise.resolve();
-
-    // --- Database Logic ---
-    /*
-    try {
-        await pool.query(
-            'INSERT INTO subscribers (email) VALUES (?)',
-            [email]
-        );
-    } catch (error: any) {
-        if (error.code === 'ER_DUP_ENTRY') {
-            throw new Error('Este email ya está suscripto.');
-        }
-        handleDbError(error, 'adding a subscriber');
-    }
-    */
-}
-
-export async function getSubscribers(): Promise<Subscriber[]> {
-    // --- Hardcoded Logic ---
-    return Promise.resolve(hardcodedSubscribers);
-
-    // --- Database Logic ---
-    /*
-    try {
-        const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM subscribers ORDER BY created_at DESC');
-        return rows.map(row => ({
-            id: row.id,
-            email: row.email,
-            created_at: new Date(row.created_at),
-        }));
-    } catch (error) {
-        handleDbError(error, 'fetching subscribers');
-    }
-    */
-}
-
     
+    try {
+        await mailchimp.lists.setListMember(listId, email.toLowerCase(), {
+            email_address: email,
+            status: "subscribed",
+        });
+        console.log(`Successfully added ${email} to Mailchimp list.`);
+
+    } catch (error: any) {
+        if (error.status === 400 && error.response?.body?.title === "Member Exists") {
+             throw new Error("Este email ya está suscripto.");
+        }
+        handleApiError(error, 'adding a subscriber');
+    }
+}
+
+// This function is no longer needed as subscribers are managed in Mailchimp.
+// It is kept here for reference or if you decide to switch back to a local database.
+export async function getSubscribers(): Promise<Subscriber[]> {
+    console.warn("getSubscribers is a stub function. Subscribers are managed in Mailchimp.");
+    return Promise.resolve([]);
+}
