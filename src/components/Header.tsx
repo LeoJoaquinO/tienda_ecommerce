@@ -26,6 +26,7 @@ import { ThemeToggle } from './ThemeToggle';
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { getProducts } from '@/lib/data';
+import type { Product } from '@/lib/types';
 
 const ListItem = React.forwardRef<
   React.ElementRef<"a">,
@@ -61,7 +62,7 @@ export default function Header() {
   
   useEffect(() => {
     async function fetchCategories() {
-      const products = await getProducts();
+      const products: Product[] = await getProducts();
       const uniqueCategories = [...new Set(products.map(p => p.category))];
       setCategories(uniqueCategories);
     }

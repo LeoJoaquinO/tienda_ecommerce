@@ -126,13 +126,14 @@ Now, let's get your code from GitHub onto the server.
     ```bash
     cd joya-store
     ```
-3.  **Create Your Environment File:** This file will hold your secret keys. It is **never** committed to GitHub.
+3.  **Create Your Environment File:** This file will hold your secret keys. It is **never** committed to GitHub. By creating this file and adding your database credentials, you are switching the application from its default "hardcoded data" mode to "live database" mode.
     ```bash
     nano .env.local
     ```
 4.  **Add Your Secrets:** Copy the following into the editor, replacing the placeholders with your **actual** Production credentials from Don Web and Mercado Pago.
     ```env
     # Database credentials from Don Web
+    # By setting these, you enable live database mode.
     DB_HOST="your_mysql_host"
     DB_USER="your_mysql_username"
     DB_PASSWORD="your_mysql_password"
@@ -147,31 +148,15 @@ Now, let's get your code from GitHub onto the server.
     ```
 5.  Save and exit nano by pressing `Ctrl+X`, then `Y`, then `Enter`.
 
-### Step 4: Set Up the Database and Live Data
-
-Your project currently uses hardcoded sample data. Now, we'll set up your real database and switch the app to use it.
+### Step 4: Set Up the Database
 
 1.  **Create the tables:** Run the `database.sql` script included in the project. It will ask for your database password.
     ```bash
     mysql -h your_mysql_host -u your_mysql_username -p your_mysql_database_name < database.sql
     ```
-    This creates the table structure for products, coupons, and orders.
+    This creates the table structure for products, coupons, and orders. Your tables will be empty.
 
-2.  **Switch to Live Data Mode:** You need to edit three files to tell the app to use the database instead of the hardcoded data.
-    *   Open `src/lib/products.ts`, `src/lib/coupons.ts`, and `src/lib/orders.ts` with nano.
-        ```bash
-        nano src/lib/products.ts
-        nano src/lib/coupons.ts
-        nano src/lib/orders.ts
-        ```
-    *   In each file, you will see commented-out sections of code labeled `--- Database Logic ---`.
-    *   **DELETE** or **COMMENT OUT** the hardcoded logic.
-    *   **UNCOMMENT** all the database logic sections.
-    *   The files should now be using `pool.query` to talk to your database.
-    *   Save and exit nano (`Ctrl+X`, `Y`, `Enter`) for each file.
-
-3.  **Delete Hardcoded Items and Create Real Ones:**
-    *   After switching to live data, your products table will be empty.
+2.  **Add Your Products:**
     *   You can now launch the application (see Step 5) and go to the `/admin` page.
     *   From the admin dashboard, you can now add, edit, and delete your real products. Every change will be saved directly to your MySQL database.
 

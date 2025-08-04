@@ -18,6 +18,7 @@ let localProducts: Product[] = [
         discountPercentage: 20,
         offerStartDate: new Date('2024-01-01'),
         offerEndDate: new Date('2024-12-31'),
+        salePrice: 120.00,
     },
     {
         id: 2,
