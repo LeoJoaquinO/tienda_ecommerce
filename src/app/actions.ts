@@ -6,6 +6,7 @@ import { createProduct, deleteProduct, updateProduct } from "@/lib/products";
 import { createCoupon, deleteCoupon, updateCoupon } from "@/lib/coupons";
 import { z } from "zod";
 import DOMPurify from 'isomorphic-dompurify';
+import { addSubscriber } from "@/lib/subscribers";
 
 // Helper function to sanitize form data
 function sanitizeData(data: Record<string, any>): Record<string, any> {
@@ -179,7 +180,7 @@ export async function addCouponAction(formData: FormData) {
         return { message: "Cupón creado exitosamente." };
     } catch (e: any) {
         console.error(e);
-        if (e.message.includes('UNIQUE constraint failed')) {
+        if (e.message.includes('UNIQUE constraint failed') || e.message.includes('ER_DUP_ENTRY')) {
             return { error: `El código de cupón '${validatedFields.data.code}' ya existe.` };
         }
         return { error: e.message || "No se pudo crear el cupón." };
@@ -211,7 +212,7 @@ export async function updateCouponAction(id: number, formData: FormData) {
         return { message: "Cupón actualizado exitosamente." };
     } catch (e: any) {
         console.error(e);
-        if (e.message.includes('UNIQUE constraint failed')) {
+        if (e.message.includes('UNIQUE constraint failed') || e.message.includes('ER_DUP_ENTRY')) {
             return { error: `El código de cupón '${validatedFields.data.code}' ya existe.` };
         }
         return { error: e.message || "No se pudo actualizar el cupón." };
@@ -227,6 +228,34 @@ export async function deleteCouponAction(id: number) {
         console.error(e);
         return { error: e.message || 'No se pudo eliminar el cupón.' }
     }
+}
+
+
+const subscriberSchema = z.object({
+  email: z.string().email("El email no es válido."),
+});
+
+export async function addSubscriberAction(formData: FormData) {
+  const rawData = Object.fromEntries(formData.entries());
+  const sanitizedData = sanitizeData(rawData);
+
+  const validatedFields = subscriberSchema.safeParse(sanitizedData);
+
+  if (!validatedFields.success) {
+    return {
+      error: "Email inválido. Por favor, ingrese un email correcto.",
+    };
+  }
+
+  try {
+    await addSubscriber(validatedFields.data.email);
+    return { message: "¡Gracias por suscribirte!" };
+  } catch (e: any) {
+    if (e.message.includes('UNIQUE constraint failed') || e.message.includes('ER_DUP_ENTRY')) {
+      return { error: "Este email ya está suscripto." };
+    }
+    return { error: e.message || "No se pudo procesar la suscripción." };
+  }
 }
 
     
