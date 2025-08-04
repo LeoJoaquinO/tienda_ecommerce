@@ -1,9 +1,19 @@
+'use server';
 
-import type { Product, OrderData } from './types';
+import type { Product } from './types';
 import pool from './db';
-import { RowDataPacket, OkPacket } from 'mysql2';
+import { RowDataPacket } from 'mysql2';
 
-// --- Helper Functions ---
+function handleDbError(error: any, context: string): never {
+    if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+        const friendlyError = 'Could not connect to the database. Please ensure the database server is running and the connection details in your .env.local file are correct.';
+        console.error(`Database connection refused during ${context}:`, friendlyError);
+        throw new Error(friendlyError);
+    }
+    console.error(`Failed to ${context}:`, error);
+    throw new Error(`A database error occurred during ${context}.`);
+}
+
 function calculateSalePrice(product: Product): Product {
     const now = new Date();
     const isOfferValid = 
@@ -16,141 +26,9 @@ function calculateSalePrice(product: Product): Product {
         const salePrice = parseFloat((product.price - discount).toFixed(2));
         return { ...product, salePrice };
     }
-    // Ensure salePrice is null if the offer is not valid
     return { ...product, salePrice: null };
 }
 
-// --- Hardcoded Data for Initial Setup ---
-let hardcodedProducts: Product[] = [
-    { id: 1, name: "Aura de Rosas", description: "Una fragancia floral y romántica con notas de rosa de Damasco, peonía y almizcle blanco.", shortDescription: "Floral, romántica y suave.", price: 120, discountPercentage: 15, offerStartDate: new Date('2024-01-01'), offerEndDate: new Date('2025-12-31'), images: ["https://farma365.com.ar/wp-content/uploads/2024/04/3348901486392-3.webp"], category: "Floral", stock: 25, featured: true, aiHint: "pink perfume" },
-    { id: 2, name: "Noche en el Desierto", description: "Un aroma oriental especiado, con toques de incienso, oud y ámbar.", shortDescription: "Oriental, especiado y misterioso.", price: 150, discountPercentage: null, offerStartDate: null, offerEndDate: null, images: ["https://www.lancome.cl/dw/image/v2/AATL_PRD/on/demandware.static/-/Sites-lancome-latam-hub-Library/es_CL/dwcab43319/seo_landings/fragancia/Imagen%20Cuerpo%201%20Fragancia.jpg?sw=1910&sh=1074&sm=cut&q=70"], category: "Oriental", stock: 15, featured: true, aiHint: "dark perfume" },
-    { id: 3, name: "Cítrico Vibrante", description: "Una explosión de frescura con limón siciliano, bergamota y vetiver. Ideal para el día a día.", shortDescription: "Fresco, cítrico y enérgico.", price: 95, discountPercentage: 10, offerStartDate: new Date('2024-01-01'), offerEndDate: new Date('2025-12-31'), images: ["https://es.loccitane.com/dw/image/v2/BCDQ_PRD/on/demandware.static/-/Library-Sites-OCC_SharedLibrary/default/dwed515ac4/CWE%20images/collections/630x450-applyperfume.png?sw=630&sh=450"], category: "Cítrico", stock: 3, featured: true, aiHint: "citrus perfume" },
-    { id: 4, name: "Madera y Cuero", description: "Un perfume masculino y sofisticado, con notas de cedro, cuero y tabaco.", shortDescription: "Masculino, amaderado y con carácter.", price: 135, discountPercentage: null, offerStartDate: null, offerEndDate: null, images: ["https://farma365.com.ar/wp-content/uploads/2024/04/3348901486392-3.webp"], category: "Amaderado", stock: 18, featured: false, aiHint: "mens perfume" },
-    { id: 5, name: "Vainilla Gourmand", description: "Una fragancia dulce y acogedora que evoca postres recién horneados, con vainilla de Tahití y caramelo.", shortDescription: "Dulce, avainillado y acogedor.", price: 110, discountPercentage: null, offerStartDate: null, offerEndDate: null, images: ["https://www.lancome.cl/dw/image/v2/AATL_PRD/on/demandware.static/-/Sites-lancome-latam-hub-Library/es_CL/dwcab43319/seo_landings/fragancia/Imagen%20Cuerpo%201%20Fragancia.jpg?sw=1910&sh=1074&sm=cut&q=70"], category: "Dulce", stock: 22, featured: false, aiHint: "elegant perfume" },
-    { id: 6, name: "Brise Marina", description: "Un aroma fresco y acuático que captura la esencia del océano, con sal marina, algas y salvia.", shortDescription: "Fresco, marino y revitalizante.", price: 105, discountPercentage: 20, offerStartDate: new Date('2024-01-01'), offerEndDate: new Date('2025-12-31'), images: ["https://es.loccitane.com/dw/image/v2/BCDQ_PRD/on/demandware.static/-/Library-Sites-OCC_SharedLibrary/default/dwed515ac4/CWE%20images/collections/630x450-applyperfume.png?sw=630&sh=450"], category: "Acuático", stock: 0, featured: true, aiHint: "blue perfume" },
-].map(p => ({...p, images: p.images || []})).map(calculateSalePrice);
-
-
-export async function getProducts(): Promise<Product[]> {
-  // Return hardcoded data. To use a database, comment this line out.
-  const processedProducts = hardcodedProducts.map(calculateSalePrice);
-  return Promise.resolve(processedProducts);
-  
-  // --- Database Logic (Commented out by default) ---
-  /*
-  try {
-    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM products ORDER BY id DESC');
-    return rows.map(rowToProduct).map(calculateSalePrice);
-  } catch (error) {
-    handleDbError(error, 'fetching products');
-  }
-  */
-}
-
-export async function getProductById(id: number): Promise<Product | undefined> {
-    // Return hardcoded data. To use a database, comment this block out.
-    const product = hardcodedProducts.find(p => p.id === id);
-    if (product) {
-        return Promise.resolve(calculateSalePrice(product));
-    }
-    return Promise.resolve(undefined);
-
-    // --- Database Logic (Commented out by default) ---
-    /*
-    try {
-        const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM products WHERE id = ?', [id]);
-        if (rows.length > 0) {
-            return calculateSalePrice(rowToProduct(rows[0]));
-        }
-        return undefined;
-    } catch (error) {
-        handleDbError(error, `fetching product with id ${id}`);
-    }
-    */
-}
-
-export async function createProduct(product: Omit<Product, 'id' | 'salePrice'>): Promise<Product> {
-    console.log("createProduct called (hardcoded). In a real deployment, this would write to the database.", product);
-    const newId = hardcodedProducts.length > 0 ? Math.max(...hardcodedProducts.map(p => p.id)) + 1 : 1;
-    const newProduct: Product = { ...product, id: newId };
-    hardcodedProducts.push(newProduct);
-    return Promise.resolve(calculateSalePrice(newProduct));
-    
-    // --- Database Logic (Commented out by default) ---
-    /*
-    const { name, description, shortDescription, price, images, category, stock, featured, aiHint, discountPercentage, offerStartDate, offerEndDate } = product;
-    const imagesString = images.join(',');
-    try {
-        const [result] = await pool.query<any>(
-            'INSERT INTO products (name, description, shortDescription, price, images, category, stock, featured, aiHint, discountPercentage, offerStartDate, offerEndDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [name, description, shortDescription, price, imagesString, category, stock, featured || false, aiHint || null, discountPercentage || null, offerStartDate || null, offerEndDate || null]
-        );
-        const insertedId = result.insertId;
-        const newDbProduct = await getProductById(insertedId);
-        if (!newDbProduct) {
-            throw new Error('Failed to retrieve product after creation.');
-        }
-        return newDbProduct;
-    } catch (error) {
-        handleDbError(error, 'creating a product');
-    }
-    */
-}
-
-export async function updateProduct(id: number, product: Partial<Omit<Product, 'id' | 'salePrice'>>): Promise<Product> {
-    console.log(`updateProduct called for id ${id} (hardcoded). In a real deployment, this would write to the database.`, product);
-    const index = hardcodedProducts.findIndex(p => p.id === id);
-    if (index !== -1) {
-        hardcodedProducts[index] = { ...hardcodedProducts[index], ...product };
-        return Promise.resolve(calculateSalePrice(hardcodedProducts[index]));
-    }
-    throw new Error("Product not found");
-    
-    // --- Database Logic (Commented out by default) ---
-    /*
-    const { name, description, shortDescription, price, images, category, stock, featured, aiHint, discountPercentage, offerStartDate, offerEndDate } = product;
-    const imagesString = images?.join(',');
-    try {
-        await pool.query(
-            'UPDATE products SET name = ?, description = ?, shortDescription = ?, price = ?, images = ?, category = ?, stock = ?, featured = ?, aiHint = ?, discountPercentage = ?, offerStartDate = ?, offerEndDate = ? WHERE id = ?',
-            [name, description, shortDescription, price, imagesString, category, stock, featured || false, aiHint || null, discountPercentage || null, offerStartDate || null, offerEndDate || null, id]
-        );
-        const updatedProduct = await getProductById(id);
-        if (!updatedProduct) {
-            throw new Error('Failed to retrieve product after update.');
-        }
-        return updatedProduct;
-    } catch (error) {
-        handleDbError(error, `updating product with id ${id}`);
-    }
-    */
-}
-
-export async function deleteProduct(id: number): Promise<void> {
-    console.log(`deleteProduct called for id ${id} (hardcoded). In a real deployment, this would write to the database.`);
-    const index = hardcodedProducts.findIndex(p => p.id === id);
-    if (index !== -1) {
-        hardcodedProducts.splice(index, 1);
-        return Promise.resolve();
-    }
-    return Promise.resolve();
-
-    // --- Database Logic (Commented out by default) ---
-    /*
-    try {
-        const [result] = await pool.query<any>('DELETE FROM products WHERE id = ?', [id]);
-        if (result.affectedRows === 0) {
-            console.warn(`Attempted to delete product with id ${id}, but it was not found.`);
-        }
-    } catch (error) {
-        handleDbError(error, `deleting product with id ${id}`);
-    }
-    */
-}
-
-
-// --- Database Helper Functions (Commented out by default) ---
-/*
 function rowToProduct(row: RowDataPacket): Product {
     return {
         id: row.id,
@@ -170,13 +48,93 @@ function rowToProduct(row: RowDataPacket): Product {
     };
 }
 
-function handleDbError(error: any, context: string): never {
-    if (error.code === 'ECONNREFUSED') {
-        const friendlyError = 'Could not connect to the database. Please ensure the database server is running and the connection details in your .env.local file are correct.';
-        console.error(`Database connection refused during ${context}:`, friendlyError);
-        throw new Error(friendlyError);
-    }
-    console.error(`Failed to ${context}:`, error);
-    throw new Error(`A database error occurred during ${context}.`);
+export async function getProducts(): Promise<Product[]> {
+  try {
+    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM products ORDER BY id DESC');
+    return rows.map(rowToProduct).map(calculateSalePrice);
+  } catch (error) {
+    handleDbError(error, 'fetching products');
+  }
 }
-*/
+
+export async function getProductById(id: number): Promise<Product | undefined> {
+    try {
+        const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM products WHERE id = ?', [id]);
+        if (rows.length > 0) {
+            return calculateSalePrice(rowToProduct(rows[0]));
+        }
+        return undefined;
+    } catch (error) {
+        handleDbError(error, `fetching product with id ${id}`);
+    }
+}
+
+export async function createProduct(product: Omit<Product, 'id' | 'salePrice'>): Promise<Product> {
+    const { name, description, shortDescription, price, images, category, stock, featured, aiHint, discountPercentage, offerStartDate, offerEndDate } = product;
+    const imagesString = images.join(',');
+    try {
+        const [result] = await pool.query<any>(
+            'INSERT INTO products (name, description, shortDescription, price, images, category, stock, featured, aiHint, discountPercentage, offerStartDate, offerEndDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [name, description, shortDescription, price, imagesString, category, stock, featured || false, aiHint || null, discountPercentage || null, offerStartDate || null, offerEndDate || null]
+        );
+        const insertedId = result.insertId;
+        const newDbProduct = await getProductById(insertedId);
+        if (!newDbProduct) {
+            throw new Error('Failed to retrieve product after creation.');
+        }
+        return newDbProduct;
+    } catch (error) {
+        handleDbError(error, 'creating a product');
+    }
+}
+
+export async function updateProduct(id: number, product: Partial<Omit<Product, 'id' | 'salePrice'>>): Promise<Product> {
+    const { name, description, shortDescription, price, images, category, stock, featured, aiHint, discountPercentage, offerStartDate, offerEndDate } = product;
+    const imagesString = images?.join(',');
+    
+    const fieldsToUpdate: { [key: string]: any } = {};
+    if (name !== undefined) fieldsToUpdate.name = name;
+    if (description !== undefined) fieldsToUpdate.description = description;
+    if (shortDescription !== undefined) fieldsToUpdate.shortDescription = shortDescription;
+    if (price !== undefined) fieldsToUpdate.price = price;
+    if (imagesString !== undefined) fieldsToUpdate.images = imagesString;
+    if (category !== undefined) fieldsToUpdate.category = category;
+    if (stock !== undefined) fieldsToUpdate.stock = stock;
+    if (featured !== undefined) fieldsToUpdate.featured = featured;
+    if (aiHint !== undefined) fieldsToUpdate.aiHint = aiHint || null;
+    if (discountPercentage !== undefined) fieldsToUpdate.discountPercentage = discountPercentage || null;
+    if (offerStartDate !== undefined) fieldsToUpdate.offerStartDate = offerStartDate || null;
+    if (offerEndDate !== undefined) fieldsToUpdate.offerEndDate = offerEndDate || null;
+
+    const fieldNames = Object.keys(fieldsToUpdate);
+    if (fieldNames.length === 0) {
+        const currentProduct = await getProductById(id);
+        if (!currentProduct) throw new Error("Product not found");
+        return currentProduct;
+    }
+
+    const setClause = fieldNames.map(field => `${field.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`)} = ?`).join(', ');
+    const values = [...fieldNames.map(field => fieldsToUpdate[field]), id];
+
+    try {
+        await pool.query(`UPDATE products SET ${setClause} WHERE id = ?`, values);
+        const updatedProduct = await getProductById(id);
+        if (!updatedProduct) {
+            throw new Error('Failed to retrieve product after update.');
+        }
+        return updatedProduct;
+    } catch (error) {
+        handleDbError(error, `updating product with id ${id}`);
+    }
+}
+
+export async function deleteProduct(id: number): Promise<void> {
+    try {
+        const [result] = await pool.query<any>('DELETE FROM products WHERE id = ?', [id]);
+        if (result.affectedRows === 0) {
+            console.warn(`Attempted to delete product with id ${id}, but it was not found.`);
+        }
+    } catch (error) {
+        handleDbError(error, `deleting product with id ${id}`);
+    }
+}

@@ -1,24 +1,17 @@
+'use server';
 
 import type { Coupon } from './types';
 import pool from './db';
 import { RowDataPacket } from 'mysql2';
 
-// --- Hardcoded Data for Initial Setup ---
-// This logic runs if you haven't switched to a database yet.
-// It's for local development and demonstration purposes.
-let hardcodedCoupons: Coupon[] = [
-    { id: 1, code: "JOYA10", discountType: "percentage", discountValue: 10, expiryDate: new Date('2025-12-31'), isActive: true },
-    { id: 2, code: "ENVIOFREE", discountType: "fixed", discountValue: 50, expiryDate: new Date('2025-12-31'), isActive: true },
-    { id: 3, code: "EXPIRED", discountType: "percentage", discountValue: 99, expiryDate: new Date('2020-01-01'), isActive: false },
-];
-
-function isCouponActive(coupon: Coupon): boolean {
-    const now = new Date();
-    if (!coupon.isActive) return false;
-    if (coupon.expiryDate && new Date(coupon.expiryDate) < now) {
-        return false;
+function handleDbError(error: any, context: string): never {
+    if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+        const friendlyError = 'Could not connect to the database. Please ensure the database server is running and the connection details in your .env.local file are correct.';
+        console.error(`Database connection refused during ${context}:`, friendlyError);
+        throw new Error(friendlyError);
     }
-    return true;
+    console.error(`Failed to ${context}:`, error);
+    throw new Error(`A database error occurred during ${context}.`);
 }
 
 function rowToCoupon(row: RowDataPacket): Coupon {
@@ -32,43 +25,29 @@ function rowToCoupon(row: RowDataPacket): Coupon {
     };
 }
 
-
-function handleDbError(error: any, context: string): never {
-    if (error.code === 'ECONNREFUSED') {
-        const friendlyError = 'Could not connect to the database. Please ensure the database server is running and the connection details in your .env.local file are correct.';
-        console.error(`Database connection refused during ${context}:`, friendlyError);
-        throw new Error(friendlyError);
-    }
-    console.error(`Failed to ${context}:`, error);
-    throw new Error(`A database error occurred during ${context}.`);
-}
-
-
 export async function getCoupons(): Promise<Coupon[]> {
-    // --- Hardcoded Logic ---
-    return Promise.resolve(hardcodedCoupons);
-
-    // --- Database Logic ---
-    /*
     try {
         const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM coupons ORDER BY id DESC');
         return rows.map(rowToCoupon);
     } catch (error) {
         handleDbError(error, 'fetching coupons');
     }
-    */
 }
 
-export async function getCouponByCode(code: string): Promise<Coupon | undefined> {
-    // --- Hardcoded Logic ---
-    const coupon = hardcodedCoupons.find(c => c.code.toUpperCase() === code.toUpperCase());
-    if (coupon && isCouponActive(coupon)) {
-        return Promise.resolve(coupon);
+export async function getCouponById(id: number): Promise<Coupon | undefined> {
+     try {
+        const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM coupons WHERE id = ?', [id]);
+        if (rows.length > 0) {
+            return rowToCoupon(rows[0]);
+        }
+        return undefined;
+    } catch (error) {
+        handleDbError(error, `fetching coupon with id ${id}`);
     }
-    return Promise.resolve(undefined);
+}
 
-    // --- Database Logic ---
-    /*
+
+export async function getCouponByCode(code: string): Promise<Coupon | undefined> {
     try {
         const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM coupons WHERE code = ? AND is_active = TRUE AND (expiry_date IS NULL OR expiry_date > NOW())', [code.toUpperCase()]);
         if (rows.length > 0) {
@@ -78,22 +57,9 @@ export async function getCouponByCode(code: string): Promise<Coupon | undefined>
     } catch (error) {
         handleDbError(error, `fetching coupon with code ${code}`);
     }
-    */
 }
 
 export async function createCoupon(coupon: Omit<Coupon, 'id'>): Promise<Coupon> {
-    // --- Hardcoded Logic ---
-    const newId = hardcodedCoupons.length > 0 ? Math.max(...hardcodedCoupons.map(c => c.id)) + 1 : 1;
-    const existingCoupon = hardcodedCoupons.find(c => c.code.toUpperCase() === coupon.code.toUpperCase());
-    if (existingCoupon) {
-        throw new Error(`Error: El código de cupón '${coupon.code}' ya existe.`);
-    }
-    const newCoupon: Coupon = { ...coupon, id: newId };
-    hardcodedCoupons.push(newCoupon);
-    return Promise.resolve(newCoupon);
-    
-    // --- Database Logic ---
-    /*
     const { code, discountType, discountValue, expiryDate, isActive } = coupon;
     try {
         const [result] = await pool.query<any>(
@@ -111,25 +77,10 @@ export async function createCoupon(coupon: Omit<Coupon, 'id'>): Promise<Coupon> 
         }
         handleDbError(error, 'creating a coupon');
     }
-    */
 }
 
 
 export async function updateCoupon(id: number, coupon: Partial<Omit<Coupon, 'id'>>): Promise<Coupon> {
-    // --- Hardcoded Logic ---
-    const index = hardcodedCoupons.findIndex(c => c.id === id);
-    if (index !== -1) {
-        const existingCoupon = hardcodedCoupons.find(c => c.code.toUpperCase() === coupon.code?.toUpperCase() && c.id !== id);
-        if (existingCoupon) {
-            throw new Error(`Error: El código de cupón '${coupon.code}' ya existe.`);
-        }
-        hardcodedCoupons[index] = { ...hardcodedCoupons[index], ...coupon };
-        return Promise.resolve(hardcodedCoupons[index]);
-    }
-    throw new Error("Coupon not found");
-
-    // --- Database Logic ---
-    /*
     const { code, discountType, discountValue, expiryDate, isActive } = coupon;
     try {
         await pool.query(
@@ -147,44 +98,13 @@ export async function updateCoupon(id: number, coupon: Partial<Omit<Coupon, 'id'
         }
         handleDbError(error, `updating coupon with id ${id}`);
     }
-    */
 }
 
 
 export async function deleteCoupon(id: number): Promise<void> {
-    // --- Hardcoded Logic ---
-    const index = hardcodedCoupons.findIndex(c => c.id === id);
-    if (index !== -1) {
-        hardcodedCoupons.splice(index, 1);
-    }
-    return Promise.resolve();
-
-    // --- Database Logic ---
-    /*
     try {
         await pool.query('DELETE FROM coupons WHERE id = ?', [id]);
     } catch (error) {
         handleDbError(error, `deleting coupon with id ${id}`);
     }
-    */
-}
-
-
-export async function getCouponById(id: number): Promise<Coupon | undefined> {
-    // --- Hardcoded Logic ---
-    const coupon = hardcodedCoupons.find(c => c.id === id);
-    return Promise.resolve(coupon);
-    
-    // --- Database Logic ---
-    /*
-     try {
-        const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM coupons WHERE id = ?', [id]);
-        if (rows.length > 0) {
-            return rowToCoupon(rows[0]);
-        }
-        return undefined;
-    } catch (error) {
-        handleDbError(error, `fetching coupon with id ${id}`);
-    }
-    */
 }

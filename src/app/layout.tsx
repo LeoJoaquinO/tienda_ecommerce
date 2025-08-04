@@ -10,17 +10,21 @@ import { ThemeProvider } from '@/components/ThemeProvider';
 import WhatsAppButton from '@/components/WhatsAppButton';
 import Script from 'next/script';
 import CartSidebar from '@/components/CartSidebar';
+import { getProducts } from '@/lib/products';
 
 export const metadata: Metadata = {
   title: 'Joya - Elegancia Atemporal',
   description: 'Una simple tienda de e-commerce con recomendaciones de IA.',
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const products = await getProducts();
+  const categories = [...new Set(products.map(p => p.category))];
+
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
@@ -37,7 +41,7 @@ export default function RootLayout({
         >
             <CartProvider>
               <div className="relative flex min-h-dvh flex-col bg-background/80 backdrop-blur-sm">
-                <Header />
+                <Header categories={categories} />
                 <main className="flex-1 container py-8">
                   {children}
                 </main>

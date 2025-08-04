@@ -23,8 +23,6 @@ import {
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu"
 import { ThemeToggle } from './ThemeToggle';
-import { getProducts } from '@/lib/products';
-import { Product } from '@/lib/types';
 import React from 'react';
 import { cn } from '@/lib/utils';
 
@@ -56,20 +54,10 @@ const ListItem = React.forwardRef<
 ListItem.displayName = "ListItem"
 
 
-export default function Header() {
+export default function Header({ categories }: { categories: string[] }) {
   const { cartCount, setIsSidebarOpen } = useCart();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [categories, setCategories] = useState<string[]>([]);
   
-  useEffect(() => {
-    async function fetchCategories() {
-      const products: Product[] = await getProducts();
-      const uniqueCategories = [...new Set(products.map(p => p.category))];
-      setCategories(uniqueCategories);
-    }
-    fetchCategories();
-  }, []);
-
   const navLinks = [
     { href: '/', label: 'Inicio' },
     { href: '/#about', label: 'Sobre Nosotros' },
