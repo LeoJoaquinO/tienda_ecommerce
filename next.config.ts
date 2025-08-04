@@ -81,7 +81,7 @@ const nextConfig: NextConfig = {
     ],
   },
    env: {
-    NEXT_PUBLIC_MAILCHIMP_CONFIGURED: !!(process.env.MAILCHIMP_API_KEY && process.env.MAILCHIMP_SERVER_PREFIX && process.env.MAILCHIMP_AUDIENCE_ID),
+    NEXT_PUBLIC_MAILCHIMP_CONFIGURED: String(!!(process.env.MAILCHIMP_API_KEY && process.env.MAILCHIMP_SERVER_PREFIX && process.env.MAILCHIMP_AUDIENCE_ID)),
   }
 };
 

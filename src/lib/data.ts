@@ -20,9 +20,10 @@ import {
     getSalesMetrics as getSalesMetricsFromHardcodedData,
     createOrder as createOrderFromHardcodedData,
     updateOrderStatus as updateOrderStatusFromHardcodedData,
-    restockItemsForOrder as restockItemsForOrderFromHardcodedData
+    restockItemsForOrder as restockItemsForOrderFromHardcodedData,
+    getOrders as getOrdersFromHardcodedData,
 } from './hardcoded-data';
-import type { Product, Coupon, SalesMetrics, OrderData, OrderStatus } from './types';
+import type { Product, Coupon, SalesMetrics, OrderData, OrderStatus, Order } from './types';
 
 
 export async function getProducts(): Promise<Product[]> {
@@ -83,4 +84,8 @@ export async function updateOrderStatus(orderId: number, status: OrderStatus, pa
 
 export async function restockItemsForOrder(orderId: number): Promise<void> {
     return restockItemsForOrderFromHardcodedData(orderId);
+}
+
+export async function getOrders(): Promise<Order[]> {
+    return getOrdersFromHardcodedData();
 }

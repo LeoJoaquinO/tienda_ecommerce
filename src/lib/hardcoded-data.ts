@@ -298,4 +298,6 @@ export async function restockItemsForOrder(orderId: number): Promise<void> {
     }
 }
 
-    
+export async function getOrders(): Promise<Order[]> {
+    return JSON.parse(JSON.stringify(localOrders));
+}
