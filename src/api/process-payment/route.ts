@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
                     first_name: shippingInfo.name.split(' ')[0],
                     last_name: shippingInfo.name.split(' ').slice(1).join(' ') || shippingInfo.name.split(' ')[0],
                     identification: paymentData.payer.identification,
-                    entity_type: 'individual', // This is the required field that was missing
+                    entity_type: 'individual',
                 },
                 // Pass our internal order ID to track it via webhooks
                 external_reference: String(orderId),
