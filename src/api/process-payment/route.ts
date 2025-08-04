@@ -42,6 +42,7 @@ type CheckoutPayload = {
 };
 
 export async function POST(req: NextRequest) {
+    let orderId: number | null = null;
     try {
         const payload: CheckoutPayload = await req.json();
         const { cartItems, appliedCoupon, totalPrice, discount, shippingInfo, paymentData } = payload;
@@ -51,8 +52,7 @@ export async function POST(req: NextRequest) {
         }
 
         // 1. Create the order in our database *before* processing payment.
-        // This gives us a record of the purchase attempt.
-        const orderId = await createOrder({
+        orderId = await createOrder({
             customerName: shippingInfo.name,
             customerEmail: shippingInfo.email,
             total: totalPrice,
@@ -96,8 +96,12 @@ export async function POST(req: NextRequest) {
 
     } catch (error: any) {
         console.error("Error processing payment:", error.cause || error);
-        // Provide a more specific error message if available from Mercado Pago
+        
         const errorMessage = error?.cause?.error?.message || 'No se pudo procesar el pago.';
-        return NextResponse.json({ error: errorMessage }, { status: 500 });
+        
+        return NextResponse.json(
+            { error: errorMessage, details: error.message }, 
+            { status: 500 }
+        );
     }
 }

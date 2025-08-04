@@ -1,7 +1,4 @@
 
-
-
-
 import pool from './db';
 import type { OrderData, OrderStatus, SalesMetrics, Product, Order } from './types';
 import { RowDataPacket, OkPacket } from 'mysql2';
@@ -20,12 +17,15 @@ let hardcodedOrders: any[] = [
 ];
 let nextOrderId = 106;
 
+// A flag to determine if we are in a database-connected environment.
+// This is a simple check; a more robust solution might check the connection pool status.
+const USE_DATABASE = !!process.env.DB_HOST;
 
 /**
  * Handles database errors with user-friendly messages.
  */
 function handleDbError(error: any, context: string): never {
-    if (error.code === 'ECONNREFUSED') {
+    if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
         const friendlyError = 'Could not connect to the database. Please ensure the database server is running and the connection details in your .env.local file are correct.';
         console.error(`Database connection refused during ${context}:`, friendlyError);
         throw new Error(friendlyError);
@@ -40,23 +40,22 @@ function handleDbError(error: any, context: string): never {
  * This is done within a transaction to ensure data integrity.
  */
 export async function createOrder(orderData: OrderData): Promise<number> {
-    // --- Hardcoded Logic ---
-    // This logic runs if you haven't switched to a database yet.
-    // It's for local development and demonstration purposes.
-    const newOrder = { 
-        id: nextOrderId++, 
-        ...orderData, 
-        createdAt: new Date(),
-    };
-    hardcodedOrders.push(newOrder);
-    console.log("createOrder called (hardcoded). Order created:", newOrder);
-    orderData.items.forEach(item => {
-        console.log(`(Hardcoded) Decrementing stock for product ${item.product.id} by ${item.quantity}`);
-    });
-    return Promise.resolve(newOrder.id);
+    if (!USE_DATABASE) {
+        // --- Hardcoded Logic ---
+        console.log("createOrder called (hardcoded).");
+        const newOrder = { 
+            id: nextOrderId++, 
+            ...orderData, 
+            createdAt: new Date(),
+        };
+        hardcodedOrders.push(newOrder);
+        orderData.items.forEach(item => {
+            console.log(`(Hardcoded) Decrementing stock for product ${item.product.id} by ${item.quantity}`);
+        });
+        return Promise.resolve(newOrder.id);
+    }
     
     // --- Database Logic ---
-    /*
     const connection = await pool.getConnection();
     try {
         await connection.beginTransaction();
@@ -91,7 +90,6 @@ export async function createOrder(orderData: OrderData): Promise<number> {
     } finally {
         connection.release();
     }
-    */
 }
 
 
@@ -99,24 +97,23 @@ export async function createOrder(orderData: OrderData): Promise<number> {
  * Updates the status of an existing order.
  */
 export async function updateOrderStatus(orderId: number, status: OrderStatus, paymentId?: string): Promise<void> {
-    // --- Hardcoded Logic ---
-    // This logic runs if you haven't switched to a database yet.
-    const orderIndex = hardcodedOrders.findIndex(o => o.id === orderId);
-    if (orderIndex !== -1) {
-        hardcodedOrders[orderIndex].status = status;
-        if(paymentId) hardcodedOrders[orderIndex].paymentId = paymentId;
-        console.log(`(Hardcoded) Order ${orderId} status updated to ${status}`);
+    if (!USE_DATABASE) {
+        // --- Hardcoded Logic ---
+        const orderIndex = hardcodedOrders.findIndex(o => o.id === orderId);
+        if (orderIndex !== -1) {
+            hardcodedOrders[orderIndex].status = status;
+            if(paymentId) hardcodedOrders[orderIndex].paymentId = paymentId;
+            console.log(`(Hardcoded) Order ${orderId} status updated to ${status}`);
+        }
+        return Promise.resolve();
     }
-    return Promise.resolve();
     
     // --- Database Logic ---
-    /*
     try {
         await pool.query('UPDATE orders SET status = ?, payment_id = ? WHERE id = ?', [status, paymentId || null, orderId]);
     } catch (error) {
         handleDbError(error, `updating order status for order ${orderId}`);
     }
-    */
 }
 
 type OrderItem = {
@@ -129,13 +126,13 @@ type OrderItem = {
  * This is used when a payment is cancelled or fails.
  */
 export async function restockItemsForOrder(orderId: number): Promise<void> {
-     // --- Hardcoded Logic ---
-    // This logic runs if you haven't switched to a database yet.
-    console.log(`(Hardcoded) Restocking items for cancelled/failed order ${orderId}`);
-    return Promise.resolve();
+    if (!USE_DATABASE) {
+        // --- Hardcoded Logic ---
+        console.log(`(Hardcoded) Restocking items for cancelled/failed order ${orderId}`);
+        return Promise.resolve();
+    }
 
     // --- Database Logic ---
-    /*
     const connection = await pool.getConnection();
     try {
         await connection.beginTransaction();
@@ -165,7 +162,6 @@ export async function restockItemsForOrder(orderId: number): Promise<void> {
     } finally {
         connection.release();
     }
-    */
 }
 
 
@@ -192,11 +188,12 @@ function rowToOrder(row: RowDataPacket): Order {
  * Fetches all orders from the database.
  */
 export async function getOrders(): Promise<Order[]> {
-    // --- Hardcoded Logic ---
-    return Promise.resolve(hardcodedOrders as Order[]);
+    if (!USE_DATABASE) {
+        // --- Hardcoded Logic ---
+        return Promise.resolve(hardcodedOrders as Order[]);
+    }
 
     // --- Database Logic ---
-    /*
     try {
         const [orderRows] = await pool.query<RowDataPacket[]>('SELECT * FROM orders ORDER BY created_at DESC');
         const orders = orderRows.map(rowToOrder);
@@ -218,8 +215,10 @@ export async function getOrders(): Promise<Order[]> {
                     images: itemRow.images ? itemRow.images.split(',') : [],
                     // Fill in other product fields as needed or leave them partial
                     description: '',
+                    shortDescription: '',
                     category: '',
                     stock: 0,
+                    featured: false,
                 }
             }));
         }
@@ -228,7 +227,6 @@ export async function getOrders(): Promise<Order[]> {
     } catch (error) {
         handleDbError(error, 'fetching orders');
     }
-    */
 }
 
 
@@ -236,42 +234,42 @@ export async function getOrders(): Promise<Order[]> {
  * Retrieves sales metrics for the admin dashboard.
  */
 export async function getSalesMetrics(): Promise<SalesMetrics> {
-    // --- Hardcoded Logic ---
-    // This logic runs if you haven't switched to a database yet.
-    const paidOrders = hardcodedOrders.filter(o => o.status === 'paid');
-    const totalRevenue = paidOrders.reduce((sum, order) => sum + order.total, 0);
-    const totalSales = paidOrders.length;
-    
-    const salesByProduct: { [key: number]: { name: string; count: number } } = {};
-    const allProducts = await getProducts(); // Need product names
+    if (!USE_DATABASE) {
+        // --- Hardcoded Logic ---
+        const paidOrders = hardcodedOrders.filter(o => o.status === 'paid');
+        const totalRevenue = paidOrders.reduce((sum, order) => sum + order.total, 0);
+        const totalSales = paidOrders.length;
+        
+        const salesByProduct: { [key: number]: { name: string; count: number } } = {};
+        const allProducts = await getProducts(); // Need product names
 
-    for (const order of paidOrders) {
-        for (const item of order.items) {
-            const productId = item.product.id;
-            const productDetails = allProducts.find(p => p.id === productId);
-            const productName = productDetails ? productDetails.name : `Producto #${productId}`;
+        for (const order of paidOrders) {
+            for (const item of order.items) {
+                const productId = item.product.id;
+                const productDetails = allProducts.find(p => p.id === productId);
+                const productName = productDetails ? productDetails.name : `Producto #${productId}`;
 
-            if (salesByProduct[productId]) {
-                salesByProduct[productId].count += item.quantity;
-            } else {
-                salesByProduct[productId] = { name: productName, count: item.quantity };
+                if (salesByProduct[productId]) {
+                    salesByProduct[productId].count += item.quantity;
+                } else {
+                    salesByProduct[productId] = { name: productName, count: item.quantity };
+                }
             }
         }
+
+        const topSellingProducts = Object.entries(salesByProduct)
+            .map(([id, data]) => ({ productId: Number(id), name: data.name, count: data.count }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 5); // Get top 5
+
+        return Promise.resolve({
+            totalRevenue,
+            totalSales,
+            topSellingProducts
+        });
     }
 
-    const topSellingProducts = Object.entries(salesByProduct)
-        .map(([id, data]) => ({ productId: Number(id), name: data.name, count: data.count }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 5); // Get top 5
-
-    return Promise.resolve({
-        totalRevenue,
-        totalSales,
-        topSellingProducts
-    });
-
     // --- Database Logic ---
-    /*
     try {
         const [revenueResult] = await pool.query<RowDataPacket[]>(
             "SELECT SUM(total) as totalRevenue, COUNT(*) as totalSales FROM orders WHERE status = 'paid'"
@@ -301,5 +299,4 @@ export async function getSalesMetrics(): Promise<SalesMetrics> {
     } catch(error) {
         handleDbError(error, 'fetching sales metrics');
     }
-    */
 }
