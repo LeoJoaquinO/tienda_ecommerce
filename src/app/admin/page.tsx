@@ -73,40 +73,21 @@ function downloadCSV(csvContent: string, fileName: string) {
 // ############################################################################
 // Component: ProductForm
 // ############################################################################
-function ProductForm({ product, onFinished }: { product?: Product, onFinished: () => void }) {
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const { toast } = useToast();
+function ProductForm({ product, formId }: { product?: Product, formId: string }) {
     const [startDate, setStartDate] = useState<Date | undefined>(product?.offerStartDate ? new Date(product.offerStartDate) : undefined);
     const [endDate, setEndDate] = useState<Date | undefined>(product?.offerEndDate ? new Date(product.offerEndDate) : undefined);
 
-    const action = product ? updateProductAction.bind(null, product.id) : addProductAction;
-
-    async function handleAction(formData: FormData) {
-        setIsSubmitting(true);
-        // Dates must be handled manually as FormData only supports strings/blobs
-        if (startDate) {
-            formData.set('offerStartDate', startDate.toISOString());
-        } else {
-            formData.delete('offerStartDate');
-        }
-        if (endDate) {
-            formData.set('offerEndDate', endDate.toISOString());
-        } else {
-            formData.delete('offerEndDate');
-        }
-
-        const result = await action(formData);
-        if (result?.error) {
-            toast({ title: 'Error de Validación', description: result.error, variant: 'destructive' });
-        } else {
-            toast({ title: 'Éxito', description: result.message });
-            onFinished();
-        }
-        setIsSubmitting(false);
-    }
+    // This is a hidden component to pass date values to the form handler
+    const HiddenDateInputs = () => (
+        <>
+            <input type="hidden" name="offerStartDate" value={startDate?.toISOString() ?? ''} />
+            <input type="hidden" name="offerEndDate" value={endDate?.toISOString() ?? ''} />
+        </>
+    );
     
     return (
-        <form action={handleAction} className="space-y-4">
+        <form id={formId} className="space-y-4">
+             <HiddenDateInputs />
             <div><Label htmlFor="name">Nombre</Label><Input id="name" name="name" defaultValue={product?.name} required /></div>
             <div><Label htmlFor="shortDescription">Descripción Corta</Label><Input id="shortDescription" name="shortDescription" defaultValue={product?.shortDescription} placeholder="Un resumen breve para la tarjeta de producto."/></div>
             <div><Label htmlFor="description">Descripción Completa</Label><Textarea id="description" name="description" defaultValue={product?.description} required /></div>
@@ -152,10 +133,6 @@ function ProductForm({ product, onFinished }: { product?: Product, onFinished: (
             </div>
             <div><Label htmlFor="aiHint">AI Hint</Label><Input id="aiHint" name="aiHint" defaultValue={product?.aiHint} /></div>
             <div className="flex items-center space-x-2"><Checkbox id="featured" name="featured" defaultChecked={product?.featured} /><Label htmlFor="featured">Producto Destacado</Label></div>
-            <DialogFooter>
-                <DialogClose asChild><Button variant="ghost">Cancelar</Button></DialogClose>
-                <Button type="submit" disabled={isSubmitting}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Guardar Cambios</Button>
-            </DialogFooter>
         </form>
     );
 }
@@ -163,33 +140,17 @@ function ProductForm({ product, onFinished }: { product?: Product, onFinished: (
 // ############################################################################
 // Component: CouponForm
 // ############################################################################
-function CouponForm({ coupon, onFinished }: { coupon?: Coupon, onFinished: () => void }) {
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const { toast } = useToast();
+function CouponForm({ coupon, formId }: { coupon?: Coupon, formId: string }) {
     const [expiryDate, setExpiryDate] = useState<Date | undefined>(coupon?.expiryDate ? new Date(coupon.expiryDate) : undefined);
-
-    const action = coupon ? updateCouponAction.bind(null, coupon.id) : addCouponAction;
-
-    async function handleAction(formData: FormData) {
-        setIsSubmitting(true);
-        if (expiryDate) {
-            formData.set('expiryDate', expiryDate.toISOString());
-        } else {
-            formData.delete('expiryDate');
-        }
-
-        const result = await action(formData);
-        if (result?.error) {
-            toast({ title: 'Error de Validación', description: result.error, variant: 'destructive' });
-        } else {
-            toast({ title: 'Éxito', description: result.message });
-            onFinished();
-        }
-        setIsSubmitting(false);
-    }
     
+    // This is a hidden component to pass date values to the form handler
+    const HiddenDateInputs = () => (
+        <input type="hidden" name="expiryDate" value={expiryDate?.toISOString() ?? ''} />
+    );
+
     return (
-        <form action={handleAction} className="space-y-4">
+        <form id={formId} className="space-y-4">
+            <HiddenDateInputs />
             <div><Label htmlFor="code">Código del Cupón</Label><Input id="code" name="code" defaultValue={coupon?.code} placeholder="VERANO20" required /></div>
             <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -230,10 +191,6 @@ function CouponForm({ coupon, onFinished }: { coupon?: Coupon, onFinished: () =>
                 <Switch id="isActive" name="isActive" defaultChecked={coupon?.isActive ?? true} />
                 <Label htmlFor="isActive">Cupón Activo</Label>
             </div>
-            <DialogFooter>
-                <DialogClose asChild><Button variant="ghost">Cancelar</Button></DialogClose>
-                <Button type="submit" disabled={isSubmitting}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Guardar Cambios</Button>
-            </DialogFooter>
         </form>
     );
 }
@@ -476,7 +433,10 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     const [dialogType, setDialogType] = useState<'product' | 'coupon' | null>(null);
     const [editingProduct, setEditingProduct] = useState<Product | undefined>(undefined);
     const [editingCoupon, setEditingCoupon] = useState<Coupon | undefined>(undefined);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const { toast } = useToast();
+    const formId = "dialog-form";
+
 
     const fetchData = async () => {
         setIsLoading(true);
@@ -514,12 +474,33 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         setEditingProduct(undefined);
         setEditingCoupon(undefined);
     };
-
-    const onFormFinished = () => {
-        handleCloseDialog();
-        fetchData(); // Refetch all data to ensure consistency
-    }
     
+    const handleFormSubmit = async () => {
+        const formElement = document.getElementById(formId) as HTMLFormElement;
+        if (!formElement) return;
+
+        setIsSubmitting(true);
+        const formData = new FormData(formElement);
+        
+        let result;
+        if (dialogType === 'product') {
+            const action = editingProduct ? updateProductAction.bind(null, editingProduct.id) : addProductAction;
+            result = await action(formData);
+        } else if (dialogType === 'coupon') {
+            const action = editingCoupon ? updateCouponAction.bind(null, editingCoupon.id) : addCouponAction;
+            result = await action(formData);
+        }
+
+        if (result?.error) {
+            toast({ title: 'Error de Validación', description: result.error, variant: 'destructive' });
+        } else {
+            toast({ title: 'Éxito', description: result.message });
+            handleCloseDialog();
+            fetchData();
+        }
+        setIsSubmitting(false);
+    };
+
     const handleDeleteProduct = async (id: number) => {
         const result = await deleteProductAction(id);
          if (result?.error) {
@@ -604,12 +585,18 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         </Tabs>
 
         <Dialog open={dialogType !== null} onOpenChange={(isOpen) => !isOpen && handleCloseDialog()}>
-            <DialogContent className="sm:max-w-[625px] grid-rows-[auto,1fr,auto] max-h-[90vh]">
-                <DialogHeader><DialogTitle>{dialogType === 'product' ? (editingProduct ? 'Editar Producto' : 'Añadir Nuevo Producto') : (editingCoupon ? 'Editar Cupón' : 'Crear Nuevo Cupón')}</DialogTitle></DialogHeader>
-                <div className="overflow-y-auto pr-4">
-                    {dialogType === 'product' && <ProductForm product={editingProduct} onFinished={onFormFinished} />}
-                    {dialogType === 'coupon' && <CouponForm coupon={editingCoupon} onFinished={onFormFinished} />}
+            <DialogContent className="sm:max-w-[625px] grid-rows-[auto_1fr_auto] max-h-[90vh] flex flex-col">
+                <DialogHeader>
+                    <DialogTitle>{dialogType === 'product' ? (editingProduct ? 'Editar Producto' : 'Añadir Nuevo Producto') : (editingCoupon ? 'Editar Cupón' : 'Crear Nuevo Cupón')}</DialogTitle>
+                </DialogHeader>
+                <div className="overflow-y-auto pr-4 -mr-4">
+                    {dialogType === 'product' && <ProductForm product={editingProduct} formId={formId} />}
+                    {dialogType === 'coupon' && <CouponForm coupon={editingCoupon} formId={formId} />}
                 </div>
+                 <DialogFooter>
+                    <DialogClose asChild><Button variant="ghost">Cancelar</Button></DialogClose>
+                    <Button type="button" onClick={handleFormSubmit} disabled={isSubmitting}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Guardar Cambios</Button>
+                </DialogFooter>
             </DialogContent>
         </Dialog>
     </div>
@@ -666,3 +653,5 @@ export default function AdminPage() {
 
   return <AdminDashboard onLogout={handleLogout} />;
 }
+
+    

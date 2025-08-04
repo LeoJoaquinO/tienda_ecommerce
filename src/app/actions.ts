@@ -27,8 +27,8 @@ const productSchema = z.object({
     shortDescription: z.string().optional(),
     price: z.coerce.number().positive("El precio debe ser un número positivo."),
     discountPercentage: z.coerce.number().min(0, "El descuento no puede ser negativo.").max(100, "El descuento no puede ser mayor a 100.").optional().nullable(),
-    offerStartDate: z.coerce.date().optional().nullable(),
-    offerEndDate: z.coerce.date().optional().nullable(),
+    offerStartDate: z.string().optional().nullable().transform(val => val ? new Date(val) : null),
+    offerEndDate: z.string().optional().nullable().transform(val => val ? new Date(val) : null),
     stock: z.coerce.number().int("El stock debe ser un número entero.").min(0, "El stock no puede ser negativo."),
     category: z.string().min(1, "La categoría es requerida."),
     images: z.array(z.string().url("La URL de la imagen no es válida.")).min(1, "Se requiere al menos una imagen."),
@@ -42,6 +42,8 @@ export async function addProductAction(formData: FormData) {
 
     // Handle empty strings for optional number fields
     if (sanitizedData.discountPercentage === '') sanitizedData.discountPercentage = null;
+    if (sanitizedData.offerStartDate === '') sanitizedData.offerStartDate = null;
+    if (sanitizedData.offerEndDate === '') sanitizedData.offerEndDate = null;
     
     // Collect images
     const images = [];
@@ -83,6 +85,8 @@ export async function updateProductAction(id: number, formData: FormData) {
 
     // Handle empty strings for optional number fields
     if (sanitizedData.discountPercentage === '') sanitizedData.discountPercentage = null;
+    if (sanitizedData.offerStartDate === '') sanitizedData.offerStartDate = null;
+    if (sanitizedData.offerEndDate === '') sanitizedData.offerEndDate = null;
 
     // Collect images
     const images = [];
@@ -138,7 +142,7 @@ const couponSchema = z.object({
     code: z.string().min(3, "El código debe tener al menos 3 caracteres.").max(50, "El código no puede tener más de 50 caracteres."),
     discountType: z.enum(['percentage', 'fixed'], { required_error: "El tipo de descuento es requerido."}),
     discountValue: z.coerce.number().positive("El valor del descuento debe ser un número positivo."),
-    expiryDate: z.coerce.date().optional().nullable(),
+    expiryDate: z.string().optional().nullable().transform(val => val ? new Date(val) : null),
     isActive: z.boolean().optional(),
 }).refine(data => {
     if (data.discountType === 'percentage') {
@@ -153,6 +157,8 @@ const couponSchema = z.object({
 export async function addCouponAction(formData: FormData) {
     const rawData = Object.fromEntries(formData.entries());
     const sanitizedData = sanitizeData(rawData);
+
+    if (sanitizedData.expiryDate === '') sanitizedData.expiryDate = null;
     
     const validatedFields = couponSchema.safeParse({
         ...sanitizedData,
@@ -184,6 +190,8 @@ export async function updateCouponAction(id: number, formData: FormData) {
     const rawData = Object.fromEntries(formData.entries());
     const sanitizedData = sanitizeData(rawData);
     
+    if (sanitizedData.expiryDate === '') sanitizedData.expiryDate = null;
+
     const validatedFields = couponSchema.safeParse({
         ...sanitizedData,
         isActive: sanitizedData.isActive === 'on',
@@ -220,3 +228,5 @@ export async function deleteCouponAction(id: number) {
         return { error: e.message || 'No se pudo eliminar el cupón.' }
     }
 }
+
+    
