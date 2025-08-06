@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { MercadoPagoConfig, Payment } from 'mercadopago';
 import { createOrder } from '@/lib/data';
 import type { CartItem, Coupon } from '@/lib/types';
-import type { PaymentCreateData } from 'mercadopago/dist/clients/payment/create/types';
+import type { PaymentCreateData, Payer } from 'mercadopago/dist/clients/payment/create/types';
 
 const client = new MercadoPagoConfig({ 
     accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN!,
@@ -72,6 +72,21 @@ export async function POST(req: NextRequest) {
         }
 
         // 2. Prepare the payment object for Mercado Pago
+        const payerInfo: Payer = {
+            email: shippingInfo.email, // Always use the verified shipping email
+            first_name: shippingInfo.name.split(' ')[0],
+            last_name: shippingInfo.name.split(' ').slice(1).join(' ') || shippingInfo.name.split(' ')[0],
+            entity_type: 'individual',
+        };
+
+        // Only add identification if it was provided
+        if (paymentData.payer?.identification?.type && paymentData.payer?.identification?.number) {
+            payerInfo.identification = {
+                type: paymentData.payer.identification.type,
+                number: paymentData.payer.identification.number,
+            };
+        }
+
         const paymentRequestBody: PaymentCreateData = {
             body: {
                 transaction_amount: paymentData.transaction_amount,
@@ -80,14 +95,7 @@ export async function POST(req: NextRequest) {
                 installments: paymentData.installments,
                 payment_method_id: paymentData.payment_method_id,
                 issuer_id: paymentData.issuer_id,
-                payer: {
-                    // Use shipping email as the primary source, fallback to paymentData.
-                    email: shippingInfo.email,
-                    first_name: shippingInfo.name.split(' ')[0],
-                    last_name: shippingInfo.name.split(' ').slice(1).join(' ') || shippingInfo.name.split(' ')[0],
-                    identification: paymentData.payer?.identification,
-                    entity_type: 'individual',
-                },
+                payer: payerInfo,
                 external_reference: String(orderId),
                 notification_url: `${process.env.NEXT_PUBLIC_SITE_URL}/api/mercadopago-webhook`,
             }
@@ -101,10 +109,10 @@ export async function POST(req: NextRequest) {
     } catch (error: any) {
         console.error("Error processing payment:", error.cause || error);
         
-        const errorMessage = error?.cause?.error?.message || 'No se pudo procesar el pago.';
+        const errorMessage = error?.cause?.[0]?.description || error?.cause?.error?.message || 'No se pudo procesar el pago.';
         
         return NextResponse.json(
-            { error: errorMessage, details: error.message }, 
+            { error: errorMessage, details: error.cause }, 
             { status: 500 }
         );
     }

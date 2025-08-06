@@ -94,7 +94,10 @@ export default function CheckoutPage() {
         const result = await response.json();
 
         if (!response.ok) {
-            throw new Error(result.error || 'Error procesando el pago.');
+            const errorMessage = Array.isArray(result.details) 
+                ? result.details.map((e: any) => e.description).join(', ') 
+                : result.error || 'Error procesando el pago.';
+            throw new Error(errorMessage);
         }
 
         toast({
@@ -213,9 +216,10 @@ export default function CheckoutPage() {
                         }}
                         customization={{
                              paymentMethods: {
-                                mercadoPago: 'all',
-                                creditCard: 'all',
-                                debitCard: 'all',
+                                ticket: "all",
+                                creditCard: "all",
+                                debitCard: "all",
+                                mercadoPago: "all",
                             },
                         }}
                         onSubmit={processPayment}
@@ -285,4 +289,3 @@ export default function CheckoutPage() {
   );
 }
 
-    
