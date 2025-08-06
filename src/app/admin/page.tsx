@@ -4,7 +4,6 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { getProducts, getCoupons, getSalesMetrics } from '@/lib/data';
-import { isDbConnected } from '@/lib/db';
 import type { Product, Coupon, SalesMetrics } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -53,6 +52,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
+import { isDbConnected } from '@/lib/db';
 
 type FieldErrors = Record<string, string[] | undefined>;
 
@@ -381,7 +381,7 @@ function CouponsTab({ coupons, isLoading, onAdd, onEdit, onDelete, onExport }: {
 // ############################################################################
 // Component: AdminDashboard
 // ############################################################################
-function AdminDashboard({ onLogout }: { onLogout: () => void }) {
+function AdminDashboard({ onLogout, dbConnected }: { onLogout: () => void, dbConnected: boolean }) {
     const [products, setProducts] = useState<Product[]>([]);
     const [coupons, setCoupons] = useState<Coupon[]>([]);
     const [salesMetrics, setSalesMetrics] = useState<SalesMetrics | null>(null);
@@ -528,7 +528,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                     <h1 className="text-3xl font-bold font-headline">Panel de Administración</h1>
                     <div className='flex items-center gap-4 mt-2'>
                         <p className="text-muted-foreground">Métricas y gestión de productos, cupones y más.</p>
-                         {isDbConnected ? (
+                         {dbConnected ? (
                             <Badge className='bg-green-100 text-green-800 border-green-300 hover:bg-green-100'>
                                 <Database className="mr-2 h-4 w-4"/>
                                 Data Source: Database
@@ -638,5 +638,7 @@ export default function AdminPage() {
     )
   }
 
-  return <AdminDashboard onLogout={handleLogout} />;
+  return <AdminDashboard onLogout={handleLogout} dbConnected={isDbConnected} />;
 }
+
+    
