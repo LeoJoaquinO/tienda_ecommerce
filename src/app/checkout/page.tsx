@@ -99,10 +99,10 @@ export default function CheckoutPage() {
   
   useEffect(() => {
     setIsReady(true);
-    if (cartCount === 0) {
+    if (isReady && cartCount === 0) {
         router.push('/tienda');
     }
-  }, [cartCount, router]);
+  }, [cartCount, router, isReady]);
 
   if (!isReady) {
     return <div className="flex justify-center items-center min-h-[50vh]"><Loader2 className="h-8 w-8 animate-spin"/></div>
@@ -175,7 +175,11 @@ export default function CheckoutPage() {
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {!isBrickReady && <div className="flex items-center justify-center p-8"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
+                  {!preferenceId && (
+                    <div className="flex items-center justify-center p-8">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                  )}
                    {preferenceId && (
                         <div className={cn(!isBrickReady && 'hidden')}>
                             <Payment
