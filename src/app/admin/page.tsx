@@ -393,6 +393,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     const [formErrors, setFormErrors] = useState<FieldErrors>({});
     const { toast } = useToast();
     const formId = "dialog-form";
+    const mailchimpConfigured = process.env.NEXT_PUBLIC_MAILCHIMP_CONFIGURED === 'true';
 
 
     const fetchData = async () => {
@@ -526,7 +527,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                 <div>
                     <h1 className="text-3xl font-bold font-headline">Panel de Administración</h1>
                     <div className='flex items-center gap-4 mt-2'>
-                        <p className="text-muted-foreground">Métricas, gestión de productos, cupones y más.</p>
+                        <p className="text-muted-foreground">Métricas y gestión de productos, cupones y más.</p>
                          {isDbConnected ? (
                             <Badge className='bg-green-100 text-green-800 border-green-300 hover:bg-green-100'>
                                 <Database className="mr-2 h-4 w-4"/>
@@ -536,6 +537,17 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                             <Badge className='bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-100'>
                                 <HardDrive className="mr-2 h-4 w-4"/>
                                 Data Source: Local Fallback
+                            </Badge>
+                         )}
+                         {mailchimpConfigured ? (
+                            <Badge className='bg-sky-100 text-sky-800 border-sky-300 hover:bg-sky-100'>
+                                <Mail className="mr-2 h-4 w-4"/>
+                                Mailchimp: Connected
+                            </Badge>
+                         ) : (
+                             <Badge variant='outline' className='border-dashed'>
+                                <Mail className="mr-2 h-4 w-4 text-muted-foreground"/>
+                                Mailchimp: Not Configured
                             </Badge>
                          )}
                     </div>
