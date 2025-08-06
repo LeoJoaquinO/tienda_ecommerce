@@ -213,9 +213,9 @@ export default function CheckoutPage() {
                         }}
                         customization={{
                              paymentMethods: {
-                                mercadoPago: 'all',
                                 creditCard: 'all',
                                 debitCard: 'all',
+                                account_money: 'all'
                             },
                         }}
                         onSubmit={processPayment}

@@ -29,11 +29,11 @@ type CheckoutPayload = {
         payment_method_id: string;
         transaction_amount: number;
         installments: number;
-        payer: {
-            email: string;
-            first_name: string;
-            last_name: string;
-            identification: {
+        payer?: {
+            email?: string;
+            first_name?: string;
+            last_name?: string;
+            identification?: {
                 type: string;
                 number: string;
             };
@@ -71,7 +71,6 @@ export async function POST(req: NextRequest) {
             );
         }
 
-
         // 2. Prepare the payment object for Mercado Pago
         const paymentRequestBody: PaymentCreateData = {
             body: {
@@ -82,10 +81,11 @@ export async function POST(req: NextRequest) {
                 payment_method_id: paymentData.payment_method_id,
                 issuer_id: paymentData.issuer_id,
                 payer: {
-                    email: paymentData.payer.email,
+                    // Use shipping email as the primary source, fallback to paymentData.
+                    email: shippingInfo.email,
                     first_name: shippingInfo.name.split(' ')[0],
                     last_name: shippingInfo.name.split(' ').slice(1).join(' ') || shippingInfo.name.split(' ')[0],
-                    identification: paymentData.payer.identification,
+                    identification: paymentData.payer?.identification,
                     entity_type: 'individual',
                 },
                 external_reference: String(orderId),
