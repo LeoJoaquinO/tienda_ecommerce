@@ -14,17 +14,16 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useCart } from "@/hooks/useCart";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
-import { Loader2, Ticket, Lock } from "lucide-react";
+import { Loader2, Ticket, Lock, ArrowLeft } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { initMercadoPago, Payment } from '@mercadopago/sdk-react';
 import { cn } from "@/lib/utils";
-import type { OrderData } from "@/lib/types";
 
 const shippingSchema = z.object({
   name: z.string().min(2, "El nombre es requerido."),
@@ -36,21 +35,15 @@ const shippingSchema = z.object({
 
 type ShippingFormData = z.infer<typeof shippingSchema>;
 
-if (process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY) {
-    initMercadoPago(process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY, { locale: 'es-AR' });
-} else {
-    console.error("Mercado Pago public key is not configured.");
-}
 
 export default function CheckoutPage() {
-  const { cartItems, subtotal, appliedCoupon, discount, totalPrice, clearCart, cartCount } = useCart();
+  const { cartItems, subtotal, appliedCoupon, discount, totalPrice, cartCount } = useCart();
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [isReady, setIsReady] = useState(false); // For initial mount
-  const [isBrickReady, setIsBrickReady] = useState(false); // For MP Brick
+  const [isReady, setIsReady] = useState(false);
+  const [isBrickReady, setIsBrickReady] = useState(false);
   const [step, setStep] = useState<'shipping' | 'payment'>('shipping');
-  const [shippingData, setShippingData] = useState<ShippingFormData | null>(null);
   const [preferenceId, setPreferenceId] = useState<string | null>(null);
 
   const form = useForm<ShippingFormData>({
@@ -63,10 +56,18 @@ export default function CheckoutPage() {
       postalCode: "",
     },
   });
+  
+  useEffect(() => {
+    if (process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY) {
+        initMercadoPago(process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY, { locale: 'es-AR' });
+    } else {
+        console.error("Mercado Pago public key is not configured.");
+    }
+    setIsReady(true);
+  }, []);
 
   const handleShippingSubmit = async (values: ShippingFormData) => {
     setIsLoading(true);
-    setShippingData(values);
     try {
         const payload = {
             cartItems,
@@ -98,11 +99,11 @@ export default function CheckoutPage() {
   };
   
   useEffect(() => {
-    setIsReady(true);
     if (isReady && cartCount === 0) {
+        toast({ title: 'Tu carrito está vacío', description: 'Serás redirigido a la tienda.', variant: 'destructive' });
         router.push('/tienda');
     }
-  }, [cartCount, router, isReady]);
+  }, [cartCount, router, isReady, toast]);
 
   if (!isReady) {
     return <div className="flex justify-center items-center min-h-[50vh]"><Loader2 className="h-8 w-8 animate-spin"/></div>
@@ -171,17 +172,23 @@ export default function CheckoutPage() {
                 <CardHeader>
                     <CardTitle className="flex justify-between items-center">
                         <span>2. Método de Pago</span>
-                        <Button variant="link" onClick={() => setStep('shipping')}>Editar datos</Button>
                     </CardTitle>
+                    <CardDescription>Completa el pago de forma segura con Mercado Pago.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-4 min-h-[300px]">
                   {!preferenceId && (
                     <div className="flex items-center justify-center p-8">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        <p className="ml-4 text-muted-foreground">Generando link de pago...</p>
                     </div>
                   )}
                    {preferenceId && (
-                        <div className={cn(!isBrickReady && 'hidden')}>
+                        <>
+                        <div className={cn(isBrickReady ? 'hidden' : 'flex', 'items-center justify-center p-8')}>
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                             <p className="ml-4 text-muted-foreground">Cargando métodos de pago...</p>
+                        </div>
+                        <div className={cn(!isBrickReady && 'opacity-0')}>
                             <Payment
                                 key={preferenceId}
                                 initialization={{
@@ -191,8 +198,14 @@ export default function CheckoutPage() {
                                 onError={(err) => console.error("Mercado Pago Brick error:", err)}
                             />
                         </div>
+                        </>
                    )}
                 </CardContent>
+                <CardFooter>
+                    <Button variant="outline" onClick={() => { setStep('shipping'); setPreferenceId(null); setIsBrickReady(false); }}>
+                        <ArrowLeft className="mr-2 h-4 w-4"/> Volver a Envío
+                    </Button>
+                </CardFooter>
             </Card>
         )}
       </div>
