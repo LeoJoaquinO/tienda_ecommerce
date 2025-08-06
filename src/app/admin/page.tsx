@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { getProducts, getCoupons, getSalesMetrics } from '@/lib/data';
+import { isDbConnected } from '@/lib/db';
 import type { Product, Coupon, SalesMetrics } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,7 +18,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PlusCircle, Edit, Trash2, LogIn, LogOut, Loader2, Package, Tag, Wallet, Calendar as CalendarIcon, BarChart, AlertTriangle, ShoppingCart, Ticket, Badge, TrendingUp, DollarSign, CheckCircle, XCircle, Download, ExternalLink, Mail } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, LogIn, LogOut, Loader2, Package, Tag, Wallet, Calendar as CalendarIcon, BarChart, AlertTriangle, ShoppingCart, Ticket, Badge as BadgeIcon, TrendingUp, DollarSign, CheckCircle, XCircle, Download, ExternalLink, Mail, Database, HardDrive } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -51,6 +52,8 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import Link from 'next/link';
+import { Badge } from '@/components/ui/badge';
+
 
 // ############################################################################
 // Helper: CSV Export
@@ -529,7 +532,23 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-start">
-                <div><h1 className="text-3xl font-bold font-headline">Panel de Administración</h1><p className="text-muted-foreground">Métricas, gestión de productos, cupones y más.</p></div>
+                <div>
+                    <h1 className="text-3xl font-bold font-headline">Panel de Administración</h1>
+                    <div className='flex items-center gap-4 mt-2'>
+                        <p className="text-muted-foreground">Métricas, gestión de productos, cupones y más.</p>
+                         {isDbConnected ? (
+                            <Badge className='bg-green-100 text-green-800 border-green-300 hover:bg-green-100'>
+                                <Database className="mr-2 h-4 w-4"/>
+                                Data Source: Database
+                            </Badge>
+                         ) : (
+                            <Badge className='bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-100'>
+                                <HardDrive className="mr-2 h-4 w-4"/>
+                                Data Source: Local Fallback
+                            </Badge>
+                         )}
+                    </div>
+                </div>
                 <Button variant="outline" onClick={onLogout}><LogOut className="mr-2 h-4 w-4" />Cerrar Sesión</Button>
             </div>
 
