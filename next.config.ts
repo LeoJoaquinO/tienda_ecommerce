@@ -77,6 +77,12 @@ const nextConfig: NextConfig = {
         hostname: 'holiclothing.com.ar',
         port: '',
         pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'imgur.com',
+        port: '',
+        pathname: '/**',
       }
     ],
   },
