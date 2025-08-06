@@ -69,6 +69,10 @@ export default function CheckoutPage() {
   const processPayment = async (formData: any) => {
     setIsLoading(true);
 
+    // Manually add transaction_amount to the formData object
+    // This ensures it's always present in the payload.
+    formData.transaction_amount = totalPrice;
+
     if (!shippingData) {
         toast({ title: "Error", description: "Faltan los datos de envío.", variant: "destructive"});
         setIsLoading(false);
@@ -288,4 +292,3 @@ export default function CheckoutPage() {
     </div>
   );
 }
-

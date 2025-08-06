@@ -109,10 +109,10 @@ export async function POST(req: NextRequest) {
     } catch (error: any) {
         console.error("Error processing payment:", error.cause || error);
         
-        const errorMessage = error?.cause?.error?.message || 'No se pudo procesar el pago.';
+        const errorMessage = error?.cause?.[0]?.description || error?.cause?.error?.message || 'No se pudo procesar el pago.';
         
         return NextResponse.json(
-            { error: errorMessage, details: error.message }, 
+            { error: errorMessage, details: error.cause }, 
             { status: 500 }
         );
     }
