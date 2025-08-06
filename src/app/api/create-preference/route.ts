@@ -2,7 +2,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MercadoPagoConfig, Preference } from 'mercadopago';
 import type { PreferenceCreateData } from 'mercadopago/dist/clients/preference/create/types';
-import type { CartItem } from '@/lib/types';
+import type { CartItem, Coupon } from '@/lib/types';
+import { createOrder } from '@/lib/data';
 
 const client = new MercadoPagoConfig({ 
     accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN!,
@@ -10,40 +11,62 @@ const client = new MercadoPagoConfig({
 const preference = new Preference(client);
 
 interface PreferencePayload {
-    items: {
-        id: string;
-        title: string;
-        quantity: number;
-        unit_price: number;
-    }[];
-    payer: {
+    cartItems: CartItem[];
+    shippingInfo: {
         name: string;
-        surname: string;
         email: string;
-    },
-    totalAmount: number;
+        address: string;
+        city: string;
+        postalCode: string;
+    };
+    totalPrice: number;
+    discount: number;
+    appliedCoupon: Coupon | null;
 }
 
 export async function POST(req: NextRequest) {
     try {
-        const { items, payer, totalAmount }: PreferencePayload = await req.json();
+        const { cartItems, shippingInfo, totalPrice, discount, appliedCoupon }: PreferencePayload = await req.json();
 
-        // Basic validation
-        if (!items || items.length === 0 || !payer || !totalAmount) {
+        if (!cartItems || cartItems.length === 0 || !shippingInfo || !totalPrice) {
             return NextResponse.json({ error: 'Datos de preferencia inválidos.' }, { status: 400 });
         }
+
+        // 1. Create order in our database with 'pending' status
+        const { orderId, error: createOrderError } = await createOrder({
+            customerName: shippingInfo.name,
+            customerEmail: shippingInfo.email,
+            total: totalPrice,
+            status: 'pending',
+            items: cartItems,
+            couponCode: appliedCoupon?.code,
+            discountAmount: discount,
+            shippingAddress: shippingInfo.address,
+            shippingCity: shippingInfo.city,
+            shippingPostalCode: shippingInfo.postalCode,
+        });
+
+        if (createOrderError || !orderId) {
+             return NextResponse.json(
+                { error: createOrderError || "Failed to create order." }, 
+                { status: 500 }
+            );
+        }
         
+        // 2. Create Mercado Pago preference
         const preferenceData: PreferenceCreateData = {
             body: {
-                items: items,
+                items: cartItems.map(item => ({
+                    id: item.product.id.toString(),
+                    title: item.product.name,
+                    quantity: item.quantity,
+                    unit_price: item.product.salePrice ?? item.product.price,
+                    currency_id: 'ARS',
+                })),
                 payer: {
-                    name: payer.name,
-                    surname: payer.surname,
-                    email: payer.email,
-                },
-                payment_methods: {
-                    excluded_payment_types: [], // No exclusions to allow all methods
-                    installments: 1, // You can make this dynamic if needed
+                    name: shippingInfo.name.split(' ')[0],
+                    surname: shippingInfo.name.split(' ').slice(1).join(' '),
+                    email: shippingInfo.email,
                 },
                 back_urls: {
                     success: `${process.env.NEXT_PUBLIC_SITE_URL}/`,
@@ -51,14 +74,14 @@ export async function POST(req: NextRequest) {
                     pending: `${process.env.NEXT_PUBLIC_SITE_URL}/`,
                 },
                 auto_return: 'approved',
-                // The notification URL is for server-to-server updates
+                external_reference: orderId.toString(),
                 notification_url: `${process.env.NEXT_PUBLIC_SITE_URL}/api/mercadopago-webhook`,
             },
         };
 
         const result = await preference.create(preferenceData);
 
-        return NextResponse.json({ id: result.id });
+        return NextResponse.json({ preferenceId: result.id });
 
     } catch (error: any) {
         console.error("Error creating Mercado Pago preference:", error);

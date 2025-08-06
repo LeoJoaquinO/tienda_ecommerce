@@ -36,24 +36,22 @@ const shippingSchema = z.object({
 
 type ShippingFormData = z.infer<typeof shippingSchema>;
 
-// Initialize Mercado Pago SDK
 if (process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY) {
     initMercadoPago(process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY, { locale: 'es-AR' });
 } else {
     console.error("Mercado Pago public key is not configured.");
 }
 
-
 export default function CheckoutPage() {
   const { cartItems, subtotal, appliedCoupon, discount, totalPrice, clearCart, cartCount } = useCart();
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [isReady, setIsReady] = useState(false);
+  const [isReady, setIsReady] = useState(false); // For initial mount
+  const [isBrickReady, setIsBrickReady] = useState(false); // For MP Brick
   const [step, setStep] = useState<'shipping' | 'payment'>('shipping');
   const [shippingData, setShippingData] = useState<ShippingFormData | null>(null);
   const [preferenceId, setPreferenceId] = useState<string | null>(null);
-
 
   const form = useForm<ShippingFormData>({
     resolver: zodResolver(shippingSchema),
@@ -71,18 +69,11 @@ export default function CheckoutPage() {
     setShippingData(values);
     try {
         const payload = {
-            items: cartItems.map(item => ({
-                id: item.product.id.toString(),
-                title: item.product.name,
-                quantity: item.quantity,
-                unit_price: item.product.salePrice ?? item.product.price
-            })),
-            payer: {
-                name: values.name.split(' ')[0],
-                surname: values.name.split(' ').slice(1).join(' '),
-                email: values.email,
-            },
-            totalAmount: totalPrice,
+            cartItems,
+            shippingInfo: values,
+            totalPrice,
+            discount,
+            appliedCoupon,
         };
 
         const response = await fetch('/api/create-preference', {
@@ -93,11 +84,11 @@ export default function CheckoutPage() {
         
         const data = await response.json();
 
-        if (!response.ok || !data.id) {
+        if (!response.ok || !data.preferenceId) {
             throw new Error(data.error || "No se pudo crear la preferencia de pago.");
         }
         
-        setPreferenceId(data.id);
+        setPreferenceId(data.preferenceId);
         setStep('payment');
 
     } catch (error) {
@@ -105,76 +96,16 @@ export default function CheckoutPage() {
     }
     setIsLoading(false);
   };
-
-  const processPayment = async (paymentData: any) => {
-    setIsLoading(true);
-
-    if (!shippingData) {
-        toast({ title: "Error", description: "Faltan los datos de envío.", variant: "destructive"});
-        setIsLoading(false);
-        return;
-    }
-
-    try {
-        const payload = {
-            cartItems,
-            appliedCoupon,
-            totalPrice,
-            discount,
-            shippingInfo: shippingData,
-            paymentData: paymentData, // Send the data from the brick's onSubmit
-        };
-
-        const response = await fetch('/api/process-payment', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-        });
-
-        const result = await response.json();
-
-        if (!response.ok) {
-            throw new Error(result.error || 'Error procesando el pago.');
-        }
-
-        toast({
-            title: "¡Pago Exitoso!",
-            description: "Tu compra ha sido realizada con éxito. Gracias."
-        });
-
-        clearCart();
-        router.push('/');
-
-    } catch (error) {
-        console.error("Payment processing error:", error);
-        toast({
-            title: "Error en el Pago",
-            description: (error as Error).message,
-            variant: "destructive",
-        });
-    } finally {
-        setIsLoading(false);
-    }
-  }
-
+  
   useEffect(() => {
     setIsReady(true);
-  }, []);
+    if (cartCount === 0) {
+        router.push('/tienda');
+    }
+  }, [cartCount, router]);
 
   if (!isReady) {
     return <div className="flex justify-center items-center min-h-[50vh]"><Loader2 className="h-8 w-8 animate-spin"/></div>
-  }
-
-  if (cartCount === 0 && !isLoading) {
-    return (
-        <div className="text-center py-12">
-            <h1 className="text-2xl font-semibold">Tu carrito está vacío</h1>
-            <p className="text-muted-foreground mt-2">Parece que no tienes nada para comprar.</p>
-            <Button asChild className="mt-6" onClick={() => router.push('/tienda')}>
-                Volver a la tienda
-            </Button>
-        </div>
-    )
   }
   
   if (!process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY) {
@@ -185,7 +116,6 @@ export default function CheckoutPage() {
         </div>
     )
   }
-
 
   return (
     <div className="grid lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
@@ -245,27 +175,22 @@ export default function CheckoutPage() {
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground flex items-center gap-2"><Lock className="h-4 w-4"/>Completa los datos de tu tarjeta de forma segura.</p>
+                  {!isBrickReady && <div className="flex items-center justify-center p-8"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
                    {preferenceId && (
-                        <Payment
-                            key={preferenceId}
-                            initialization={{
-                                preferenceId: preferenceId,
-                            }}
-                            customization={{
-                                visuals: {
-                                    style: {
-                                        theme: "flat",
-                                    }
-                                }
-                            }}
-                            onSubmit={processPayment}
-                        />
+                        <div className={cn(!isBrickReady && 'hidden')}>
+                            <Payment
+                                key={preferenceId}
+                                initialization={{
+                                    preferenceId: preferenceId,
+                                }}
+                                onReady={() => setIsBrickReady(true)}
+                                onError={(err) => console.error("Mercado Pago Brick error:", err)}
+                            />
+                        </div>
                    )}
                 </CardContent>
             </Card>
         )}
-
       </div>
 
       <div className="lg:col-span-1">
@@ -314,13 +239,6 @@ export default function CheckoutPage() {
                     </div>
                 </CardContent>
             </Card>
-             {isLoading && (
-                <div className="absolute inset-0 bg-white/80 dark:bg-black/80 flex flex-col items-center justify-center rounded-lg">
-                    <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-                    <p className="text-lg font-semibold">Procesando tu pago...</p>
-                    <p className="text-muted-foreground">Por favor, no cierres ni recargues esta página.</p>
-                </div>
-            )}
         </div>
       </div>
     </div>
