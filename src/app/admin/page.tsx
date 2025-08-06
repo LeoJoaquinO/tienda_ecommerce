@@ -54,6 +54,12 @@ import { Switch } from '@/components/ui/switch';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 
+type FieldErrors = Record<string, string[] | undefined>;
+
+const FormError = ({ message }: { message?: string }) => {
+    if (!message) return null;
+    return <p className="text-sm font-medium text-destructive mt-1">{message}</p>;
+};
 
 // ############################################################################
 // Helper: CSV Export
@@ -75,7 +81,7 @@ function downloadCSV(csvContent: string, fileName: string) {
 // ############################################################################
 // Component: ProductForm
 // ############################################################################
-function ProductForm({ product, formId }: { product?: Product, formId: string }) {
+function ProductForm({ product, formId, errors }: { product?: Product, formId: string, errors: FieldErrors }) {
     const [startDate, setStartDate] = useState<Date | undefined>(product?.offerStartDate ? new Date(product.offerStartDate) : undefined);
     const [endDate, setEndDate] = useState<Date | undefined>(product?.offerEndDate ? new Date(product.offerEndDate) : undefined);
 
@@ -90,48 +96,51 @@ function ProductForm({ product, formId }: { product?: Product, formId: string })
     return (
         <form id={formId} className="space-y-4">
              <HiddenDateInputs />
-            <div><Label htmlFor="name">Nombre</Label><Input id="name" name="name" defaultValue={product?.name} required /></div>
-            <div><Label htmlFor="shortDescription">Descripción Corta</Label><Input id="shortDescription" name="shortDescription" defaultValue={product?.shortDescription} placeholder="Un resumen breve para la tarjeta de producto."/></div>
-            <div><Label htmlFor="description">Descripción Completa</Label><Textarea id="description" name="description" defaultValue={product?.description} required /></div>
+            <div><Label htmlFor="name">Nombre</Label><Input id="name" name="name" defaultValue={product?.name} required className={cn(errors.name && "border-destructive")} /><FormError message={errors.name?.[0]} /></div>
+            <div><Label htmlFor="shortDescription">Descripción Corta</Label><Input id="shortDescription" name="shortDescription" defaultValue={product?.shortDescription} placeholder="Un resumen breve para la tarjeta de producto." className={cn(errors.shortDescription && "border-destructive")}/><FormError message={errors.shortDescription?.[0]} /></div>
+            <div><Label htmlFor="description">Descripción Completa</Label><Textarea id="description" name="description" defaultValue={product?.description} required className={cn(errors.description && "border-destructive")} /><FormError message={errors.description?.[0]} /></div>
             <div className="grid grid-cols-2 gap-4">
-                <div><Label htmlFor="price">Precio</Label><Input id="price" name="price" type="number" step="0.01" min="0" defaultValue={product?.price} required /></div>
-                <div><Label htmlFor="discountPercentage">Descuento (%)</Label><Input id="discountPercentage" name="discountPercentage" type="number" step="1" min="0" max="100" defaultValue={product?.discountPercentage ?? ''} placeholder="Ej: 15" /></div>
+                <div><Label htmlFor="price">Precio</Label><Input id="price" name="price" type="number" step="0.01" min="0" defaultValue={product?.price} required className={cn(errors.price && "border-destructive")}/><FormError message={errors.price?.[0]} /></div>
+                <div><Label htmlFor="discountPercentage">Descuento (%)</Label><Input id="discountPercentage" name="discountPercentage" type="number" step="1" min="0" max="100" defaultValue={product?.discountPercentage ?? ''} placeholder="Ej: 15" className={cn(errors.discountPercentage && "border-destructive")} /><FormError message={errors.discountPercentage?.[0]} /></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
                 <div>
                     <Label>Inicio de Oferta</Label>
                      <Popover>
                         <PopoverTrigger asChild>
-                            <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !startDate && "text-muted-foreground")}>
+                            <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !startDate && "text-muted-foreground", errors.offerStartDate && "border-destructive")}>
                                 <CalendarIcon className="mr-2 h-4 w-4" />{startDate ? format(startDate, "PPP") : <span>Elegir fecha</span>}
                             </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus fromDate={new Date()} /></PopoverContent>
                     </Popover>
+                    <FormError message={errors.offerStartDate?.[0]} />
                 </div>
                 <div>
                     <Label>Fin de Oferta</Label>
                      <Popover>
                         <PopoverTrigger asChild>
-                             <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !endDate && "text-muted-foreground")}>
+                             <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !endDate && "text-muted-foreground", errors.offerEndDate && "border-destructive")}>
                                 <CalendarIcon className="mr-2 h-4 w-4" />{endDate ? format(endDate, "PPP") : <span>Elegir fecha</span>}
                             </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={endDate} onSelect={setEndDate} initialFocus fromDate={startDate || new Date()} /></PopoverContent>
                     </Popover>
+                    <FormError message={errors.offerEndDate?.[0]} />
                 </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-                <div><Label htmlFor="stock">Stock</Label><Input id="stock" name="stock" type="number" min="0" step="1" defaultValue={product?.stock} required /></div>
-                <div><Label htmlFor="category">Categoría</Label><Input id="category" name="category" defaultValue={product?.category} required /></div>
+                <div><Label htmlFor="stock">Stock</Label><Input id="stock" name="stock" type="number" min="0" step="1" defaultValue={product?.stock} required className={cn(errors.stock && "border-destructive")} /><FormError message={errors.stock?.[0]} /></div>
+                <div><Label htmlFor="category">Categoría</Label><Input id="category" name="category" defaultValue={product?.category} required className={cn(errors.category && "border-destructive")} /><FormError message={errors.category?.[0]} /></div>
             </div>
             <div className='space-y-2'>
                 <Label>Imágenes del Producto (hasta 5)</Label>
-                <Input id="image1" name="image1" type="url" defaultValue={product?.images?.[0]} placeholder="URL de la Imagen Principal (requerido)" required />
+                <Input id="image1" name="image1" type="url" defaultValue={product?.images?.[0]} placeholder="URL de la Imagen Principal (requerido)" required className={cn(errors.images && "border-destructive")} />
                 <Input id="image2" name="image2" type="url" defaultValue={product?.images?.[1]} placeholder="URL de la Imagen 2 (opcional)" />
                 <Input id="image3" name="image3" type="url" defaultValue={product?.images?.[2]} placeholder="URL de la Imagen 3 (opcional)" />
                 <Input id="image4" name="image4" type="url" defaultValue={product?.images?.[3]} placeholder="URL de la Imagen 4 (opcional)" />
                 <Input id="image5" name="image5" type="url" defaultValue={product?.images?.[4]} placeholder="URL de la Imagen 5 (opcional)" />
+                <FormError message={errors.images?.[0]} />
             </div>
             <div><Label htmlFor="aiHint">AI Hint</Label><Input id="aiHint" name="aiHint" defaultValue={product?.aiHint} /></div>
             <div className="flex items-center space-x-2"><Checkbox id="featured" name="featured" defaultChecked={product?.featured} /><Label htmlFor="featured">Producto Destacado</Label></div>
@@ -142,7 +151,7 @@ function ProductForm({ product, formId }: { product?: Product, formId: string })
 // ############################################################################
 // Component: CouponForm
 // ############################################################################
-function CouponForm({ coupon, formId }: { coupon?: Coupon, formId: string }) {
+function CouponForm({ coupon, formId, errors }: { coupon?: Coupon, formId: string, errors: FieldErrors }) {
     const [expiryDate, setExpiryDate] = useState<Date | undefined>(coupon?.expiryDate ? new Date(coupon.expiryDate) : undefined);
     
     const HiddenDateInputs = () => (
@@ -152,28 +161,30 @@ function CouponForm({ coupon, formId }: { coupon?: Coupon, formId: string }) {
     return (
         <form id={formId} className="space-y-4">
             <HiddenDateInputs />
-            <div><Label htmlFor="code">Código del Cupón</Label><Input id="code" name="code" defaultValue={coupon?.code} placeholder="VERANO20" required /></div>
+            <div><Label htmlFor="code">Código del Cupón</Label><Input id="code" name="code" defaultValue={coupon?.code} placeholder="VERANO20" required className={cn(errors.code && "border-destructive")} /><FormError message={errors.code?.[0]} /></div>
             <div className="grid grid-cols-2 gap-4">
                 <div>
                     <Label htmlFor="discountType">Tipo de Descuento</Label>
                     <Select name="discountType" required defaultValue={coupon?.discountType ?? 'percentage'}>
-                        <SelectTrigger><SelectValue placeholder="Seleccionar tipo..." /></SelectTrigger>
+                        <SelectTrigger className={cn(errors.discountType && "border-destructive")}><SelectValue placeholder="Seleccionar tipo..." /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="percentage">Porcentaje (%)</SelectItem>
                             <SelectItem value="fixed">Monto Fijo ($)</SelectItem>
                         </SelectContent>
                     </Select>
+                    <FormError message={errors.discountType?.[0]} />
                 </div>
                 <div>
                     <Label htmlFor="discountValue">Valor</Label>
-                    <Input id="discountValue" name="discountValue" type="number" step="0.01" min="0" defaultValue={coupon?.discountValue} placeholder="Ej: 20" required />
+                    <Input id="discountValue" name="discountValue" type="number" step="0.01" min="0" defaultValue={coupon?.discountValue} placeholder="Ej: 20" required className={cn(errors.discountValue && "border-destructive")} />
+                     <FormError message={errors.discountValue?.[0]} />
                 </div>
             </div>
              <div>
                 <Label>Fecha de Expiración (Opcional)</Label>
                 <Popover>
                     <PopoverTrigger asChild>
-                        <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !expiryDate && "text-muted-foreground")}>
+                        <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !expiryDate && "text-muted-foreground", errors.expiryDate && "border-destructive")}>
                             <CalendarIcon className="mr-2 h-4 w-4" />{expiryDate ? format(expiryDate, "PPP") : <span>Elegir fecha</span>}
                         </Button>
                     </PopoverTrigger>
@@ -187,6 +198,7 @@ function CouponForm({ coupon, formId }: { coupon?: Coupon, formId: string }) {
                         />
                     </PopoverContent>
                 </Popover>
+                 <FormError message={errors.expiryDate?.[0]} />
             </div>
             <div className="flex items-center space-x-2">
                 <Switch id="isActive" name="isActive" defaultChecked={coupon?.isActive ?? true} />
@@ -216,8 +228,8 @@ function MetricsTab({ products, salesMetrics, isLoading }: { products: Product[]
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <Card className="shadow-md"><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Ingresos Totales</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{isLoading || !salesMetrics ? <Loader2 className="h-6 w-6 animate-spin" /> : `$${salesMetrics.totalRevenue.toLocaleString('es-AR')}`}</div><p className="text-xs text-muted-foreground">Suma de todas las ventas</p></CardContent></Card>
                 <Card className="shadow-md"><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Ventas Totales</CardTitle><ShoppingCart className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{isLoading || !salesMetrics ? <Loader2 className="h-6 w-6 animate-spin" /> : `+${salesMetrics.totalSales}`}</div><p className="text-xs text-muted-foreground">Cantidad de órdenes pagadas</p></CardContent></Card>
-                <Card className="shadow-md"><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total de Productos</CardTitle><Package className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : totalProducts}</div><p className="text-xs text-muted-foreground">Productos únicos en el catálogo</p></CardContent></Card>
-                <Card className="shadow-md"><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Inventario Total</CardTitle><Wallet className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : totalStock}</div><p className="text-xs text-muted-foreground">Suma de stock de todos los productos</p></CardContent></Card>
+                <Card className="shadow-md"><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total de Productos</CardTitle><Package className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{isLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : totalProducts}</div><p className="text-xs text-muted-foreground">Productos únicos en el catálogo</p></CardContent></Card>
+                <Card className="shadow-md"><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Inventario Total</CardTitle><Wallet className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{isLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : totalStock}</div><p className="text-xs text-muted-foreground">Suma de stock de todos los productos</p></CardContent></Card>
             </div>
             <div className="grid gap-6 lg:grid-cols-2">
                 <Card className="flex-1 shadow-md"><CardHeader><CardTitle>Productos por Categoría</CardTitle><CardDescription>Un desglose de cuántos productos tienes en cada categoría.</CardDescription></CardHeader><CardContent>
@@ -378,6 +390,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     const [editingProduct, setEditingProduct] = useState<Product | undefined>(undefined);
     const [editingCoupon, setEditingCoupon] = useState<Coupon | undefined>(undefined);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [formErrors, setFormErrors] = useState<FieldErrors>({});
     const { toast } = useToast();
     const formId = "dialog-form";
 
@@ -404,11 +417,13 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     }, []);
     
     const handleOpenProductDialog = (product?: Product) => {
+        setFormErrors({});
         setEditingProduct(product);
         setDialogType('product');
     };
 
     const handleOpenCouponDialog = (coupon?: Coupon) => {
+        setFormErrors({});
         setEditingCoupon(coupon);
         setDialogType('coupon');
     };
@@ -417,6 +432,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         setDialogType(null);
         setEditingProduct(undefined);
         setEditingCoupon(undefined);
+        setFormErrors({});
     };
     
     const handleFormSubmit = async () => {
@@ -424,6 +440,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         if (!formElement) return;
 
         setIsSubmitting(true);
+        setFormErrors({});
         const formData = new FormData(formElement);
         
         let result;
@@ -436,7 +453,10 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         }
 
         if (result?.error) {
-            toast({ title: 'Error de Validación', description: result.error, variant: 'destructive' });
+            toast({ title: 'Error al Guardar', description: result.error, variant: 'destructive' });
+            if (result.fieldErrors) {
+                setFormErrors(result.fieldErrors);
+            }
         } else {
             toast({ title: 'Éxito', description: result.message });
             handleCloseDialog();
@@ -546,8 +566,8 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                         <DialogTitle>{dialogType === 'product' ? (editingProduct ? 'Editar Producto' : 'Añadir Nuevo Producto') : (editingCoupon ? 'Editar Cupón' : 'Crear Nuevo Cupón')}</DialogTitle>
                     </DialogHeader>
                     <div className="overflow-y-auto pr-4 -mr-4">
-                        {dialogType === 'product' && <ProductForm product={editingProduct} formId={formId} />}
-                        {dialogType === 'coupon' && <CouponForm coupon={editingCoupon} formId={formId} />}
+                        {dialogType === 'product' && <ProductForm product={editingProduct} formId={formId} errors={formErrors} />}
+                        {dialogType === 'coupon' && <CouponForm coupon={editingCoupon} formId={formId} errors={formErrors} />}
                     </div>
                      <DialogFooter>
                         <DialogClose asChild><Button variant="ghost">Cancelar</Button></DialogClose>
