@@ -14,13 +14,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { useCart } from "@/hooks/useCart";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
-import { Loader2, Ticket, Lock, ArrowLeft } from "lucide-react";
+import { Loader2, Ticket, ArrowLeft } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { initMercadoPago, Payment } from '@mercadopago/sdk-react';
 import { cn } from "@/lib/utils";
@@ -60,8 +60,6 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY) {
         initMercadoPago(process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY, { locale: 'es-AR' });
-    } else {
-        console.error("Mercado Pago public key is not configured.");
     }
     setIsReady(true);
   }, []);
@@ -158,10 +156,12 @@ export default function CheckoutPage() {
                                 <FormItem><FormLabel>Código Postal</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                                 )}/>
                             </div>
-                            <Button type="submit" size="lg" className="w-full !mt-8" disabled={isLoading}>
+                        </CardContent>
+                        <CardFooter>
+                            <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
                                 {isLoading ? <Loader2 className="animate-spin" /> : "Continuar al Pago"}
                             </Button>
-                        </CardContent>
+                        </CardFooter>
                     </Card>
                 </form>
             </Form>
@@ -175,7 +175,7 @@ export default function CheckoutPage() {
                     </CardTitle>
                     <CardDescription>Completa el pago de forma segura con Mercado Pago.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4 min-h-[300px]">
+                <CardContent className="space-y-4 min-h-[400px]">
                   {!preferenceId && (
                     <div className="flex items-center justify-center p-8">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
