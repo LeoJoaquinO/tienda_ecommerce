@@ -367,45 +367,12 @@ function CouponsTab({ coupons, isLoading, onAdd, onEdit, onDelete, onExport }: {
 }
 
 // ############################################################################
-// Component: SubscribersTab
-// ############################################################################
-function SubscribersTab() {
-    return (
-        <Card className="shadow-lg">
-            <CardHeader>
-                <CardTitle>Gestionar Suscriptores</CardTitle>
-                <CardDescription>Tu lista de suscriptores ahora se gestiona directamente en Mailchimp.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="flex flex-col items-center justify-center text-center p-10 bg-secondary/50 rounded-lg">
-                    <Mail className="h-12 w-12 text-primary" />
-                    <p className="mt-4 max-w-md text-muted-foreground">
-                        Todas las suscripciones a través del newsletter se añaden automáticamente a tu audiencia de Mailchimp.
-                    </p>
-                    <Button asChild className="mt-6">
-                        <Link href="https://login.mailchimp.com/" target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="mr-2 h-4 w-4"/>
-                            Ir a Mailchimp
-                        </Link>
-                    </Button>
-                </div>
-            </CardContent>
-        </Card>
-    );
-}
-
-
-// ############################################################################
 // Component: AdminDashboard
 // ############################################################################
 function AdminDashboard({ onLogout }: { onLogout: () => void }) {
-    // DIAGNOSTIC LOG
-    console.log("DIAGNOSTIC: POSTGRES_URL:", process.env.POSTGRES_URL ? "Exists" : "Does NOT Exist");
-    console.log("DIAGNOSTIC: DATABASE_URL:", process.env.DATABASE_URL ? "Exists" : "Does NOT Exist");
-    
     const [products, setProducts] = useState<Product[]>([]);
     const [coupons, setCoupons] = useState<Coupon[]>([]);
-    const [salesMetrics, setSalesMetrics] = useState<SalesMetrics | null>([]);
+    const [salesMetrics, setSalesMetrics] = useState<SalesMetrics | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [dialogType, setDialogType] = useState<'product' | 'coupon' | null>(null);
     const [editingProduct, setEditingProduct] = useState<Product | undefined>(undefined);
@@ -557,11 +524,10 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
             </div>
 
             <Tabs defaultValue="overview">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="overview">Visión General</TabsTrigger>
                     <TabsTrigger value="products">Productos</TabsTrigger>
                     <TabsTrigger value="coupons">Cupones</TabsTrigger>
-                    <TabsTrigger value="subscribers">Suscriptores</TabsTrigger>
                 </TabsList>
                 <TabsContent value="overview" className="mt-6">
                     <MetricsTab products={products} salesMetrics={salesMetrics} isLoading={isLoading} />
@@ -571,9 +537,6 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                 </TabsContent>
                 <TabsContent value="coupons" className="mt-6">
                     <CouponsTab coupons={coupons} isLoading={isLoading} onAdd={() => handleOpenCouponDialog()} onEdit={handleOpenCouponDialog} onDelete={handleDeleteCoupon} onExport={exportCouponsToCSV} />
-                </TabsContent>
-                 <TabsContent value="subscribers" className="mt-6">
-                    <SubscribersTab />
                 </TabsContent>
             </Tabs>
 
@@ -645,5 +608,3 @@ export default function AdminPage() {
 
   return <AdminDashboard onLogout={handleLogout} />;
 }
-
-    
