@@ -97,8 +97,8 @@ export async function createProduct(product: Omit<Product, 'id' | 'salePrice'>):
     const { name, description, shortDescription, price, images, category, stock, aiHint, featured, discountPercentage, offerStartDate, offerEndDate } = product;
     try {
        const result = await db`
-            INSERT INTO products (name, description, short_description, price, images, category, stock, ai_hint, featured, discount_percentage, offer_start_date, offer_end_date)
-            VALUES (${name}, ${description}, ${shortDescription}, ${price}, ${images}, ${category}, ${stock}, ${aiHint}, ${featured}, ${discountPercentage}, ${offerStartDate?.toISOString()}, ${offerEndDate?.toISOString()})
+            INSERT INTO products (name, description, short_description, price, images, category, stock, ai_hint, featured, discount_percentage, offer_start_date, offer_end_date, created_at)
+            VALUES (${name}, ${description}, ${shortDescription}, ${price}, ${images}, ${category}, ${stock}, ${aiHint}, ${featured}, ${discountPercentage}, ${offerStartDate?.toISOString()}, ${offerEndDate?.toISOString()}, ${new Date().toISOString()})
             RETURNING *;
         `;
         return _mapDbRowToProduct(result[0]);
