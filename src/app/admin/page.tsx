@@ -52,7 +52,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
-import { isDbConnected } from '@/lib/db';
 
 type FieldErrors = Record<string, string[] | undefined>;
 
@@ -594,7 +593,7 @@ function AdminDashboard({ onLogout, dbConnected }: { onLogout: () => void, dbCon
 // ############################################################################
 // Component: AdminPage (Login and main export)
 // ############################################################################
-export default function AdminPage() {
+export default function AdminPage({ dbConnected }: { dbConnected: boolean }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -638,7 +637,6 @@ export default function AdminPage() {
     )
   }
 
-  return <AdminDashboard onLogout={handleLogout} dbConnected={isDbConnected} />;
+  return <AdminDashboard onLogout={handleLogout} dbConnected={dbConnected} />;
 }
-
     
