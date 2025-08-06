@@ -76,9 +76,6 @@ export default function CheckoutPage() {
     }
 
     try {
-        // Manually ensure the transaction_amount is set correctly.
-        formData.transaction_amount = totalPrice;
-
         const payload = {
             cartItems,
             appliedCoupon,
@@ -211,14 +208,14 @@ export default function CheckoutPage() {
                         initialization={{
                             amount: totalPrice,
                             payer: {
-                                email: shippingData?.email || '',
+                                email: shippingData?.email,
                             }
                         }}
                         customization={{
                              paymentMethods: {
+                                mercadoPago: 'all',
                                 creditCard: 'all',
                                 debitCard: 'all',
-                                account_money: 'all'
                             },
                         }}
                         onSubmit={processPayment}
@@ -287,3 +284,5 @@ export default function CheckoutPage() {
     </div>
   );
 }
+
+    
