@@ -76,6 +76,9 @@ export default function CheckoutPage() {
     }
 
     try {
+        // Manually ensure the transaction_amount is set correctly.
+        formData.transaction_amount = totalPrice;
+
         const payload = {
             cartItems,
             appliedCoupon,
