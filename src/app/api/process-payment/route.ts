@@ -11,6 +11,28 @@ const client = new MercadoPagoConfig({
 
 const paymentClient = new Payment(client);
 
+// This type now accurately reflects the structure from the Payment Brick's onSubmit callback
+type PaymentBrickOnSubmitData = {
+    paymentType: string,
+    selectedPaymentMethod: string,
+    formData: {
+        token: string;
+        issuer_id: string;
+        payment_method_id: string;
+        transaction_amount: number;
+        installments: number;
+        payer: {
+            email: string;
+            first_name: string;
+            last_name: string;
+            identification: {
+                type: string;
+                number: string;
+            };
+        };
+    }
+};
+
 type CheckoutPayload = {
     cartItems: CartItem[];
     appliedCoupon: Coupon | null;
@@ -23,39 +45,23 @@ type CheckoutPayload = {
         city: string;
         postalCode: string;
     };
-    paymentData: {
-        token: string;
-        issuer_id: string;
-        payment_method_id: string;
-        transaction_amount: number;
-        installments: number;
-        payer?: {
-            email?: string;
-            first_name?: string;
-            last_name?: string;
-            identification?: {
-                type: string;
-                number: string;
-            };
-        };
-    };
+    paymentData: PaymentBrickOnSubmitData; // Use the updated type
 };
 
 export async function POST(req: NextRequest) {
     try {
         const payload: CheckoutPayload = await req.json();
         const { cartItems, appliedCoupon, totalPrice, discount, shippingInfo, paymentData } = payload;
-
+        
         if (!cartItems || cartItems.length === 0) {
             return NextResponse.json({ error: 'El carrito está vacío.' }, { status: 400 });
         }
         
-        // 1. Create the order in our database *before* processing payment.
         const { orderId, error: createOrderError } = await createOrder({
             customerName: shippingInfo.name,
             customerEmail: shippingInfo.email,
             total: totalPrice,
-            status: 'pending', // Initial status
+            status: 'pending',
             items: cartItems,
             couponCode: appliedCoupon?.code,
             discountAmount: discount,
@@ -71,37 +77,29 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // 2. Prepare the payment object for Mercado Pago
-        const payerInfo: Payer = {
-            email: shippingInfo.email, // Always use the verified shipping email
-            first_name: shippingInfo.name.split(' ')[0],
-            last_name: shippingInfo.name.split(' ').slice(1).join(' ') || shippingInfo.name.split(' ')[0],
-            entity_type: 'individual',
-        };
-
-        // Only add identification if it was provided
-        if (paymentData.payer?.identification?.type && paymentData.payer?.identification?.number) {
-            payerInfo.identification = {
-                type: paymentData.payer.identification.type,
-                number: paymentData.payer.identification.number,
-            };
-        }
-
+        // Correctly construct the payment body using the nested formData
         const paymentRequestBody: PaymentCreateData = {
             body: {
-                transaction_amount: paymentData.transaction_amount,
-                token: paymentData.token,
+                transaction_amount: paymentData.formData.transaction_amount,
+                token: paymentData.formData.token,
                 description: `Orden de compra #${orderId} en Joya Store`,
-                installments: paymentData.installments,
-                payment_method_id: paymentData.payment_method_id,
-                issuer_id: paymentData.issuer_id,
-                payer: payerInfo,
+                installments: paymentData.formData.installments,
+                payment_method_id: paymentData.formData.payment_method_id,
+                issuer_id: paymentData.formData.issuer_id,
+                payer: {
+                    email: paymentData.formData.payer.email,
+                    first_name: paymentData.formData.payer.first_name,
+                    last_name: paymentData.formData.payer.last_name,
+                    identification: {
+                      type: paymentData.formData.payer.identification.type,
+                      number: paymentData.formData.payer.identification.number
+                    }
+                },
                 external_reference: String(orderId),
                 notification_url: `${process.env.NEXT_PUBLIC_SITE_URL}/api/mercadopago-webhook`,
             }
         };
 
-        // 3. Create the payment
         const paymentResult = await paymentClient.create(paymentRequestBody);
         
         return NextResponse.json(paymentResult);
@@ -109,7 +107,9 @@ export async function POST(req: NextRequest) {
     } catch (error: any) {
         console.error("Error processing payment:", error.cause || error);
         
-        const errorMessage = error?.cause?.[0]?.description || error?.cause?.error?.message || 'No se pudo procesar el pago.';
+        const errorMessage = Array.isArray(error?.cause)
+            ? error.cause.map((e: any) => e.description).join(', ')
+            : error?.cause?.error?.message || 'No se pudo procesar el pago.';
         
         return NextResponse.json(
             { error: errorMessage, details: error.cause }, 

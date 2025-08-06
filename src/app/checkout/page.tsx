@@ -24,6 +24,7 @@ import { Loader2, Ticket, Lock } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { initMercadoPago, Payment } from '@mercadopago/sdk-react';
 import { cn } from "@/lib/utils";
+import type { OrderData } from "@/lib/types";
 
 const shippingSchema = z.object({
   name: z.string().min(2, "El nombre es requerido."),
@@ -35,11 +36,13 @@ const shippingSchema = z.object({
 
 type ShippingFormData = z.infer<typeof shippingSchema>;
 
+// Initialize Mercado Pago SDK
 if (process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY) {
     initMercadoPago(process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY, { locale: 'es-AR' });
 } else {
     console.error("Mercado Pago public key is not configured.");
 }
+
 
 export default function CheckoutPage() {
   const { cartItems, subtotal, appliedCoupon, discount, totalPrice, clearCart, cartCount } = useCart();
@@ -49,6 +52,8 @@ export default function CheckoutPage() {
   const [isReady, setIsReady] = useState(false);
   const [step, setStep] = useState<'shipping' | 'payment'>('shipping');
   const [shippingData, setShippingData] = useState<ShippingFormData | null>(null);
+  const [preferenceId, setPreferenceId] = useState<string | null>(null);
+
 
   const form = useForm<ShippingFormData>({
     resolver: zodResolver(shippingSchema),
@@ -61,17 +66,48 @@ export default function CheckoutPage() {
     },
   });
 
-  const handleShippingSubmit = (values: ShippingFormData) => {
+  const handleShippingSubmit = async (values: ShippingFormData) => {
+    setIsLoading(true);
     setShippingData(values);
-    setStep('payment');
+    try {
+        const payload = {
+            items: cartItems.map(item => ({
+                id: item.product.id.toString(),
+                title: item.product.name,
+                quantity: item.quantity,
+                unit_price: item.product.salePrice ?? item.product.price
+            })),
+            payer: {
+                name: values.name.split(' ')[0],
+                surname: values.name.split(' ').slice(1).join(' '),
+                email: values.email,
+            },
+            totalAmount: totalPrice,
+        };
+
+        const response = await fetch('/api/create-preference', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        
+        const data = await response.json();
+
+        if (!response.ok || !data.id) {
+            throw new Error(data.error || "No se pudo crear la preferencia de pago.");
+        }
+        
+        setPreferenceId(data.id);
+        setStep('payment');
+
+    } catch (error) {
+        toast({ title: "Error", description: (error as Error).message, variant: "destructive" });
+    }
+    setIsLoading(false);
   };
 
-  const processPayment = async (formData: any) => {
+  const processPayment = async (paymentData: any) => {
     setIsLoading(true);
-
-    // Manually add transaction_amount to the formData object
-    // This ensures it's always present in the payload.
-    formData.transaction_amount = totalPrice;
 
     if (!shippingData) {
         toast({ title: "Error", description: "Faltan los datos de envío.", variant: "destructive"});
@@ -86,7 +122,7 @@ export default function CheckoutPage() {
             totalPrice,
             discount,
             shippingInfo: shippingData,
-            paymentData: formData,
+            paymentData: paymentData, // Send the data from the brick's onSubmit
         };
 
         const response = await fetch('/api/process-payment', {
@@ -98,10 +134,7 @@ export default function CheckoutPage() {
         const result = await response.json();
 
         if (!response.ok) {
-            const errorMessage = Array.isArray(result.details) 
-                ? result.details.map((e: any) => e.description).join(', ') 
-                : result.error || 'Error procesando el pago.';
-            throw new Error(errorMessage);
+            throw new Error(result.error || 'Error procesando el pago.');
         }
 
         toast({
@@ -116,7 +149,7 @@ export default function CheckoutPage() {
         console.error("Payment processing error:", error);
         toast({
             title: "Error en el Pago",
-            description: (error as Error).message || "No se pudo completar el pago. Por favor, intenta de nuevo.",
+            description: (error as Error).message,
             variant: "destructive",
         });
     } finally {
@@ -194,7 +227,9 @@ export default function CheckoutPage() {
                                 <FormItem><FormLabel>Código Postal</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                                 )}/>
                             </div>
-                            <Button type="submit" size="lg" className="w-full !mt-8">Continuar al Pago</Button>
+                            <Button type="submit" size="lg" className="w-full !mt-8" disabled={isLoading}>
+                                {isLoading ? <Loader2 className="animate-spin" /> : "Continuar al Pago"}
+                            </Button>
                         </CardContent>
                     </Card>
                 </form>
@@ -211,23 +246,22 @@ export default function CheckoutPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <p className="text-sm text-muted-foreground flex items-center gap-2"><Lock className="h-4 w-4"/>Completa los datos de tu tarjeta de forma segura.</p>
-                   <Payment
-                        initialization={{
-                            amount: totalPrice,
-                            payer: {
-                                email: shippingData?.email,
-                            }
-                        }}
-                        customization={{
-                             paymentMethods: {
-                                ticket: "all",
-                                creditCard: "all",
-                                debitCard: "all",
-                                mercadoPago: "all",
-                            },
-                        }}
-                        onSubmit={processPayment}
-                    />
+                   {preferenceId && (
+                        <Payment
+                            key={preferenceId}
+                            initialization={{
+                                preferenceId: preferenceId,
+                            }}
+                            customization={{
+                                visuals: {
+                                    style: {
+                                        theme: "flat",
+                                    }
+                                }
+                            }}
+                            onSubmit={processPayment}
+                        />
+                   )}
                 </CardContent>
             </Card>
         )}
