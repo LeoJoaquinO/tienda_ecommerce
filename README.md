@@ -11,7 +11,7 @@ Joya is a modern, stylish, and full-featured e-commerce storefront built with Ne
 
 -   **Modern Tech Stack:** Built with Next.js, React, and TypeScript for a fast and reliable user experience.
 -   **Elegant Design:** A clean and professional design using Tailwind CSS and ShadCN UI components.
--   **Dual Data Mode:** Works with hardcoded sample data out-of-the-box for easy local development. Automatically switches to a live **PostgreSQL** database when production environment variables are provided.
+-   **Dual Data Mode:** Works with hardcoded sample data out-of-the-box for easy local development. Automatically switches to a live **PostgreSQL** database (using the `@neondatabase/serverless` driver) when production environment variables are provided.
 -   **Fully Responsive:** Looks great on all devices, from desktops to mobile phones.
 -   **Product Management:** An admin dashboard to easily create, edit, and delete products.
 -   **Shopping Cart:** A persistent client-side shopping cart that remembers items between visits.
@@ -38,7 +38,7 @@ To get a local copy up and running on your computer, follow these simple steps.
 4.  **Set up Environment Variables (Optional for Local Dev):**
     *   Rename the `.env.example` file to `.env.local`.
     *   The application will run with **hardcoded sample data** by default. You do not need to fill in any keys to run the app locally.
-    *   If you *want* to connect to a development database, add your PostgreSQL connection string (`DATABASE_URL`) to `.env.local`.
+    *   If you *want* to connect to a development database, you can pull the connection string from your Vercel project by running `vercel env pull .env.local` or by manually copying it from the Neon console into your `.env.local` file as `DATABASE_URL`.
     *   For payment testing, you can add your **Mercado Pago Test Credentials**. You can find your PublicKey and Access Token in your [Mercado Pago Developer Dashboard](https://www.mercadopago.com/developers/panel/credentials).
     *   For the newsletter form to work, you will need to add your **Mailchimp Credentials**.
     ```env
