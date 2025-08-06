@@ -4,16 +4,18 @@
 
 import { neon } from '@neondatabase/serverless';
 
-// The POSTGRES_URL environment variable is the single source of truth for the connection.
-// It's set automatically by Vercel when you link a Neon database.
-const isDbConnected = !!process.env.DATABASE_URL;
+// Vercel automatically sets POSTGRES_URL when linking a Neon database.
+// We also check for DATABASE_URL for local development or other environments.
+const connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL;
+
+const isDbConnected = !!connectionString;
 
 if (isDbConnected) {
     console.log('Successfully connected to database.');
 } else {
-    console.log('DATABASE_URL not found. Application will use hardcoded data.');
+    console.log('POSTGRES_URL or DATABASE_URL not found. Application will use hardcoded data.');
 }
 
 // The `neon` function from @neondatabase/serverless handles the connection.
-export const db = isDbConnected ? neon(process.env.DATABASE_URL!) : null;
+export const db = isDbConnected ? neon(connectionString) : null;
 export { isDbConnected };

@@ -38,13 +38,13 @@ To get a local copy up and running on your computer, follow these simple steps.
 4.  **Set up Environment Variables (Optional for Local Dev):**
     *   Rename the `.env.example` file to `.env.local`.
     *   The application will run with **hardcoded sample data** by default. You do not need to fill in any keys to run the app locally.
-    *   If you *want* to connect to a development database, you can pull the connection string from your Vercel project by running `vercel env pull .env.local` or by manually copying it from the Neon console into your `.env.local` file as `DATABASE_URL`.
+    *   If you *want* to connect to a development database, you can pull the connection string from your Vercel project by running `vercel env pull .env.local` or by manually copying it from the Neon console into your `.env.local` file as `POSTGRES_URL`.
     *   For payment testing, you can add your **Mercado Pago Test Credentials**. You can find your PublicKey and Access Token in your [Mercado Pago Developer Dashboard](https://www.mercadopago.com/developers/panel/credentials).
     *   For the newsletter form to work, you will need to add your **Mailchimp Credentials**.
     ```env
     # --- DATABASE (OPTIONAL FOR LOCAL DEV) ---
     # If this is not set, the app will use hardcoded sample data.
-    # DATABASE_URL="postgres://..."
+    # POSTGRES_URL="postgres://..."
     
     # --- MERCADO PAGO (USE TEST CREDENTIALS) ---
     MERCADOPAGO_ACCESS_TOKEN="YOUR_TEST_ACCESS_TOKEN"
@@ -108,7 +108,7 @@ Now, we'll connect Vercel to your GitHub repository, create a database, and tell
     *   Before deploying, go to the **"Storage"** tab in your Vercel project configuration.
     *   Click **"Create Database"** and choose **"Postgres"**.
     *   Give it a name (e.g., `joya-db`), choose a region, and accept the terms.
-    *   After the database is created, Vercel will automatically connect it to your project. This sets the `DATABASE_URL` environment variable for you.
+    *   After the database is created, Vercel will automatically connect it to your project. This sets the `POSTGRES_URL` environment variable for you, which the application is configured to use.
 
 3.  **Configure Other Environment Variables:**
     *   This is the most important step. In the "Environment Variables" section, you will add your secret keys.
