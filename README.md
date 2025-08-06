@@ -38,13 +38,13 @@ To get a local copy up and running on your computer, follow these simple steps.
 4.  **Set up Environment Variables (Optional for Local Dev):**
     *   Rename the `.env.example` file to `.env.local`.
     *   The application will run with **hardcoded sample data** by default. You do not need to fill in any keys to run the app locally.
-    *   If you *want* to connect to a development database, add your PostgreSQL connection string (`POSTGRES_URL`) to `.env.local`.
+    *   If you *want* to connect to a development database, add your PostgreSQL connection string (`DATABASE_URL`) to `.env.local`.
     *   For payment testing, you can add your **Mercado Pago Test Credentials**. You can find your PublicKey and Access Token in your [Mercado Pago Developer Dashboard](https://www.mercadopago.com/developers/panel/credentials).
     *   For the newsletter form to work, you will need to add your **Mailchimp Credentials**.
     ```env
     # --- DATABASE (OPTIONAL FOR LOCAL DEV) ---
     # If this is not set, the app will use hardcoded sample data.
-    # POSTGRES_URL="postgres://..."
+    # DATABASE_URL="postgres://..."
     
     # --- MERCADO PAGO (USE TEST CREDENTIALS) ---
     MERCADOPAGO_ACCESS_TOKEN="YOUR_TEST_ACCESS_TOKEN"
@@ -104,7 +104,13 @@ Now, we'll connect Vercel to your GitHub repository, create a database, and tell
     *   On your Vercel dashboard, go to the **"Projects"** tab and click **"Add New... > Project"**.
     *   Find your `joya-store` repository and click **"Import"**.
 
-2.  **Configure Environment Variables:**
+2.  **Create and Connect a Database:**
+    *   Before deploying, go to the **"Storage"** tab in your Vercel project configuration.
+    *   Click **"Create Database"** and choose **"Postgres"**.
+    *   Give it a name (e.g., `joya-db`), choose a region, and accept the terms.
+    *   After the database is created, Vercel will automatically connect it to your project. This sets the `DATABASE_URL` environment variable for you.
+
+3.  **Configure Other Environment Variables:**
     *   This is the most important step. In the "Environment Variables" section, you will add your secret keys.
     *   **Mercado Pago Variables:** Get these from your [Mercado Pago Developer Dashboard](https://www.mercadopago.com/developers). Use your **Production** credentials.
         *   `MERCADOPAGO_ACCESS_TOKEN`: Your Production "Access Token".
@@ -115,27 +121,15 @@ Now, we'll connect Vercel to your GitHub repository, create a database, and tell
         *   `MAILCHIMP_AUDIENCE_ID`: Your Audience ID.
     *   **Site URL Variable:** Vercel will assign you a domain (e.g., `joya-store-abcdef.vercel.app`). You need to add it here so Mercado Pago knows where to send users back to.
         *   `NEXT_PUBLIC_SITE_URL`: The full URL of your site.
-    *   Click **"Deploy"**. Vercel will build and launch your application. It might take a few minutes. Don't worry about the database yet, we'll connect it in the next step.
+    *   Click **"Deploy"**. Vercel will build and launch your application. It might take a few minutes.
 
-### Part 3: Connect and Set Up the Database
+### Part 3: Create the Database Tables (CRITICAL)
 
-1.  **Create a Vercel Postgres Database:**
-    *   On your Vercel dashboard, go to the **"Storage"** tab.
-    *   Click **"Create Database"** and choose **"Postgres"**.
-    *   Give it a name (e.g., `joya-db`), choose a region, and accept the terms.
+Your Vercel Postgres database is currently empty. We need to create the `products`, `orders`, and `coupons` tables.
 
-2.  **Connect the Database to Your Project:**
-    *   After the database is created, stay on the Storage tab.
-    *   Click the **"Connect Project"** button.
-    *   Select your `joya-store` project from the dropdown and click **"Connect"**.
-    *   Vercel will automatically add the `POSTGRES_URL` environment variable to your project settings. **This is what activates the live database mode.**
-    *   You will be prompted to redeploy your project for the changes to take effect. Go ahead and redeploy.
-
-3.  **Create the Database Tables (CRITICAL):**
-    *   Your Vercel Postgres database is currently empty. We need to create the `products`, `orders`, and `coupons` tables.
-    *   On your Vercel dashboard, go to the **Storage** tab, select your database, and then click on the **"Query"** tab.
-    *   Open the `database.sql` file in your project, **copy the entire content**, and paste it into the query editor on Vercel.
-    *   Click **"Run"**. This will create the necessary table structure.
+1.  On your Vercel dashboard, go to the **Storage** tab, select your database, and then click on the **"Query"** tab.
+2.  Open the `database.sql` file in your project, **copy the entire content**, and paste it into the query editor on Vercel.
+3.  Click **"Run"**. This will create the necessary table structure.
 
 ### Part 4: Configure Mercado Pago Webhook
 
