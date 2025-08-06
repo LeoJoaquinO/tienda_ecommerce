@@ -399,9 +399,13 @@ function SubscribersTab() {
 // Component: AdminDashboard
 // ############################################################################
 function AdminDashboard({ onLogout }: { onLogout: () => void }) {
+    // DIAGNOSTIC LOG
+    console.log("DIAGNOSTIC: POSTGRES_URL:", process.env.POSTGRES_URL ? "Exists" : "Does NOT Exist");
+    console.log("DIAGNOSTIC: DATABASE_URL:", process.env.DATABASE_URL ? "Exists" : "Does NOT Exist");
+    
     const [products, setProducts] = useState<Product[]>([]);
     const [coupons, setCoupons] = useState<Coupon[]>([]);
-    const [salesMetrics, setSalesMetrics] = useState<SalesMetrics | null>(null);
+    const [salesMetrics, setSalesMetrics] = useState<SalesMetrics | null>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [dialogType, setDialogType] = useState<'product' | 'coupon' | null>(null);
     const [editingProduct, setEditingProduct] = useState<Product | undefined>(undefined);
@@ -641,3 +645,5 @@ export default function AdminPage() {
 
   return <AdminDashboard onLogout={handleLogout} />;
 }
+
+    
