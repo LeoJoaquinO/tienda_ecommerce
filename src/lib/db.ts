@@ -2,28 +2,18 @@
 // It helps prevent connection exhaustion by ensuring a single pool is used throughout the app.
 // It also exports a boolean to indicate if the database is connected.
 
-import { Pool } from 'mysql2/promise';
+import { sql } from '@vercel/postgres';
 
-let pool: Pool | null = null;
-
-// The DATABASE_URL environment variable is the single source of truth for the connection.
+// The POSTGRES_URL environment variable is the single source of truth for the connection.
 // It's set automatically by Vercel when you link a Neon database.
-if (process.env.DATABASE_URL) {
-    try {
-        pool = new Pool({
-            uri: process.env.DATABASE_URL,
-            connectionLimit: 10,
-            ssl: {
-                rejectUnauthorized: true,
-            },
-        });
-        console.log('Successfully created database connection pool.');
-    } catch (e) {
-        console.error('Failed to create database connection pool:', e);
-    }
+const isDbConnected = !!process.env.POSTGRES_URL;
+
+if (isDbConnected) {
+    console.log('Successfully connected to database.');
 } else {
-    console.log('DATABASE_URL not found. Application will use hardcoded data.');
+    console.log('POSTGRES_URL not found. Application will use hardcoded data.');
 }
 
-export const db = pool;
-export const isDbConnected = !!pool;
+// The `sql` template tag from @vercel/postgres handles connection pooling automatically.
+export const db = isDbConnected ? sql : null;
+export { isDbConnected };
