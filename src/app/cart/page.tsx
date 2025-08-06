@@ -7,14 +7,15 @@ import { useCart } from '@/hooks/useCart';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Trash2, ShoppingBag, Ticket, XCircle, Loader2 } from 'lucide-react';
+import { Trash2, ShoppingBag, Ticket, XCircle, Loader2, Info } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { getCouponByCode } from '@/lib/data';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function CartPage() {
-  const { cartItems, removeFromCart, updateQuantity, subtotal, cartCount, appliedCoupon, applyCoupon, removeCoupon, discount, totalPrice } = useCart();
+  const { cartItems, removeFromCart, updateQuantity, subtotal, cartCount, appliedCoupon, applyCoupon, removeCoupon, discount, totalPrice, isCouponApplicable } = useCart();
   const [couponCode, setCouponCode] = useState("");
   const [isLoadingCoupon, setIsLoadingCoupon] = useState(false);
   const { toast } = useToast();
@@ -91,10 +92,23 @@ export default function CartPage() {
                 <CardTitle className="font-headline">Resumen del Pedido</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {!isCouponApplicable && (
+                    <Alert>
+                        <Info className="h-4 w-4" />
+                        <AlertDescription className="text-xs">
+                            No puedes aplicar cupones cuando hay productos en oferta en tu carrito.
+                        </AlertDescription>
+                    </Alert>
+                )}
                 {!appliedCoupon && (
                     <div className="flex gap-2">
-                        <Input placeholder="Código de Cupón" value={couponCode} onChange={(e) => setCouponCode(e.target.value.toUpperCase())} />
-                        <Button onClick={handleApplyCoupon} disabled={isLoadingCoupon || !couponCode}>
+                        <Input 
+                            placeholder="Código de Cupón" 
+                            value={couponCode} 
+                            onChange={(e) => setCouponCode(e.target.value.toUpperCase())} 
+                            disabled={!isCouponApplicable}
+                        />
+                        <Button onClick={handleApplyCoupon} disabled={isLoadingCoupon || !couponCode || !isCouponApplicable}>
                             {isLoadingCoupon ? <Loader2 className="animate-spin" /> : "Aplicar"}
                         </Button>
                     </div>

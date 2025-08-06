@@ -23,6 +23,7 @@ interface CartContextType {
   discount: number;
   isSidebarOpen: boolean;
   setIsSidebarOpen: (isOpen: boolean) => void;
+  isCouponApplicable: boolean;
 }
 
 export const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -41,7 +42,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     const savedCoupon = localStorage.getItem('appliedCoupon');
     if (savedCoupon) {
         const coupon = JSON.parse(savedCoupon) as Coupon;
-        // Basic validation on load
         if (new Date(coupon.expiryDate ?? '9999-12-31') > new Date()) {
             setAppliedCoupon(coupon);
         } else {
@@ -54,13 +54,26 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('cartItems', JSON.stringify(cartItems));
   }, [cartItems]);
 
+  const isCouponApplicable = useMemo(() => {
+    return !cartItems.some(item => item.product.salePrice && item.product.salePrice > 0);
+  }, [cartItems]);
+
   useEffect(() => {
     if (appliedCoupon) {
-      localStorage.setItem('appliedCoupon', JSON.stringify(appliedCoupon));
+      if (!isCouponApplicable) {
+        removeCoupon();
+        toast({
+            title: "Cupón removido automáticamente",
+            description: "No se pueden usar cupones con productos que ya están en oferta.",
+            variant: 'destructive',
+        });
+      } else {
+        localStorage.setItem('appliedCoupon', JSON.stringify(appliedCoupon));
+      }
     } else {
       localStorage.removeItem('appliedCoupon');
     }
-  }, [appliedCoupon]);
+  }, [appliedCoupon, isCouponApplicable]);
 
 
   const addToCart = (product: Product, quantity = 1) => {
@@ -105,6 +118,14 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const applyCoupon = (coupon: Coupon) => {
+    if (!isCouponApplicable) {
+        toast({
+            title: "No se puede aplicar el cupón",
+            description: "No se pueden usar cupones si tu carrito contiene productos que ya están en oferta.",
+            variant: "destructive",
+        });
+        return;
+    }
     setAppliedCoupon(coupon);
   }
 
@@ -123,7 +144,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   }, [cartItems]);
 
   const discount = useMemo(() => {
-      if (!appliedCoupon) return 0;
+      if (!appliedCoupon || !isCouponApplicable) return 0;
       if (appliedCoupon.discountType === 'percentage') {
           return subtotal * (appliedCoupon.discountValue / 100);
       }
@@ -131,7 +152,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
           return Math.min(appliedCoupon.discountValue, subtotal); // Cannot discount more than the subtotal
       }
       return 0;
-  }, [appliedCoupon, subtotal]);
+  }, [appliedCoupon, subtotal, isCouponApplicable]);
 
   const totalPrice = useMemo(() => {
       return subtotal - discount;
@@ -139,7 +160,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
 
   return (
-    <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, updateQuantity, clearCart, cartCount, subtotal, totalPrice, appliedCoupon, applyCoupon, removeCoupon, discount, isSidebarOpen, setIsSidebarOpen }}>
+    <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, updateQuantity, clearCart, cartCount, subtotal, totalPrice, appliedCoupon, applyCoupon, removeCoupon, discount, isSidebarOpen, setIsSidebarOpen, isCouponApplicable }}>
       {children}
     </CartContext.Provider>
   );
