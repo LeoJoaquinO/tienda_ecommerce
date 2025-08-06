@@ -96,11 +96,11 @@ function ProductForm({ product, formId, errors }: { product?: Product, formId: s
     return (
         <form id={formId} className="space-y-4">
              <HiddenDateInputs />
-            <div><Label htmlFor="name">Nombre</Label><Input id="name" name="name" defaultValue={product?.name} required className={cn(errors.name && "border-destructive")} /><FormError message={errors.name?.[0]} /></div>
+            <div><Label htmlFor="name">Nombre</Label><Input id="name" name="name" defaultValue={product?.name} className={cn(errors.name && "border-destructive")} /><FormError message={errors.name?.[0]} /></div>
             <div><Label htmlFor="shortDescription">Descripción Corta</Label><Input id="shortDescription" name="shortDescription" defaultValue={product?.shortDescription} placeholder="Un resumen breve para la tarjeta de producto." className={cn(errors.shortDescription && "border-destructive")}/><FormError message={errors.shortDescription?.[0]} /></div>
-            <div><Label htmlFor="description">Descripción Completa</Label><Textarea id="description" name="description" defaultValue={product?.description} required className={cn(errors.description && "border-destructive")} /><FormError message={errors.description?.[0]} /></div>
+            <div><Label htmlFor="description">Descripción Completa</Label><Textarea id="description" name="description" defaultValue={product?.description} className={cn(errors.description && "border-destructive")} /><FormError message={errors.description?.[0]} /></div>
             <div className="grid grid-cols-2 gap-4">
-                <div><Label htmlFor="price">Precio</Label><Input id="price" name="price" type="number" step="0.01" min="0" defaultValue={product?.price} required className={cn(errors.price && "border-destructive")}/><FormError message={errors.price?.[0]} /></div>
+                <div><Label htmlFor="price">Precio</Label><Input id="price" name="price" type="number" step="0.01" min="0" defaultValue={product?.price} className={cn(errors.price && "border-destructive")}/><FormError message={errors.price?.[0]} /></div>
                 <div><Label htmlFor="discountPercentage">Descuento (%)</Label><Input id="discountPercentage" name="discountPercentage" type="number" step="1" min="0" max="100" defaultValue={product?.discountPercentage ?? ''} placeholder="Ej: 15" className={cn(errors.discountPercentage && "border-destructive")} /><FormError message={errors.discountPercentage?.[0]} /></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -130,12 +130,12 @@ function ProductForm({ product, formId, errors }: { product?: Product, formId: s
                 </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-                <div><Label htmlFor="stock">Stock</Label><Input id="stock" name="stock" type="number" min="0" step="1" defaultValue={product?.stock} required className={cn(errors.stock && "border-destructive")} /><FormError message={errors.stock?.[0]} /></div>
-                <div><Label htmlFor="category">Categoría</Label><Input id="category" name="category" defaultValue={product?.category} required className={cn(errors.category && "border-destructive")} /><FormError message={errors.category?.[0]} /></div>
+                <div><Label htmlFor="stock">Stock</Label><Input id="stock" name="stock" type="number" min="0" step="1" defaultValue={product?.stock} className={cn(errors.stock && "border-destructive")} /><FormError message={errors.stock?.[0]} /></div>
+                <div><Label htmlFor="category">Categoría</Label><Input id="category" name="category" defaultValue={product?.category} className={cn(errors.category && "border-destructive")} /><FormError message={errors.category?.[0]} /></div>
             </div>
             <div className='space-y-2'>
                 <Label>Imágenes del Producto (hasta 5)</Label>
-                <Input id="image1" name="image1" type="url" defaultValue={product?.images?.[0]} placeholder="URL de la Imagen Principal (requerido)" required className={cn(errors.images && "border-destructive")} />
+                <Input id="image1" name="image1" type="url" defaultValue={product?.images?.[0]} placeholder="URL de la Imagen Principal (requerido)" className={cn(errors.images && "border-destructive")} />
                 <Input id="image2" name="image2" type="url" defaultValue={product?.images?.[1]} placeholder="URL de la Imagen 2 (opcional)" />
                 <Input id="image3" name="image3" type="url" defaultValue={product?.images?.[2]} placeholder="URL de la Imagen 3 (opcional)" />
                 <Input id="image4" name="image4" type="url" defaultValue={product?.images?.[3]} placeholder="URL de la Imagen 4 (opcional)" />
@@ -161,11 +161,11 @@ function CouponForm({ coupon, formId, errors }: { coupon?: Coupon, formId: strin
     return (
         <form id={formId} className="space-y-4">
             <HiddenDateInputs />
-            <div><Label htmlFor="code">Código del Cupón</Label><Input id="code" name="code" defaultValue={coupon?.code} placeholder="VERANO20" required className={cn(errors.code && "border-destructive")} /><FormError message={errors.code?.[0]} /></div>
+            <div><Label htmlFor="code">Código del Cupón</Label><Input id="code" name="code" defaultValue={coupon?.code} placeholder="VERANO20" className={cn(errors.code && "border-destructive")} /><FormError message={errors.code?.[0]} /></div>
             <div className="grid grid-cols-2 gap-4">
                 <div>
                     <Label htmlFor="discountType">Tipo de Descuento</Label>
-                    <Select name="discountType" required defaultValue={coupon?.discountType ?? 'percentage'}>
+                    <Select name="discountType" defaultValue={coupon?.discountType ?? 'percentage'}>
                         <SelectTrigger className={cn(errors.discountType && "border-destructive")}><SelectValue placeholder="Seleccionar tipo..." /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="percentage">Porcentaje (%)</SelectItem>
@@ -176,7 +176,7 @@ function CouponForm({ coupon, formId, errors }: { coupon?: Coupon, formId: strin
                 </div>
                 <div>
                     <Label htmlFor="discountValue">Valor</Label>
-                    <Input id="discountValue" name="discountValue" type="number" step="0.01" min="0" defaultValue={coupon?.discountValue} placeholder="Ej: 20" required className={cn(errors.discountValue && "border-destructive")} />
+                    <Input id="discountValue" name="discountValue" type="number" step="0.01" min="0" defaultValue={coupon?.discountValue} placeholder="Ej: 20" className={cn(errors.discountValue && "border-destructive")} />
                      <FormError message={errors.discountValue?.[0]} />
                 </div>
             </div>

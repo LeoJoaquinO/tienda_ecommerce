@@ -26,11 +26,11 @@ const productSchema = z.object({
     name: z.string().min(1, "El nombre es requerido."),
     description: z.string().min(1, "La descripción es requerida."),
     shortDescription: z.string().optional(),
-    price: z.coerce.number().positive("El precio debe ser un número positivo."),
+    price: z.coerce.number({ required_error: "El precio es requerido."}).positive("El precio debe ser un número positivo."),
     discountPercentage: z.coerce.number().min(0, "El descuento no puede ser negativo.").max(100, "El descuento no puede ser mayor a 100.").optional().nullable(),
     offerStartDate: z.string().optional().nullable().transform(val => val ? new Date(val) : null),
     offerEndDate: z.string().optional().nullable().transform(val => val ? new Date(val) : null),
-    stock: z.coerce.number().int("El stock debe ser un número entero.").min(0, "El stock no puede ser negativo."),
+    stock: z.coerce.number({ required_error: "El stock es requerido."}).int("El stock debe ser un número entero.").min(0, "El stock no puede ser negativo."),
     category: z.string().min(1, "La categoría es requerida."),
     images: z.array(z.string().url("La URL de la imagen no es válida.")).min(1, "Se requiere al menos una imagen."),
     aiHint: z.string().optional(),
@@ -139,7 +139,7 @@ export async function deleteProductAction(id: number) {
 const couponSchema = z.object({
     code: z.string().min(3, "El código debe tener al menos 3 caracteres.").max(50, "El código no puede tener más de 50 caracteres."),
     discountType: z.enum(['percentage', 'fixed'], { required_error: "El tipo de descuento es requerido."}),
-    discountValue: z.coerce.number().positive("El valor del descuento debe ser un número positivo."),
+    discountValue: z.coerce.number({ required_error: "El valor es requerido." }).positive("El valor del descuento debe ser un número positivo."),
     expiryDate: z.string().optional().nullable().transform(val => val ? new Date(val) : null),
     isActive: z.boolean().optional(),
 }).refine(data => {
