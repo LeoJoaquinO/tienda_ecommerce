@@ -37,11 +37,10 @@ type ShippingFormData = z.infer<typeof shippingSchema>;
 
 
 export default function CheckoutPage() {
-  const { cartItems, subtotal, appliedCoupon, discount, totalPrice, cartCount } = useCart();
+  const { cartItems, subtotal, appliedCoupon, discount, totalPrice, cartCount, clearCart } = useCart();
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [isReady, setIsReady] = useState(false);
   const [isBrickReady, setIsBrickReady] = useState(false);
   const [step, setStep] = useState<'shipping' | 'payment'>('shipping');
   const [preferenceId, setPreferenceId] = useState<string | null>(null);
@@ -61,7 +60,6 @@ export default function CheckoutPage() {
     if (process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY) {
         initMercadoPago(process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY, { locale: 'es-AR' });
     }
-    setIsReady(true);
   }, []);
 
   const handleShippingSubmit = async (values: ShippingFormData) => {
@@ -97,13 +95,13 @@ export default function CheckoutPage() {
   };
   
   useEffect(() => {
-    if (isReady && cartCount === 0) {
+    if (cartCount === 0 && step === 'shipping') {
         toast({ title: 'Tu carrito está vacío', description: 'Serás redirigido a la tienda.', variant: 'destructive' });
         router.push('/tienda');
     }
-  }, [cartCount, router, isReady, toast]);
+  }, [cartCount, router, step, toast]);
 
-  if (!isReady) {
+  if (cartCount === 0 && step === 'shipping') {
     return <div className="flex justify-center items-center min-h-[50vh]"><Loader2 className="h-8 w-8 animate-spin"/></div>
   }
   
@@ -196,6 +194,11 @@ export default function CheckoutPage() {
                                 }}
                                 onReady={() => setIsBrickReady(true)}
                                 onError={(err) => console.error("Mercado Pago Brick error:", err)}
+                                onSubmit={async () => {
+                                    // This is intentionally left empty.
+                                    // The onReady redirect handles success, and webhooks handle server-side confirmation.
+                                    // See https://www.mercadopago.com.ar/developers/es/docs/checkout-bricks/payment-brick/callbacks
+                                }}
                             />
                         </div>
                         </>
