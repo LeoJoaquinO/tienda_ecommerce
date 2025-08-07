@@ -36,15 +36,15 @@ const shippingSchema = z.object({
 type ShippingFormData = z.infer<typeof shippingSchema>;
 
 export default function CheckoutPage() {
+  console.log("--- Component Render ---");
+
   const { cartItems, subtotal, appliedCoupon, discount, totalPrice, cartCount, clearCart } = useCart();
   const router = useRouter();
   const { toast } = useToast();
   const [preferenceId, setPreferenceId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isBrickReady, setIsBrickReady] = useState(false);
-  const [shippingInfo, setShippingInfo] = useState<ShippingFormData | null>(null);
-
-
+  
   const form = useForm<ShippingFormData>({
     resolver: zodResolver(shippingSchema),
     defaultValues: {
@@ -57,14 +57,19 @@ export default function CheckoutPage() {
   });
 
   useEffect(() => {
+    console.log("Component did mount. Initializing Mercado Pago.");
     if (process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY) {
         initMercadoPago(process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY, { locale: 'es-AR' });
+        console.log("Mercado Pago SDK initialized.");
+    } else {
+        console.error("CRITICAL: Mercado Pago public key is not configured.");
     }
   }, []);
 
   const handleShippingSubmit = async (values: ShippingFormData) => {
+    console.log("Step 1: Shipping form submitted with values:", values);
     setIsSubmitting(true);
-    setShippingInfo(values);
+    
     try {
         const payload = {
             cartItems,
@@ -73,6 +78,7 @@ export default function CheckoutPage() {
             discount,
             appliedCoupon,
         };
+        console.log("Step 2: Creating preference with payload:", payload);
 
         const response = await fetch('/api/create-preference', {
             method: 'POST',
@@ -81,28 +87,41 @@ export default function CheckoutPage() {
         });
         
         const data = await response.json();
+        console.log("Step 3: Received response from /api/create-preference", data);
 
         if (!response.ok || !data.preferenceId) {
             throw new Error(data.error || "No se pudo crear la preferencia de pago.");
         }
         
+        console.log(`Step 4: Successfully received preferenceId: ${data.preferenceId}. Setting state.`);
         setPreferenceId(data.preferenceId);
 
     } catch (error) {
+        console.error("ERROR: Failed to create preference.", error);
         toast({ title: "Error", description: (error as Error).message, variant: "destructive" });
     } finally {
+        console.log("Step 5: Setting isSubmitting to false.");
         setIsSubmitting(false);
     }
   };
   
   useEffect(() => {
-    if (cartCount === 0 && !preferenceId) {
+    if (cartCount === 0 && !isSubmitting && !preferenceId) {
+        console.log("Cart is empty, redirecting to /tienda.");
         toast({ title: 'Tu carrito está vacío', description: 'Serás redirigido a la tienda.', variant: 'destructive' });
         router.push('/tienda');
     }
-  }, [cartCount, router, preferenceId, toast]);
+  }, [cartCount, router, isSubmitting, preferenceId, toast]);
 
-  if (cartCount === 0 && !preferenceId) {
+  console.log("Current State:", {
+    preferenceId,
+    isSubmitting,
+    isBrickReady,
+    cartCount,
+  });
+
+
+  if (cartCount === 0 && !isSubmitting && !preferenceId) {
     return <div className="flex justify-center items-center min-h-[50vh]"><Loader2 className="h-8 w-8 animate-spin" /></div>
   }
   
@@ -174,11 +193,16 @@ export default function CheckoutPage() {
                      <Payment
                         key={preferenceId}
                         initialization={{
+                            amount: totalPrice, // Essential fallback
                             preferenceId: preferenceId,
                         }}
-                        onReady={() => setIsBrickReady(true)}
-                        onError={(err) => console.error("Mercado Pago Brick error:", err)}
+                        onReady={() => {
+                            console.log("PAYMENT BRICK: is now ready.");
+                            setIsBrickReady(true)
+                        }}
+                        onError={(err) => console.error("PAYMENT BRICK ERROR:", err)}
                         onSubmit={async () => {
+                          console.log("PAYMENT BRICK: onSubmit triggered. This means payment flow is complete on the frontend.");
                           // This promise is just to track the completion of the brick's flow.
                           // The actual payment confirmation is handled by the webhook.
                           clearCart();
@@ -189,7 +213,7 @@ export default function CheckoutPage() {
            )}
         </CardContent>
         <CardFooter>
-            <Button variant="outline" onClick={() => { setPreferenceId(null); setIsBrickReady(false); setShippingInfo(null); }}>
+            <Button variant="outline" onClick={() => { setPreferenceId(null); setIsBrickReady(false); }}>
                 <ArrowLeft className="mr-2 h-4 w-4"/> Volver a Envío
             </Button>
         </CardFooter>
@@ -268,5 +292,3 @@ export default function CheckoutPage() {
     </div>
   );
 }
-
-    
