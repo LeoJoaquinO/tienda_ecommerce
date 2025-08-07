@@ -37,12 +37,12 @@ type ShippingFormData = z.infer<typeof shippingSchema>;
 
 
 export default function CheckoutPage() {
-  const { cartItems, subtotal, appliedCoupon, discount, totalPrice, cartCount, clearCart } = useCart();
+  const { cartItems, subtotal, appliedCoupon, discount, totalPrice, cartCount } = useCart();
   const router = useRouter();
   const { toast } = useToast();
-  const [isBrickReady, setIsBrickReady] = useState(false);
   const [step, setStep] = useState<'shipping' | 'payment'>('shipping');
   const [preferenceId, setPreferenceId] = useState<string | null>(null);
+  const [isBrickReady, setIsBrickReady] = useState(false);
 
   const form = useForm<ShippingFormData>({
     resolver: zodResolver(shippingSchema),
