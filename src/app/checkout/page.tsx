@@ -40,10 +40,10 @@ export default function CheckoutPage() {
   const { cartItems, subtotal, appliedCoupon, discount, totalPrice, cartCount, clearCart } = useCart();
   const router = useRouter();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
-  const [isBrickReady, setIsBrickReady] = useState(false);
-  const [step, setStep] = useState<'shipping' | 'payment'>('shipping');
-  const [preferenceId, setPreferenceId] = useState<string | null>(null);
+  const [isCreatingPreference, setIsCreatingPreference(false);
+  const [isBrickReady, setIsBrickReady(false);
+  const [step, setStep<'shipping' | 'payment'>('shipping');
+  const [preferenceId, setPreferenceId<string | null>(null);
 
   const form = useForm<ShippingFormData>({
     resolver: zodResolver(shippingSchema),
@@ -63,7 +63,9 @@ export default function CheckoutPage() {
   }, []);
 
   const handleShippingSubmit = async (values: ShippingFormData) => {
-    setIsLoading(true);
+    setIsCreatingPreference(true);
+    setStep('payment');
+
     try {
         const payload = {
             cartItems,
@@ -86,12 +88,13 @@ export default function CheckoutPage() {
         }
         
         setPreferenceId(data.preferenceId);
-        setStep('payment');
 
     } catch (error) {
         toast({ title: "Error", description: (error as Error).message, variant: "destructive" });
+        setStep('shipping'); // Go back to shipping form on error
+    } finally {
+        setIsCreatingPreference(false);
     }
-    setIsLoading(false);
   };
   
   useEffect(() => {
@@ -102,7 +105,7 @@ export default function CheckoutPage() {
   }, [cartCount, router, step, toast]);
 
   if (cartCount === 0 && step === 'shipping') {
-    return <div className="flex justify-center items-center min-h-[50vh]"><Loader2 className="h-8 w-8 animate-spin"/></div>
+    return <div className="flex justify-center items-center min-h-[50vh]"><Loader2 className="h-8 w-8 animate-spin/></div>
   }
   
   if (!process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY) {
@@ -156,8 +159,8 @@ export default function CheckoutPage() {
                             </div>
                         </CardContent>
                         <CardFooter>
-                            <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
-                                {isLoading ? <Loader2 className="animate-spin" /> : "Continuar al Pago"}
+                            <Button type="submit" size="lg" className="w-full" disabled={isCreatingPreference}>
+                                {isCreatingPreference ? <Loader2 className="animate-spin" /> : "Continuar al Pago"}
                             </Button>
                         </CardFooter>
                     </Card>
@@ -174,33 +177,34 @@ export default function CheckoutPage() {
                     <CardDescription>Completa el pago de forma segura con Mercado Pago.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4 min-h-[400px]">
-                  {!preferenceId && (
+                  {isCreatingPreference && (
                     <div className="flex items-center justify-center p-8">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
                         <p className="ml-4 text-muted-foreground">Generando link de pago...</p>
                     </div>
                   )}
-                   {preferenceId && (
+
+                   {!isCreatingPreference && preferenceId && (
                         <>
-                        <div className={cn(isBrickReady ? 'hidden' : 'flex', 'items-center justify-center p-8')}>
-                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                             <p className="ml-4 text-muted-foreground">Cargando métodos de pago...</p>
-                        </div>
-                        <div className={cn(!isBrickReady && 'opacity-0')}>
-                            <Payment
-                                key={preferenceId}
-                                initialization={{
-                                    preferenceId: preferenceId,
-                                }}
-                                onReady={() => setIsBrickReady(true)}
-                                onError={(err) => console.error("Mercado Pago Brick error:", err)}
-                                onSubmit={async () => {
-                                    // This is intentionally left empty.
-                                    // The onReady redirect handles success, and webhooks handle server-side confirmation.
-                                    // See https://www.mercadopago.com.ar/developers/es/docs/checkout-bricks/payment-brick/callbacks
-                                }}
-                            />
-                        </div>
+                            <div className={cn(isBrickReady ? 'hidden' : 'flex', 'items-center justify-center p-8')}>
+                                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                <p className="ml-4 text-muted-foreground">Cargando métodos de pago...</p>
+                            </div>
+                            <div className={cn(!isBrickReady && 'opacity-0')}>
+                                <Payment
+                                    key={preferenceId}
+                                    initialization={{
+                                        preferenceId: preferenceId,
+                                    }}
+                                    onReady={() => setIsBrickReady(true)}
+                                    onError={(err) => console.error("Mercado Pago Brick error:", err)}
+                                    onSubmit={async () => {
+                                        // This is intentionally left empty.
+                                        // The onReady redirect handles success, and webhooks handle server-side confirmation.
+                                        // See https://www.mercadopago.com.ar/developers/es/docs/checkout-bricks/payment-brick/callbacks
+                                    }}
+                                />
+                            </div>
                         </>
                    )}
                 </CardContent>
@@ -264,3 +268,5 @@ export default function CheckoutPage() {
     </div>
   );
 }
+
+    
