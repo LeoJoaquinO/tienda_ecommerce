@@ -37,11 +37,12 @@ type ShippingFormData = z.infer<typeof shippingSchema>;
 
 
 export default function CheckoutPage() {
-  const { cartItems, subtotal, appliedCoupon, discount, totalPrice, cartCount } = useCart();
+  const { cartItems, subtotal, appliedCoupon, discount, totalPrice, cartCount, clearCart } = useCart();
   const router = useRouter();
   const { toast } = useToast();
   const [step, setStep] = useState<'shipping' | 'payment'>('shipping');
   const [preferenceId, setPreferenceId] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isBrickReady, setIsBrickReady] = useState(false);
 
   const form = useForm<ShippingFormData>({
@@ -62,8 +63,7 @@ export default function CheckoutPage() {
   }, []);
 
   const handleShippingSubmit = async (values: ShippingFormData) => {
-    setStep('payment'); // Move to payment step to show loader
-
+    setIsSubmitting(true);
     try {
         const payload = {
             cartItems,
@@ -86,10 +86,12 @@ export default function CheckoutPage() {
         }
         
         setPreferenceId(data.preferenceId);
+        setStep('payment');
 
     } catch (error) {
         toast({ title: "Error", description: (error as Error).message, variant: "destructive" });
-        setStep('shipping'); // Go back to shipping form on error
+    } finally {
+        setIsSubmitting(false);
     }
   };
   
@@ -112,6 +114,14 @@ export default function CheckoutPage() {
         </div>
     )
   }
+
+  const handleOnSubmitPayment = async () => {
+    clearCart();
+    // This is intentionally left empty.
+    // The onReady redirect in the preference handles success, 
+    // and webhooks handle the server-side confirmation.
+    // This function is required by the brick, but we don't need to add logic here.
+  };
 
   return (
     <div className="grid lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
@@ -155,7 +165,8 @@ export default function CheckoutPage() {
                             </div>
                         </CardContent>
                         <CardFooter>
-                            <Button type="submit" size="lg" className="w-full">
+                            <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
+                               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                Continuar al Pago
                             </Button>
                         </CardFooter>
@@ -185,18 +196,14 @@ export default function CheckoutPage() {
                             <p className="ml-4 text-muted-foreground">Cargando métodos de pago...</p>
                         </div>
                         <div className={cn(!isBrickReady && 'opacity-0')}>
-                            <Payment
+                             <Payment
                                 key={preferenceId}
                                 initialization={{
                                     preferenceId: preferenceId,
                                 }}
                                 onReady={() => setIsBrickReady(true)}
                                 onError={(err) => console.error("Mercado Pago Brick error:", err)}
-                                onSubmit={() => {
-                                    // This is intentionally left empty.
-                                    // The onReady redirect handles success, and webhooks handle server-side confirmation.
-                                    // See https://www.mercadopago.com.ar/developers/es/docs/checkout-bricks/payment-brick/callbacks
-                                }}
+                                onSubmit={handleOnSubmitPayment}
                             />
                         </div>
                     </>
@@ -262,3 +269,5 @@ export default function CheckoutPage() {
     </div>
   );
 }
+
+    
