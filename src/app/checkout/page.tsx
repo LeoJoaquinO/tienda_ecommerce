@@ -44,12 +44,23 @@ export default function CheckoutPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isBrickReady, setIsBrickReady] = useState(false);
 
+  const form = useForm<ShippingFormData>({
+    resolver: zodResolver(shippingSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      address: "",
+      city: "",
+      postalCode: "",
+    },
+  });
+
   useEffect(() => {
     if (process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY) {
         initMercadoPago(process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY, { locale: 'es-AR' });
     }
   }, []);
-  
+
   const handleShippingSubmit = async (values: ShippingFormData) => {
     setIsSubmitting(true);
     try {
