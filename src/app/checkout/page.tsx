@@ -35,7 +35,6 @@ const shippingSchema = z.object({
 
 type ShippingFormData = z.infer<typeof shippingSchema>;
 
-
 export default function CheckoutPage() {
   const { cartItems, subtotal, appliedCoupon, discount, totalPrice, cartCount, clearCart } = useCart();
   const router = useRouter();
@@ -47,21 +46,15 @@ export default function CheckoutPage() {
 
   const form = useForm<ShippingFormData>({
     resolver: zodResolver(shippingSchema),
-    defaultValues: {
-      name: "",
-      email: "",
-      address: "",
-      city: "",
-      postalCode: "",
-    },
+    defaultValues: { name: "", email: "", address: "", city: "", postalCode: "" },
   });
-  
+
   useEffect(() => {
     if (process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY) {
         initMercadoPago(process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY, { locale: 'es-AR' });
     }
   }, []);
-
+  
   const handleShippingSubmit = async (values: ShippingFormData) => {
     setIsSubmitting(true);
     try {
@@ -114,14 +107,6 @@ export default function CheckoutPage() {
         </div>
     )
   }
-
-  const handleOnSubmitPayment = async () => {
-    clearCart();
-    // This is intentionally left empty.
-    // The onReady redirect in the preference handles success, 
-    // and webhooks handle the server-side confirmation.
-    // This function is required by the brick, but we don't need to add logic here.
-  };
 
   return (
     <div className="grid lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
@@ -203,7 +188,12 @@ export default function CheckoutPage() {
                                 }}
                                 onReady={() => setIsBrickReady(true)}
                                 onError={(err) => console.error("Mercado Pago Brick error:", err)}
-                                onSubmit={handleOnSubmitPayment}
+                                onSubmit={() => {
+                                  // The payment confirmation is handled by the webhook.
+                                  // We just need to clear the cart and redirect.
+                                  // Redirection to a "thank you" page is handled by `back_urls` in the preference.
+                                  clearCart();
+                                }}
                             />
                         </div>
                     </>
