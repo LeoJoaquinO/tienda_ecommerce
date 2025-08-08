@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -192,6 +191,7 @@ export default function CheckoutPage() {
                      <Payment
                         key={preferenceId}
                         initialization={{
+                            amount: totalPrice,
                             preferenceId: preferenceId,
                         }}
                         onReady={() => {
