@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -54,6 +55,7 @@ export default function CheckoutPage() {
         initMercadoPago(publicKey, { 
           locale: 'es-AR',
           advancedFraudPrevention: true,
+          trackingDisabled: true
         });
         setMpInitialized(true);
         console.log("MercadoPago initialized successfully");
@@ -77,47 +79,93 @@ export default function CheckoutPage() {
 
     setIsLoading(true);
     try {
+      // Validate cart items before sending
       if (!cartItems || cartItems.length === 0) {
         throw new Error("El carrito está vacío");
       }
 
+      // Prepare cart items with proper structure
       const requestBody = {
-        cartItems,
-        shippingInfo: values,
-        totalPrice,
-        discount: discount || 0,
+        cartItems: cartItems.map((item, index) => ({
+          id: `item_${index}`,
+          title: item.product?.name || `Product ${index + 1}`,
+          quantity: Math.max(1, Number(item.quantity) || 1),
+          unit_price: Math.max(0.01, Number(item.product?.salePrice ?? item.product?.price) || 1),
+          name: item.product?.name || `Product ${index + 1}`,
+          price: item.product?.salePrice ?? item.product?.price
+        })),
+        shippingInfo: {
+          ...values,
+          name: values.name || 'Cliente',
+          email: values.email
+        },
+        totalPrice: Math.max(0.01, Number(totalPrice) || 1),
+        discount: Number(discount) || 0,
         appliedCoupon: appliedCoupon || null
       };
 
-      console.log("Creating payment preference with:", requestBody);
+      console.log("Creating payment preference for", requestBody.cartItems.length, "items");
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
 
       const response = await fetch('/api/create-preference', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'Cache-Control': 'no-cache'
         },
         body: JSON.stringify(requestBody),
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { error: errorText };
+        }
+        throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`);
+      }
 
       const data = await response.json();
       
-      if (!response.ok) {
-        throw new Error(data.error || `HTTP ${response.status}: ${response.statusText}`);
-      }
-
       if (!data.preferenceId) {
         throw new Error("No se recibió el ID de preferencia del servidor");
       }
 
       setPreferenceId(data.preferenceId);
-      console.log("Preference created successfully:", data.preferenceId);
+      console.log("✅ Preference created successfully:", data.preferenceId);
       
-    } catch (error) {
-      console.error("Error creating preference:", error);
+      toast({
+        title: "Preferencia creada",
+        description: "Procede con el pago",
+        variant: "default"
+      });
+      
+    } catch (error: any) {
+      console.error("❌ Error creating preference:", error);
+      
+      let errorMessage = "Error desconocido";
+      
+      if (error.name === 'AbortError') {
+        errorMessage = "Tiempo de espera agotado. Intenta nuevamente.";
+      } else if (error.message?.includes('Failed to fetch')) {
+        errorMessage = "Error de conexión. Verifica tu internet.";
+      } else if (error.message?.includes('credentials')) {
+        errorMessage = "Error de configuración del sistema de pagos.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({ 
-        title: "Error", 
-        description: error instanceof Error ? error.message : "Error desconocido", 
+        title: "Error creando el pago", 
+        description: errorMessage, 
         variant: "destructive" 
       });
     } finally {
