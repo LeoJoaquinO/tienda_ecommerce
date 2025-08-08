@@ -1,7 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { MercadoPagoConfig, Preference } from 'mercadopago';
-import type { PreferenceCreateData } from 'mercadopago/dist/clients/preference/create/types';
 import type { CartItem, Coupon } from '@/lib/types';
 import { createOrder } from '@/lib/data';
 
@@ -32,7 +31,6 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Datos de preferencia inválidos.' }, { status: 400 });
         }
 
-        // 1. Create order in our database with 'pending' status
         const { orderId, error: createOrderError } = await createOrder({
             customerName: shippingInfo.name,
             customerEmail: shippingInfo.email,
@@ -53,33 +51,34 @@ export async function POST(req: NextRequest) {
             );
         }
         
-        // 2. Create Mercado Pago preference
-        const preferenceData: PreferenceCreateData = {
-            body: {
-                items: cartItems.map(item => ({
-                    id: item.product.id.toString(),
-                    title: item.product.name,
-                    quantity: item.quantity,
-                    unit_price: item.product.salePrice ?? item.product.price,
-                    currency_id: 'ARS',
-                })),
-                payer: {
-                    name: shippingInfo.name.split(' ')[0],
-                    surname: shippingInfo.name.split(' ').slice(1).join(' '),
-                    email: shippingInfo.email,
-                },
-                back_urls: {
-                    success: `${process.env.NEXT_PUBLIC_SITE_URL}/`,
-                    failure: `${process.env.NEXT_PUBLIC_SITE_URL}/`,
-                    pending: `${process.env.NEXT_PUBLIC_SITE_URL}/`,
-                },
-                auto_return: 'approved',
-                external_reference: orderId.toString(),
-                notification_url: `${process.env.NEXT_PUBLIC_SITE_URL}/api/mercadopago-webhook`,
+        const preferenceBody = {
+            items: cartItems.map((item) => ({
+                id: item.product.id.toString(),
+                title: item.product.name,
+                quantity: Number(item.quantity) || 1,
+                unit_price: Number(item.product.salePrice ?? item.product.price) || 0,
+                currency_id: 'ARS'
+            })),
+            payer: {
+                email: shippingInfo.email,
+                name: shippingInfo.name,
+                address: {
+                    street_name: shippingInfo.address,
+                }
             },
+            back_urls: {
+                success: `${process.env.NEXT_PUBLIC_SITE_URL}/`,
+                failure: `${process.env.NEXT_PUBLIC_SITE_URL}/`,
+                pending: `${process.env.NEXT_PUBLIC_SITE_URL}/`
+            },
+            auto_return: 'approved' as const,
+            notification_url: `${process.env.NEXT_PUBLIC_SITE_URL}/api/mercadopago-webhook`,
+            external_reference: orderId.toString(),
+            expires: true,
+            expiration_date_to: new Date(Date.now() + 10 * 60 * 1000).toISOString(), // 10 minutes
         };
 
-        const result = await preference.create(preferenceData);
+        const result = await preference.create({ body: preferenceBody });
 
         return NextResponse.json({ preferenceId: result.id });
 
@@ -91,5 +90,3 @@ export async function POST(req: NextRequest) {
         );
     }
 }
-
-    
