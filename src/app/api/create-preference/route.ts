@@ -80,9 +80,9 @@ export async function POST(request: NextRequest) {
         name: body.shippingInfo.name || 'Cliente',
       },
       back_urls: {
-        success: `${process.env.NEXT_PUBLIC_BASE_URL || request.nextUrl.origin}/checkout/success`,
-        failure: `${process.env.NEXT_PUBLIC_BASE_URL || request.nextUrl.origin}/checkout/failure`,
-        pending: `${process.env.NEXT_PUBLIC_BASE_URL || request.nextUrl.origin}/checkout/pending`
+        success: `${process.env.NEXT_PUBLIC_SITE_URL || request.nextUrl.origin}/checkout/success`,
+        failure: `${process.env.NEXT_PUBLIC_SITE_URL || request.nextUrl.origin}/checkout/failure`,
+        pending: `${process.env.NEXT_PUBLIC_SITE_URL || request.nextUrl.origin}/checkout/pending`
       },
       auto_return: 'approved' as const,
       notification_url: `${process.env.NEXT_PUBLIC_SITE_URL}/api/mercadopago-webhook`,

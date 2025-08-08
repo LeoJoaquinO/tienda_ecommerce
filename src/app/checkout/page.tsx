@@ -55,8 +55,8 @@ export default function CheckoutPage() {
       try {
         initMercadoPago(publicKey, { 
           locale: 'es-AR',
-          advancedFraudPrevention: false, // Set to false to avoid some security issues
-          trackingDisabled: false // Enable tracking for better error handling
+          advancedFraudPrevention: false, 
+          trackingDisabled: false
         });
         setMpInitialized(true);
         console.log("MercadoPago initialized successfully");
@@ -82,122 +82,59 @@ export default function CheckoutPage() {
     }
 
     setIsLoading(true);
+    setPaymentBrickReady(false); // Reset brick readiness
     try {
       if (!cartItems || cartItems.length === 0) {
         throw new Error("El carrito está vacío");
       }
 
-      // Ensure all required fields are present and valid
       const requestBody = {
         cartItems: cartItems.map((item, index) => ({
           id: `item_${item.product.id}_${index}`,
-          title: item.product?.name || `Producto ${index + 1}`,
-          quantity: Math.max(1, Number(item.quantity) || 1),
-          unit_price: Math.max(0.01, Number(item.product?.salePrice ?? item.product?.price) || 1),
-          currency_id: "ARS", // Add currency explicitly
-          description: item.product?.description || item.product?.name || `Producto ${index + 1}`,
+          title: item.product.name,
+          quantity: item.quantity,
+          unit_price: item.product.salePrice ?? item.product.price,
+          currency_id: 'ARS'
         })),
-        payer: {
-          name: values.name,
-          email: values.email,
-          address: {
-            street_name: values.address,
-            city_name: values.city,
-            zip_code: values.postalCode
-          }
-        },
         shippingInfo: values,
-        totalPrice: Math.max(0.01, Number(totalPrice) || 1),
-        discount: Number(discount) || 0,
-        appliedCoupon: appliedCoupon || null,
-        // Add these fields for better MP integration
-        back_urls: {
-          success: `${window.location.origin}/checkout/success`,
-          failure: `${window.location.origin}/checkout/failure`,
-          pending: `${window.location.origin}/checkout/pending`
-        },
-        auto_return: "approved",
-        payment_methods: {
-          excluded_payment_methods: [],
-          excluded_payment_types: [],
-          installments: 12
-        }
+        totalPrice: totalPrice,
+        discount: discount,
+        appliedCoupon: appliedCoupon
       };
 
-      console.log("Creating payment preference...", {
-        itemCount: requestBody.cartItems.length,
-        total: requestBody.totalPrice
-      });
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // Increased timeout
+      console.log("Creating payment preference for", requestBody.cartItems.length, "items");
 
       const response = await fetch('/api/create-preference', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
+          'Accept': 'application/json'
         },
         body: JSON.stringify(requestBody),
-        signal: controller.signal
       });
-
-      clearTimeout(timeoutId);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("API Error Response:", errorText);
-        
-        let errorData;
-        try {
-          errorData = JSON.parse(errorText);
-        } catch {
-          errorData = { error: errorText };
-        }
-        
-        throw new Error(errorData.error || errorData.message || `Error ${response.status}: ${response.statusText}`);
-      }
 
       const data = await response.json();
       
+      if (!response.ok) {
+        throw new Error(data.error || `Error ${response.status}`);
+      }
       if (!data.preferenceId) {
-        console.error("Invalid API response:", data);
         throw new Error("No se recibió el ID de preferencia del servidor");
       }
 
       setPreferenceId(data.preferenceId);
-      setPaymentBrickReady(false);
       console.log("✅ Preference created successfully:", data.preferenceId);
-      
-      toast({
-        title: "Preferencia creada",
-        description: "Procede con el pago",
-        variant: "default"
-      });
       
     } catch (error: any) {
       console.error("❌ Error creating preference:", error);
-      
-      let errorMessage = "Error desconocido";
-      
-      if (error.name === 'AbortError') {
-        errorMessage = "Tiempo de espera agotado. Intenta nuevamente.";
-      } else if (error.message?.includes('Failed to fetch')) {
-        errorMessage = "Error de conexión. Verifica tu internet.";
-      } else if (error.message?.includes('credentials')) {
-        errorMessage = "Error de configuración del sistema de pagos.";
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      
       toast({ 
         title: "Error creando el pago", 
-        description: errorMessage, 
+        description: error.message, 
         variant: "destructive" 
       });
-    } finally {
       setIsLoading(false);
-    }
+    } 
+    // We keep isLoading true until the brick is ready
   };
   
   // Redirect if cart is empty
@@ -215,61 +152,24 @@ export default function CheckoutPage() {
     }
   }, [cartCount, router, isLoading, preferenceId, toast]);
 
-  // Handle payment submission
-  const handlePaymentSubmit = async (formData: any) => {
-    console.log("Payment submitted with data:", formData);
-    
-    try {
-      setIsLoading(true);
-      
-      // Here you would normally send the payment data to your backend
-      // for verification and order creation
-      const paymentResponse = await fetch('/api/process-payment', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...formData,
-          preferenceId,
-          cartItems,
-          totalPrice,
-          shippingInfo: form.getValues()
-        })
-      });
-
-      if (paymentResponse.ok) {
-        clearCart();
-        toast({ 
-          title: '¡Pago Exitoso!', 
-          description: 'Gracias por tu compra. Serás redirigido.',
-          variant: "default"
-        });
-        
-        setTimeout(() => {
-          router.push('/checkout/success');
-        }, 2000);
-      } else {
-        throw new Error('Error procesando el pago');
-      }
-      
-    } catch (error) {
-      console.error("Payment processing error:", error);
-      toast({ 
-        title: 'Error procesando pago', 
-        description: 'Hubo un problema procesando tu pago. Intenta nuevamente.', 
-        variant: 'destructive'
-      });
-    } finally {
-      setIsLoading(false);
-    }
+  const handlePaymentSubmit = async () => {
+    // This function now primarily handles post-payment logic.
+    // The actual submission is handled by the brick.
+    console.log("Payment successful. Clearing cart and redirecting.");
+    clearCart();
+    toast({
+      title: '¡Pago Exitoso!',
+      description: 'Gracias por tu compra. Serás redirigido.',
+      variant: 'default'
+    });
+    router.push('/checkout/success');
   };
 
   const handlePaymentError = (error: any) => {
     console.error("Payment Brick Error:", error);
     toast({ 
       title: 'Error de Pago', 
-      description: 'No se pudo cargar el formulario de pago. Intenta recargando la página.', 
+      description: 'No se pudo procesar el pago. Por favor, revisa los datos e intenta de nuevo.', 
       variant: 'destructive'
     });
   };
@@ -404,19 +304,15 @@ export default function CheckoutPage() {
               
               <div className={cn("transition-opacity duration-300", (isLoading || !paymentBrickReady) && 'opacity-0')}>
                 <Payment
-                  key={`payment-${preferenceId}`}
+                  key={preferenceId}
                   initialization={{
                     preferenceId: preferenceId,
                     amount: totalPrice,
+                    payer: {
+                      email: form.getValues('email'),
+                    },
                   }}
                   customization={{
-                    paymentMethods: {
-                      creditCard: "all",
-                      debitCard: "all",
-                      mercadoPago: "all",
-                      atm: "all",
-                      ticket: "all"
-                    },
                     visual: {
                       style: {
                         theme: "default",
@@ -437,7 +333,6 @@ export default function CheckoutPage() {
                   variant="outline" 
                   onClick={() => {
                     setPreferenceId(null);
-                    setPaymentBrickReady(false);
                   }} 
                   disabled={isLoading}
                 >
@@ -445,7 +340,7 @@ export default function CheckoutPage() {
                 </Button>
             </CardFooter>
           </Card>
-        ) : isLoading && !preferenceId ? (
+        ) : isLoading ? (
           <div className="flex flex-col justify-center items-center h-96 gap-4">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
             <p className="text-muted-foreground">Configurando tu pago...</p>
