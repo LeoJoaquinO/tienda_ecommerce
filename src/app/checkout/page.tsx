@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -39,8 +40,7 @@ export default function CheckoutPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [preferenceId, setPreferenceId] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isBrickReady, setIsBrickReady] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   
   const form = useForm<ShippingFormData>({
     resolver: zodResolver(shippingSchema),
@@ -54,18 +54,15 @@ export default function CheckoutPage() {
   });
 
   useEffect(() => {
-    console.log("Component did mount. Initializing Mercado Pago.");
     if (process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY) {
         initMercadoPago(process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY, { locale: 'es-AR' });
-        console.log("Mercado Pago SDK initialized.");
     } else {
         console.error("CRITICAL: Mercado Pago public key is not configured.");
     }
   }, []);
 
   const handleShippingSubmit = async (values: ShippingFormData) => {
-    console.log("Step 1: Shipping form submitted with values:", values);
-    setIsSubmitting(true);
+    setIsLoading(true);
     
     try {
         const payload = {
@@ -75,8 +72,7 @@ export default function CheckoutPage() {
             discount,
             appliedCoupon,
         };
-        console.log("Step 2: Creating preference with payload:", payload);
-
+        
         const response = await fetch('/api/create-preference', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -84,42 +80,28 @@ export default function CheckoutPage() {
         });
         
         const data = await response.json();
-        console.log("Step 3: Received response from /api/create-preference", data);
 
         if (!response.ok || !data.preferenceId) {
             throw new Error(data.error || "No se pudo crear la preferencia de pago.");
         }
         
-        console.log(`Step 4: Successfully received preferenceId: ${data.preferenceId}. Setting state.`);
         setPreferenceId(data.preferenceId);
 
     } catch (error) {
-        console.error("ERROR: Failed to create preference.", error);
         toast({ title: "Error", description: (error as Error).message, variant: "destructive" });
     } finally {
-        console.log("Step 5: Setting isSubmitting to false.");
-        setIsSubmitting(false);
+        setIsLoading(false);
     }
   };
   
   useEffect(() => {
-    if (cartCount === 0 && !isSubmitting && !preferenceId) {
-        console.log("Cart is empty, redirecting to /tienda.");
+    if (cartCount === 0 && !isLoading && !preferenceId) {
         toast({ title: 'Tu carrito está vacío', description: 'Serás redirigido a la tienda.', variant: 'destructive' });
         router.push('/tienda');
     }
-  }, [cartCount, router, isSubmitting, preferenceId, toast]);
+  }, [cartCount, router, isLoading, preferenceId, toast]);
 
-  console.log("--- Component Render ---");
-  console.log("Current State:", {
-    preferenceId,
-    isSubmitting,
-    isBrickReady,
-    cartCount,
-  });
-
-
-  if (cartCount === 0 && !isSubmitting && !preferenceId) {
+  if (cartCount === 0 && !preferenceId) {
     return <div className="flex justify-center items-center min-h-[50vh]"><Loader2 className="h-8 w-8 animate-spin" /></div>
   }
   
@@ -157,8 +139,8 @@ export default function CheckoutPage() {
                     </div>
                 </CardContent>
                 <CardFooter>
-                    <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
-                       {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
+                       {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                        Continuar al Pago
                     </Button>
                 </CardFooter>
@@ -175,41 +157,28 @@ export default function CheckoutPage() {
             </CardTitle>
             <CardDescription>Completa el pago de forma segura con Mercado Pago.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4 min-h-[400px]">
-          {isSubmitting ? (
-              <div className="flex items-center justify-center p-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  <p className="ml-4 text-muted-foreground">Generando link de pago...</p>
-              </div>
-          ) : preferenceId && (
-            <>
-                <div className={cn(isBrickReady ? 'hidden' : 'flex', 'items-center justify-center p-8')}>
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="ml-4 text-muted-foreground">Cargando métodos de pago...</p>
-                </div>
-                <div className={cn(!isBrickReady && 'opacity-0')}>
-                     <Payment
-                        key={preferenceId}
-                        initialization={{
-                            amount: totalPrice,
-                            preferenceId: preferenceId,
-                        }}
-                        onReady={() => {
-                            console.log("PAYMENT BRICK: is now ready.");
-                            setIsBrickReady(true)
-                        }}
-                        onError={(err) => console.error("PAYMENT BRICK ERROR:", err)}
-                        onSubmit={async () => {
-                          console.log("PAYMENT BRICK: onSubmit triggered. This means payment flow is complete on the frontend.");
-                          clearCart();
-                        }}
-                    />
-                </div>
-            </>
-           )}
+        <CardContent className="min-h-[400px]">
+            {preferenceId && (
+                <Payment
+                    key={preferenceId}
+                    initialization={{
+                        preferenceId: preferenceId,
+                    }}
+                    onSubmit={async () => {
+                        clearCart();
+                        toast({ title: '¡Pago Exitoso!', description: 'Gracias por tu compra. Serás redirigido a la página de inicio.' });
+                        router.push('/');
+                    }}
+                    onError={(err) => {
+                        console.error("Payment Brick Error:", err);
+                        toast({ title: 'Error de Pago', description: 'No se pudo procesar el pago. Por favor, intenta de nuevo.', variant: 'destructive'});
+                        setPreferenceId(null); // Return to shipping form on error
+                    }}
+                />
+            )}
         </CardContent>
         <CardFooter>
-            <Button variant="outline" onClick={() => { setPreferenceId(null); setIsBrickReady(false); }}>
+            <Button variant="outline" onClick={() => setPreferenceId(null)} disabled={isLoading}>
                 <ArrowLeft className="mr-2 h-4 w-4"/> Volver a Envío
             </Button>
         </CardFooter>
@@ -233,7 +202,15 @@ export default function CheckoutPage() {
             </div>
         </div>
 
-        {!preferenceId ? renderShippingForm() : renderPaymentForm()}
+        {isLoading ? (
+             <div className="flex justify-center items-center h-96">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+             </div>
+        ) : !preferenceId ? (
+            renderShippingForm()
+        ) : (
+            renderPaymentForm()
+        )}
         
       </div>
 
