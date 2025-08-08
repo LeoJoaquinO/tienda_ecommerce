@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -79,12 +78,10 @@ export default function CheckoutPage() {
 
     setIsLoading(true);
     try {
-      // Validate cart items before sending
       if (!cartItems || cartItems.length === 0) {
         throw new Error("El carrito está vacío");
       }
 
-      // Prepare cart items with proper structure
       const requestBody = {
         cartItems: cartItems.map((item, index) => ({
           id: `item_${index}`,
@@ -107,7 +104,7 @@ export default function CheckoutPage() {
       console.log("Creating payment preference for", requestBody.cartItems.length, "items");
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 15000); 
 
       const response = await fetch('/api/create-preference', {
         method: 'POST',
@@ -267,7 +264,6 @@ export default function CheckoutPage() {
           </CardContent>
         </Card>
         
-        {/* Security Notice */}
         <div className="mt-4 p-4 bg-muted rounded-lg">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <CreditCard className="h-4 w-4" />
@@ -295,7 +291,7 @@ export default function CheckoutPage() {
             </div>
         </div>
 
-        {isLoading ? (
+        {isLoading && !preferenceId ? (
           <div className="flex flex-col justify-center items-center h-96 gap-4">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
             <p className="text-muted-foreground">Configurando tu pago...</p>
@@ -307,48 +303,65 @@ export default function CheckoutPage() {
               <CardDescription>Completa el pago de forma segura con Mercado Pago.</CardDescription>
             </CardHeader>
             <CardContent className="min-h-[400px]">
-              <Payment
-                key={preferenceId}
-                initialization={{
-                  preferenceId: preferenceId,
-                }}
-                customization={{
-                  paymentMethods: {
-                    creditCard: "all",
-                    debitCard: "all",
-                    mercadoPago: "all"
-                  }
-                }}
-                onSubmit={async (param) => {
-                  console.log("Payment submitted:", param);
-                  // The onSubmit is called before the payment is actually processed
-                  // We should wait for the payment notification in the backend
-                  return new Promise((resolve) => {
-                    // Simulate processing time
-                    setTimeout(() => {
-                      clearCart();
+              {isLoading && <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
+              <div className={cn(isLoading && 'hidden')}>
+                <Payment
+                    key={`payment-${preferenceId}`}
+                    initialization={{
+                      preferenceId: preferenceId,
+                      amount: totalPrice,
+                    }}
+                    customization={{
+                      paymentMethods: {
+                        creditCard: "all",
+                        debitCard: "all",
+                        mercadoPago: "all"
+                      },
+                      visual: {
+                        style: {
+                          theme: "default"
+                        }
+                      }
+                    }}
+                    onSubmit={async (param) => {
+                      console.log("Payment submitted:", param);
+                      try {
+                        setIsLoading(true);
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                        clearCart();
+                        toast({ 
+                          title: '¡Pago Exitoso!', 
+                          description: 'Gracias por tu compra. Serás redirigido a la página de inicio.',
+                          variant: "default"
+                        });
+                        setTimeout(() => {
+                          router.push('/');
+                        }, 1500);
+                      } catch (error) {
+                        console.error("Payment processing error:", error);
+                        toast({ 
+                          title: 'Error procesando pago', 
+                          description: 'Hubo un problema procesando tu pago. Intenta nuevamente.', 
+                          variant: 'destructive'
+                        });
+                      } finally {
+                        setIsLoading(false);
+                      }
+                    }}
+                    onError={(error) => {
+                      console.error("Payment Brick Error:", error);
                       toast({ 
-                        title: '¡Pago Exitoso!', 
-                        description: 'Gracias por tu compra. Serás redirigido a la página de inicio.' 
+                        title: 'Error de Pago', 
+                        description: 'No se pudo cargar el formulario de pago. Intenta recargando la página.', 
+                        variant: 'destructive'
                       });
-                      router.push('/');
-                      resolve();
-                    }, 2000);
-                  });
-                }}
-                onError={(error) => {
-                  console.error("Payment Brick Error:", error);
-                  toast({ 
-                    title: 'Error de Pago', 
-                    description: 'No se pudo procesar el pago. Por favor, intenta de nuevo.', 
-                    variant: 'destructive'
-                  });
-                  // Don't reset preferenceId immediately, let user retry
-                }}
-                onReady={() => {
-                  console.log("Payment brick is ready");
-                }}
-              />
+                    }}
+                    onReady={() => {
+                      console.log("Payment brick is ready");
+                      setIsLoading(false);
+                    }}
+                />
+              </div>
             </CardContent>
             <CardFooter>
                 <Button 
