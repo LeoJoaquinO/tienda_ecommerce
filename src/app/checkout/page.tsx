@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -22,8 +21,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { Loader2, Ticket, ArrowLeft, ShoppingCart, CreditCard, AlertTriangle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { initMercadoPago } from '@mercadopago/sdk-react';
 import { cn } from "@/lib/utils";
+
 
 const shippingSchema = z.object({
   name: z.string().min(2, "El nombre es requerido."),
@@ -34,6 +33,10 @@ const shippingSchema = z.object({
 });
 
 type ShippingFormData = z.infer<typeof shippingSchema>;
+
+const MP_TEST_USERS = {
+  buyer: "test_user_2602352930@testuser.com",
+};
 
 export default function CheckoutPage() {
   const { cartItems, subtotal, appliedCoupon, discount, totalPrice, cartCount, clearCart } = useCart();
@@ -64,23 +67,16 @@ export default function CheckoutPage() {
     }, 100);
   }, []);
 
-  // Initialize MercadoPago only once
+  // For the redirect approach, we don't need to initialize the SDK
   useEffect(() => {
     const publicKey = process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY;
-    if (publicKey && !mpInitialized) {
-      try {
-        initMercadoPago(publicKey, { 
-          locale: 'es-AR',
-        });
-        setMpInitialized(true);
-        console.log("MercadoPago initialized successfully");
-      } catch (error) {
-        console.error("Failed to initialize MercadoPago:", error);
-      }
-    } else if (!publicKey) {
+    if (!publicKey) {
       console.error("CRITICAL: NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY is not configured.");
+      return;
     }
-  }, [mpInitialized]);
+    setMpInitialized(true);
+    console.log("MercadoPago redirect approach ready");
+  }, []);
 
   const handleShippingSubmit = async (values: ShippingFormData) => {
     if (!mpInitialized) {
@@ -107,7 +103,9 @@ export default function CheckoutPage() {
         })),
         payer: {
             name: values.name,
-            email: values.email,
+            email: process.env.NODE_ENV === 'development' 
+              ? MP_TEST_USERS.buyer 
+              : values.email,
         },
         shippingInfo: values,
         totalPrice: Math.max(0.01, Number(totalPrice) || 1),
@@ -258,6 +256,28 @@ export default function CheckoutPage() {
   return (
     <div className="grid lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
       <div className="lg:col-span-1">
+        
+        <h1 className="text-3xl font-headline font-bold mb-6">Finalizar Compra</h1>
+
+        {process.env.NODE_ENV === 'development' && (
+          <Card className="border-blue-200 bg-blue-50 mb-6">
+            <CardHeader>
+              <CardTitle className="text-blue-800 text-lg">🧪 Modo de Prueba Activo</CardTitle>
+            </CardHeader>
+            <CardContent className="text-blue-700 space-y-2">
+              <p className="text-sm"><strong>Email de prueba:</strong> {MP_TEST_USERS.buyer}</p>
+              <p className="text-sm"><strong>Usuario MP:</strong> TESTUSER15675670838342</p>
+              <p className="text-sm"><strong>Contraseña MP:</strong> asdasdfasfaszx</p>
+              <div className="mt-3 p-3 bg-white rounded text-xs">
+                <p><strong>Tarjetas de prueba:</strong></p>
+                <p>✅ Aprobada: 4509 9535 6623 3704</p>
+                <p>❌ Rechazada: 4000 0000 0000 0002</p>
+                <p>⏳ Pendiente: 4000 0000 0000 0051</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {showAdBlockerWarning && (
             <Card className="border-yellow-200 bg-yellow-50 mb-6">
                 <CardContent className="p-4">
@@ -271,7 +291,6 @@ export default function CheckoutPage() {
                 </CardContent>
             </Card>
         )}
-        <h1 className="text-3xl font-headline font-bold mb-6">Finalizar Compra</h1>
         
         <div className="flex items-center gap-4 mb-8">
             <div className={cn("flex items-center gap-2", !preferenceId ? 'text-primary font-bold' : 'text-muted-foreground')}>
@@ -285,7 +304,7 @@ export default function CheckoutPage() {
             </div>
         </div>
 
-        {isLoading ? (
+        {isLoading && !preferenceId ? (
           <div className="flex flex-col justify-center items-center h-96 gap-4">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
             <p className="text-muted-foreground">Configurando tu pago...</p>
@@ -293,45 +312,57 @@ export default function CheckoutPage() {
         ) : preferenceId ? (
           <Card>
             <CardHeader>
-              <CardTitle>2. Método de Pago</CardTitle>
+              <CardTitle>2. Finalizar Pago</CardTitle>
               <CardDescription>
-                Serás redirigido a MercadoPago para completar el pago de forma segura.
+                Serás redirigido a MercadoPago para completar tu pago de forma segura.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="text-center p-6">
-                <CreditCard className="h-12 w-12 mx-auto mb-4 text-primary" />
-                <p className="text-muted-foreground mb-4">
-                  Tu pago será procesado de forma segura por MercadoPago
-                </p>
-                <Button 
-                  size="lg" 
-                  onClick={() => {
-                    window.open(
-                      `https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=${preferenceId}`, 
-                      '_self'
-                    );
-                  }}
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Procesando...
-                    </>
-                  ) : (
-                    "Pagar con MercadoPago"
-                  )}
-                </Button>
-              </div>
+            <CardContent className="text-center p-8">
+              <CreditCard className="h-16 w-16 mx-auto mb-4 text-primary" />
+              <h3 className="text-lg font-semibold mb-2">Pago Seguro con MercadoPago</h3>
+              <p className="text-muted-foreground mb-6">
+                Tu información está protegida y será procesada de forma segura
+              </p>
+              
+              {process.env.NODE_ENV === 'development' && (
+                <div className="bg-yellow-100 p-3 rounded mb-4 text-sm text-yellow-800">
+                  <p><strong>Importante:</strong> Usa las credenciales de prueba mostradas arriba</p>
+                </div>
+              )}
+              
+              <Button 
+                size="lg" 
+                onClick={() => {
+                  const checkoutUrl = process.env.NODE_ENV === 'development'
+                    ? `https://sandbox.mercadopago.com.ar/checkout/v1/redirect?pref_id=${preferenceId}`
+                    : `https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=${preferenceId}`;
+                  window.open(checkoutUrl, '_self');
+                }}
+                disabled={isLoading}
+                className="w-full max-w-sm"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Redirigiendo...
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    Continuar al Pago
+                  </>
+                )}
+              </Button>
             </CardContent>
-            <CardFooter>
+            <CardFooter className="justify-center">
               <Button 
                 variant="outline" 
-                onClick={() => setPreferenceId(null)} 
+                onClick={() => {
+                  setPreferenceId(null);
+                }} 
                 disabled={isLoading}
               >
-                <ArrowLeft className="mr-2 h-4 w-4"/> Volver a Envío
+                <ArrowLeft className="mr-2 h-4 w-4"/> Volver a Información de Envío
               </Button>
             </CardFooter>
           </Card>
