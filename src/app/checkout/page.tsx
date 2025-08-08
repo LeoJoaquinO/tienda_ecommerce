@@ -36,8 +36,6 @@ const shippingSchema = z.object({
 type ShippingFormData = z.infer<typeof shippingSchema>;
 
 export default function CheckoutPage() {
-  console.log("--- Component Render ---");
-
   const { cartItems, subtotal, appliedCoupon, discount, totalPrice, cartCount, clearCart } = useCart();
   const router = useRouter();
   const { toast } = useToast();
@@ -113,6 +111,7 @@ export default function CheckoutPage() {
     }
   }, [cartCount, router, isSubmitting, preferenceId, toast]);
 
+  console.log("--- Component Render ---");
   console.log("Current State:", {
     preferenceId,
     isSubmitting,
@@ -193,7 +192,7 @@ export default function CheckoutPage() {
                      <Payment
                         key={preferenceId}
                         initialization={{
-                            amount: totalPrice, // Essential fallback
+                            amount: totalPrice,
                             preferenceId: preferenceId,
                         }}
                         onReady={() => {
@@ -203,8 +202,6 @@ export default function CheckoutPage() {
                         onError={(err) => console.error("PAYMENT BRICK ERROR:", err)}
                         onSubmit={async () => {
                           console.log("PAYMENT BRICK: onSubmit triggered. This means payment flow is complete on the frontend.");
-                          // This promise is just to track the completion of the brick's flow.
-                          // The actual payment confirmation is handled by the webhook.
                           clearCart();
                         }}
                     />
