@@ -192,7 +192,6 @@ export default function CheckoutPage() {
                      <Payment
                         key={preferenceId}
                         initialization={{
-                            amount: totalPrice,
                             preferenceId: preferenceId,
                         }}
                         onReady={() => {
