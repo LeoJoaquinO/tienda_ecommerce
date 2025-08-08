@@ -41,30 +41,35 @@ export default function CheckoutPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [preferenceId, setPreferenceId] = useState<string | null>(null);
   const [mpInitialized, setMpInitialized] = useState(false);
+  const [paymentBrickReady, setPaymentBrickReady] = useState(false);
   
   const form = useForm<ShippingFormData>({
     resolver: zodResolver(shippingSchema),
     defaultValues: { name: "", email: "", address: "", city: "", postalCode: "" },
   });
 
+  // Initialize MercadoPago only once
   useEffect(() => {
     const publicKey = process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY;
     if (publicKey && !mpInitialized) {
       try {
         initMercadoPago(publicKey, { 
           locale: 'es-AR',
-          advancedFraudPrevention: true,
-          trackingDisabled: true
+          advancedFraudPrevention: false, // Set to false to avoid some security issues
+          trackingDisabled: false // Enable tracking for better error handling
         });
         setMpInitialized(true);
         console.log("MercadoPago initialized successfully");
       } catch (error) {
         console.error("Failed to initialize MercadoPago:", error);
+        toast({
+          title: "Error de inicialización",
+          description: "No se pudo inicializar MercadoPago. Recarga la página.",
+          variant: "destructive"
+        });
       }
-    } else if (!publicKey) {
-      console.error("CRITICAL: NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY is not configured.");
     }
-  }, [mpInitialized]);
+  }, [mpInitialized, toast]);
 
   const handleShippingSubmit = async (values: ShippingFormData) => {
     if (!mpInitialized) {
@@ -82,36 +87,56 @@ export default function CheckoutPage() {
         throw new Error("El carrito está vacío");
       }
 
+      // Ensure all required fields are present and valid
       const requestBody = {
         cartItems: cartItems.map((item, index) => ({
-          id: `item_${index}`,
-          title: item.product?.name || `Product ${index + 1}`,
+          id: `item_${item.product.id}_${index}`,
+          title: item.product?.name || `Producto ${index + 1}`,
           quantity: Math.max(1, Number(item.quantity) || 1),
           unit_price: Math.max(0.01, Number(item.product?.salePrice ?? item.product?.price) || 1),
-          name: item.product?.name || `Product ${index + 1}`,
-          price: item.product?.salePrice ?? item.product?.price
+          currency_id: "ARS", // Add currency explicitly
+          description: item.product?.description || item.product?.name || `Producto ${index + 1}`,
         })),
-        shippingInfo: {
-          ...values,
-          name: values.name || 'Cliente',
-          email: values.email
+        payer: {
+          name: values.name,
+          email: values.email,
+          address: {
+            street_name: values.address,
+            city_name: values.city,
+            zip_code: values.postalCode
+          }
         },
+        shippingInfo: values,
         totalPrice: Math.max(0.01, Number(totalPrice) || 1),
         discount: Number(discount) || 0,
-        appliedCoupon: appliedCoupon || null
+        appliedCoupon: appliedCoupon || null,
+        // Add these fields for better MP integration
+        back_urls: {
+          success: `${window.location.origin}/checkout/success`,
+          failure: `${window.location.origin}/checkout/failure`,
+          pending: `${window.location.origin}/checkout/pending`
+        },
+        auto_return: "approved",
+        payment_methods: {
+          excluded_payment_methods: [],
+          excluded_payment_types: [],
+          installments: 12
+        }
       };
 
-      console.log("Creating payment preference for", requestBody.cartItems.length, "items");
+      console.log("Creating payment preference...", {
+        itemCount: requestBody.cartItems.length,
+        total: requestBody.totalPrice
+      });
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); 
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // Increased timeout
 
       const response = await fetch('/api/create-preference', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'Cache-Control': 'no-cache'
         },
         body: JSON.stringify(requestBody),
         signal: controller.signal
@@ -121,22 +146,27 @@ export default function CheckoutPage() {
       
       if (!response.ok) {
         const errorText = await response.text();
+        console.error("API Error Response:", errorText);
+        
         let errorData;
         try {
           errorData = JSON.parse(errorText);
         } catch {
           errorData = { error: errorText };
         }
-        throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`);
+        
+        throw new Error(errorData.error || errorData.message || `Error ${response.status}: ${response.statusText}`);
       }
 
       const data = await response.json();
       
       if (!data.preferenceId) {
+        console.error("Invalid API response:", data);
         throw new Error("No se recibió el ID de preferencia del servidor");
       }
 
       setPreferenceId(data.preferenceId);
+      setPaymentBrickReady(false);
       console.log("✅ Preference created successfully:", data.preferenceId);
       
       toast({
@@ -170,6 +200,7 @@ export default function CheckoutPage() {
     }
   };
   
+  // Redirect if cart is empty
   useEffect(() => {
     if (cartCount === 0 && !isLoading && !preferenceId) {
         const timer = setTimeout(() => {
@@ -183,6 +214,71 @@ export default function CheckoutPage() {
         return () => clearTimeout(timer);
     }
   }, [cartCount, router, isLoading, preferenceId, toast]);
+
+  // Handle payment submission
+  const handlePaymentSubmit = async (formData: any) => {
+    console.log("Payment submitted with data:", formData);
+    
+    try {
+      setIsLoading(true);
+      
+      // Here you would normally send the payment data to your backend
+      // for verification and order creation
+      const paymentResponse = await fetch('/api/process-payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...formData,
+          preferenceId,
+          cartItems,
+          totalPrice,
+          shippingInfo: form.getValues()
+        })
+      });
+
+      if (paymentResponse.ok) {
+        clearCart();
+        toast({ 
+          title: '¡Pago Exitoso!', 
+          description: 'Gracias por tu compra. Serás redirigido.',
+          variant: "default"
+        });
+        
+        setTimeout(() => {
+          router.push('/checkout/success');
+        }, 2000);
+      } else {
+        throw new Error('Error procesando el pago');
+      }
+      
+    } catch (error) {
+      console.error("Payment processing error:", error);
+      toast({ 
+        title: 'Error procesando pago', 
+        description: 'Hubo un problema procesando tu pago. Intenta nuevamente.', 
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handlePaymentError = (error: any) => {
+    console.error("Payment Brick Error:", error);
+    toast({ 
+      title: 'Error de Pago', 
+      description: 'No se pudo cargar el formulario de pago. Intenta recargando la página.', 
+      variant: 'destructive'
+    });
+  };
+
+  const handlePaymentReady = () => {
+    console.log("Payment brick is ready");
+    setPaymentBrickReady(true);
+    setIsLoading(false);
+  };
 
   if (cartCount === 0 && !preferenceId) {
     return (
@@ -215,7 +311,7 @@ export default function CheckoutPage() {
         <Card className="shadow-lg">
           <CardContent className="p-6 space-y-4">
             {cartItems.map(item => (
-              <div key={item.product.id} className="flex justify-between items-center">
+              <div key={`${item.product.id}-${item.quantity}`} className="flex justify-between items-center">
                 <div className="flex items-center gap-4">
                   <div className="relative w-16 h-16 rounded-md overflow-hidden border">
                     <Image 
@@ -223,7 +319,6 @@ export default function CheckoutPage() {
                       alt={item.product.name} 
                       fill 
                       className="object-cover" 
-                      data-ai-hint={item.product.aiHint}
                     />
                   </div>
                   <div>
@@ -291,88 +386,70 @@ export default function CheckoutPage() {
             </div>
         </div>
 
-        {isLoading && !preferenceId ? (
-          <div className="flex flex-col justify-center items-center h-96 gap-4">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            <p className="text-muted-foreground">Configurando tu pago...</p>
-          </div>
-        ) : preferenceId ? (
+        {preferenceId && mpInitialized ? (
           <Card>
             <CardHeader>
               <CardTitle>2. Método de Pago</CardTitle>
               <CardDescription>Completa el pago de forma segura con Mercado Pago.</CardDescription>
             </CardHeader>
-            <CardContent className="min-h-[400px]">
-              {isLoading && <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
-              <div className={cn(isLoading && 'hidden')}>
+            <CardContent className="min-h-[500px]">
+              {(isLoading || !paymentBrickReady) && (
+                <div className="flex justify-center items-center h-64">
+                  <div className="text-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+                    <p className="text-muted-foreground">Cargando formulario de pago...</p>
+                  </div>
+                </div>
+              )}
+              
+              <div className={cn("transition-opacity duration-300", (isLoading || !paymentBrickReady) && 'opacity-0')}>
                 <Payment
-                    key={`payment-${preferenceId}`}
-                    initialization={{
-                      preferenceId: preferenceId,
-                      amount: totalPrice,
-                    }}
-                    customization={{
-                      paymentMethods: {
-                        creditCard: "all",
-                        debitCard: "all",
-                        mercadoPago: "all"
-                      },
-                      visual: {
-                        style: {
-                          theme: "default"
+                  key={`payment-${preferenceId}`}
+                  initialization={{
+                    preferenceId: preferenceId,
+                    amount: totalPrice,
+                  }}
+                  customization={{
+                    paymentMethods: {
+                      creditCard: "all",
+                      debitCard: "all",
+                      mercadoPago: "all",
+                      atm: "all",
+                      ticket: "all"
+                    },
+                    visual: {
+                      style: {
+                        theme: "default",
+                        customVariables: {
+                          formBackgroundColor: 'transparent'
                         }
                       }
-                    }}
-                    onSubmit={async (param) => {
-                      console.log("Payment submitted:", param);
-                      try {
-                        setIsLoading(true);
-                        await new Promise(resolve => setTimeout(resolve, 2000));
-                        clearCart();
-                        toast({ 
-                          title: '¡Pago Exitoso!', 
-                          description: 'Gracias por tu compra. Serás redirigido a la página de inicio.',
-                          variant: "default"
-                        });
-                        setTimeout(() => {
-                          router.push('/');
-                        }, 1500);
-                      } catch (error) {
-                        console.error("Payment processing error:", error);
-                        toast({ 
-                          title: 'Error procesando pago', 
-                          description: 'Hubo un problema procesando tu pago. Intenta nuevamente.', 
-                          variant: 'destructive'
-                        });
-                      } finally {
-                        setIsLoading(false);
-                      }
-                    }}
-                    onError={(error) => {
-                      console.error("Payment Brick Error:", error);
-                      toast({ 
-                        title: 'Error de Pago', 
-                        description: 'No se pudo cargar el formulario de pago. Intenta recargando la página.', 
-                        variant: 'destructive'
-                      });
-                    }}
-                    onReady={() => {
-                      console.log("Payment brick is ready");
-                      setIsLoading(false);
-                    }}
+                    }
+                  }}
+                  onSubmit={handlePaymentSubmit}
+                  onError={handlePaymentError}
+                  onReady={handlePaymentReady}
                 />
               </div>
             </CardContent>
             <CardFooter>
                 <Button 
                   variant="outline" 
-                  onClick={() => setPreferenceId(null)} 
+                  onClick={() => {
+                    setPreferenceId(null);
+                    setPaymentBrickReady(false);
+                  }} 
                   disabled={isLoading}
                 >
                     <ArrowLeft className="mr-2 h-4 w-4"/> Volver a Envío
                 </Button>
             </CardFooter>
           </Card>
+        ) : isLoading && !preferenceId ? (
+          <div className="flex flex-col justify-center items-center h-96 gap-4">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <p className="text-muted-foreground">Configurando tu pago...</p>
+          </div>
         ) : (
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleShippingSubmit)} className="space-y-8">
@@ -421,12 +498,14 @@ export default function CheckoutPage() {
                     </div>
                 </CardContent>
                 <CardFooter>
-                  <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
+                  <Button type="submit" size="lg" className="w-full" disabled={isLoading || !mpInitialized}>
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Configurando pago...
                       </>
+                    ) : !mpInitialized ? (
+                      "Inicializando sistema de pagos..."
                     ) : (
                       "Continuar al Pago"
                     )}
