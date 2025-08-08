@@ -23,13 +23,13 @@ async function initializeMercadoPago() {
 }
 
 export async function POST(request: NextRequest) {
+  const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:9002';
   // Handle CORS preflight
   const headers = new Headers({
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Content-Type': 'application/json',
-    'Permissions-Policy': 'browsing-topics=(), private-state-token-redemption=(), private-state-token-issuance=(), private-aggregation=(), attribution-reporting=()'
   });
 
   try {
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!body.shippingInfo?.email) {
+    if (!body.payer?.email) {
       return NextResponse.json(
         { error: 'Customer email is required' },
         { status: 400, headers }
@@ -69,27 +69,32 @@ export async function POST(request: NextRequest) {
     // Create preference body
     const preferenceBody = {
       items: body.cartItems.map((item: any, index: number) => ({
-        id: `item_${index}`,
-        title: item.title || item.name || `Product ${index + 1}`,
-        quantity: Math.max(1, Number(item.quantity) || 1),
-        unit_price: Math.max(0.01, Number(item.unit_price) || Number(item.price) || 1),
-        currency_id: 'ARS'
+        id: item.id || `item_${index}`,
+        title: item.title || item.name || `Producto ${index + 1}`,
+        quantity: Math.max(1, parseInt(item.quantity) || 1),
+        unit_price: Math.max(0.01, parseFloat(item.unit_price) || 1),
+        currency_id: "ARS",
+        description: item.description || item.title
       })),
+      purpose: "wallet_purchase",
       payer: {
-        email: body.shippingInfo.email,
-        name: body.shippingInfo.name || 'Cliente',
+        name: body.payer?.name || body.shippingInfo?.name,
+        email: body.payer?.email || body.shippingInfo?.email,
+      },
+      payment_methods: {
+        excluded_payment_methods: [],
+        excluded_payment_types: [],
+        installments: 12,
+        default_installments: 1,
+        default_payment_method_id: null
       },
       back_urls: {
-        success: `${process.env.NEXT_PUBLIC_SITE_URL || request.nextUrl.origin}/checkout/success`,
-        failure: `${process.env.NEXT_PUBLIC_SITE_URL || request.nextUrl.origin}/checkout/failure`,
-        pending: `${process.env.NEXT_PUBLIC_SITE_URL || request.nextUrl.origin}/checkout/pending`
+        success: `${BASE_URL}/checkout/success`,
+        failure: `${BASE_URL}/checkout/failure`, 
+        pending: `${BASE_URL}/checkout/pending`
       },
-      auto_return: 'approved' as const,
-      notification_url: `${process.env.NEXT_PUBLIC_SITE_URL}/api/mercadopago-webhook`,
+      auto_return: "approved" as const,
       external_reference: `order_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
-      expires: true,
-      expiration_date_from: new Date().toISOString(),
-      expiration_date_to: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       statement_descriptor: 'TIENDA_ONLINE',
       metadata: {
         total_amount: Number(body.totalPrice) || 0,

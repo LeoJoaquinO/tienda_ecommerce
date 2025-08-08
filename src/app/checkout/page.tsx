@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -19,9 +20,9 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
-import { Loader2, Ticket, ArrowLeft, ShoppingCart, CreditCard } from "lucide-react";
+import { Loader2, Ticket, ArrowLeft, ShoppingCart, CreditCard, AlertTriangle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { initMercadoPago, Payment } from '@mercadopago/sdk-react';
+import { initMercadoPago } from '@mercadopago/sdk-react';
 import { cn } from "@/lib/utils";
 
 const shippingSchema = z.object({
@@ -41,12 +42,27 @@ export default function CheckoutPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [preferenceId, setPreferenceId] = useState<string | null>(null);
   const [mpInitialized, setMpInitialized] = useState(false);
-  const [paymentBrickReady, setPaymentBrickReady] = useState(false);
+  const [showAdBlockerWarning, setShowAdBlockerWarning] = useState(false);
   
   const form = useForm<ShippingFormData>({
     resolver: zodResolver(shippingSchema),
     defaultValues: { name: "", email: "", address: "", city: "", postalCode: "" },
   });
+
+  // Simple ad blocker detection
+  useEffect(() => {
+    const testAd = document.createElement('div');
+    testAd.innerHTML = '&nbsp;';
+    testAd.className = 'adsbox';
+    document.body.appendChild(testAd);
+    
+    setTimeout(() => {
+      if (testAd.offsetHeight === 0) {
+        setShowAdBlockerWarning(true);
+      }
+      document.body.removeChild(testAd);
+    }, 100);
+  }, []);
 
   // Initialize MercadoPago only once
   useEffect(() => {
@@ -55,21 +71,16 @@ export default function CheckoutPage() {
       try {
         initMercadoPago(publicKey, { 
           locale: 'es-AR',
-          advancedFraudPrevention: false, 
-          trackingDisabled: false
         });
         setMpInitialized(true);
         console.log("MercadoPago initialized successfully");
       } catch (error) {
         console.error("Failed to initialize MercadoPago:", error);
-        toast({
-          title: "Error de inicialización",
-          description: "No se pudo inicializar MercadoPago. Recarga la página.",
-          variant: "destructive"
-        });
       }
+    } else if (!publicKey) {
+      console.error("CRITICAL: NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY is not configured.");
     }
-  }, [mpInitialized, toast]);
+  }, [mpInitialized]);
 
   const handleShippingSubmit = async (values: ShippingFormData) => {
     if (!mpInitialized) {
@@ -82,27 +93,29 @@ export default function CheckoutPage() {
     }
 
     setIsLoading(true);
-    setPaymentBrickReady(false); // Reset brick readiness
     try {
       if (!cartItems || cartItems.length === 0) {
         throw new Error("El carrito está vacío");
       }
-
+      
       const requestBody = {
         cartItems: cartItems.map((item, index) => ({
-          id: `item_${item.product.id}_${index}`,
-          title: item.product.name,
-          quantity: item.quantity,
-          unit_price: item.product.salePrice ?? item.product.price,
-          currency_id: 'ARS'
+            id: `item_${item.product.id}_${index}`,
+            title: item.product?.name || `Producto ${index + 1}`,
+            quantity: Math.max(1, Number(item.quantity) || 1),
+            unit_price: Math.max(0.01, Number(item.product?.salePrice ?? item.product?.price) || 1),
         })),
+        payer: {
+            name: values.name,
+            email: values.email,
+        },
         shippingInfo: values,
-        totalPrice: totalPrice,
-        discount: discount,
-        appliedCoupon: appliedCoupon
+        totalPrice: Math.max(0.01, Number(totalPrice) || 1),
+        discount: Number(discount) || 0,
+        appliedCoupon: appliedCoupon || null
       };
 
-      console.log("Creating payment preference for", requestBody.cartItems.length, "items");
+      console.log("Creating payment preference with:", requestBody);
 
       const response = await fetch('/api/create-preference', {
         method: 'POST',
@@ -116,28 +129,28 @@ export default function CheckoutPage() {
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.error || `Error ${response.status}`);
+        throw new Error(data.error || `HTTP ${response.status}: ${response.statusText}`);
       }
+
       if (!data.preferenceId) {
         throw new Error("No se recibió el ID de preferencia del servidor");
       }
 
       setPreferenceId(data.preferenceId);
-      console.log("✅ Preference created successfully:", data.preferenceId);
+      console.log("Preference created successfully:", data.preferenceId);
       
-    } catch (error: any) {
-      console.error("❌ Error creating preference:", error);
+    } catch (error) {
+      console.error("Error creating preference:", error);
       toast({ 
-        title: "Error creando el pago", 
-        description: error.message, 
+        title: "Error", 
+        description: error instanceof Error ? error.message : "Error desconocido", 
         variant: "destructive" 
       });
+    } finally {
       setIsLoading(false);
-    } 
-    // We keep isLoading true until the brick is ready
+    }
   };
   
-  // Redirect if cart is empty
   useEffect(() => {
     if (cartCount === 0 && !isLoading && !preferenceId) {
         const timer = setTimeout(() => {
@@ -151,34 +164,6 @@ export default function CheckoutPage() {
         return () => clearTimeout(timer);
     }
   }, [cartCount, router, isLoading, preferenceId, toast]);
-
-  const handlePaymentSubmit = async () => {
-    // This function now primarily handles post-payment logic.
-    // The actual submission is handled by the brick.
-    console.log("Payment successful. Clearing cart and redirecting.");
-    clearCart();
-    toast({
-      title: '¡Pago Exitoso!',
-      description: 'Gracias por tu compra. Serás redirigido.',
-      variant: 'default'
-    });
-    router.push('/checkout/success');
-  };
-
-  const handlePaymentError = (error: any) => {
-    console.error("Payment Brick Error:", error);
-    toast({ 
-      title: 'Error de Pago', 
-      description: 'No se pudo procesar el pago. Por favor, revisa los datos e intenta de nuevo.', 
-      variant: 'destructive'
-    });
-  };
-
-  const handlePaymentReady = () => {
-    console.log("Payment brick is ready");
-    setPaymentBrickReady(true);
-    setIsLoading(false);
-  };
 
   if (cartCount === 0 && !preferenceId) {
     return (
@@ -211,7 +196,7 @@ export default function CheckoutPage() {
         <Card className="shadow-lg">
           <CardContent className="p-6 space-y-4">
             {cartItems.map(item => (
-              <div key={`${item.product.id}-${item.quantity}`} className="flex justify-between items-center">
+              <div key={item.product.id} className="flex justify-between items-center">
                 <div className="flex items-center gap-4">
                   <div className="relative w-16 h-16 rounded-md overflow-hidden border">
                     <Image 
@@ -219,6 +204,7 @@ export default function CheckoutPage() {
                       alt={item.product.name} 
                       fill 
                       className="object-cover" 
+                      data-ai-hint={item.product.aiHint}
                     />
                   </div>
                   <div>
@@ -272,6 +258,19 @@ export default function CheckoutPage() {
   return (
     <div className="grid lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
       <div className="lg:col-span-1">
+        {showAdBlockerWarning && (
+            <Card className="border-yellow-200 bg-yellow-50 mb-6">
+                <CardContent className="p-4">
+                <div className="flex items-center gap-2 text-yellow-800">
+                    <AlertTriangle className="h-5 w-5" />
+                    <p className="text-sm">
+                    <strong>Importante:</strong> Parece que tienes un bloqueador de anuncios activo. 
+                    Por favor desactívalo para este sitio para asegurar que el sistema de pagos funcione correctamente.
+                    </p>
+                </div>
+                </CardContent>
+            </Card>
+        )}
         <h1 className="text-3xl font-headline font-bold mb-6">Finalizar Compra</h1>
         
         <div className="flex items-center gap-4 mb-8">
@@ -286,65 +285,56 @@ export default function CheckoutPage() {
             </div>
         </div>
 
-        {preferenceId && mpInitialized ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>2. Método de Pago</CardTitle>
-              <CardDescription>Completa el pago de forma segura con Mercado Pago.</CardDescription>
-            </CardHeader>
-            <CardContent className="min-h-[500px]">
-              {(isLoading || !paymentBrickReady) && (
-                <div className="flex justify-center items-center h-64">
-                  <div className="text-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
-                    <p className="text-muted-foreground">Cargando formulario de pago...</p>
-                  </div>
-                </div>
-              )}
-              
-              <div className={cn("transition-opacity duration-300", (isLoading || !paymentBrickReady) && 'opacity-0')}>
-                <Payment
-                  key={preferenceId}
-                  initialization={{
-                    preferenceId: preferenceId,
-                    amount: totalPrice,
-                    payer: {
-                      email: form.getValues('email'),
-                    },
-                  }}
-                  customization={{
-                    visual: {
-                      style: {
-                        theme: "default",
-                        customVariables: {
-                          formBackgroundColor: 'transparent'
-                        }
-                      }
-                    }
-                  }}
-                  onSubmit={handlePaymentSubmit}
-                  onError={handlePaymentError}
-                  onReady={handlePaymentReady}
-                />
-              </div>
-            </CardContent>
-            <CardFooter>
-                <Button 
-                  variant="outline" 
-                  onClick={() => {
-                    setPreferenceId(null);
-                  }} 
-                  disabled={isLoading}
-                >
-                    <ArrowLeft className="mr-2 h-4 w-4"/> Volver a Envío
-                </Button>
-            </CardFooter>
-          </Card>
-        ) : isLoading ? (
+        {isLoading ? (
           <div className="flex flex-col justify-center items-center h-96 gap-4">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
             <p className="text-muted-foreground">Configurando tu pago...</p>
           </div>
+        ) : preferenceId ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>2. Método de Pago</CardTitle>
+              <CardDescription>
+                Serás redirigido a MercadoPago para completar el pago de forma segura.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="text-center p-6">
+                <CreditCard className="h-12 w-12 mx-auto mb-4 text-primary" />
+                <p className="text-muted-foreground mb-4">
+                  Tu pago será procesado de forma segura por MercadoPago
+                </p>
+                <Button 
+                  size="lg" 
+                  onClick={() => {
+                    window.open(
+                      `https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=${preferenceId}`, 
+                      '_self'
+                    );
+                  }}
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Procesando...
+                    </>
+                  ) : (
+                    "Pagar con MercadoPago"
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button 
+                variant="outline" 
+                onClick={() => setPreferenceId(null)} 
+                disabled={isLoading}
+              >
+                <ArrowLeft className="mr-2 h-4 w-4"/> Volver a Envío
+              </Button>
+            </CardFooter>
+          </Card>
         ) : (
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleShippingSubmit)} className="space-y-8">
@@ -393,14 +383,12 @@ export default function CheckoutPage() {
                     </div>
                 </CardContent>
                 <CardFooter>
-                  <Button type="submit" size="lg" className="w-full" disabled={isLoading || !mpInitialized}>
+                  <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Configurando pago...
                       </>
-                    ) : !mpInitialized ? (
-                      "Inicializando sistema de pagos..."
                     ) : (
                       "Continuar al Pago"
                     )}
