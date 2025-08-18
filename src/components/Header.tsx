@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { ShoppingCart, Menu } from 'lucide-react';
+import { ShoppingCart, Menu, ChevronRight } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
@@ -26,14 +26,14 @@ import {
 import { ThemeToggle } from './ThemeToggle';
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { getProducts, getCategories } from '@/lib/data';
-import type { Product, Category } from '@/lib/types';
+import { getCategories } from '@/lib/data';
+import type { Category } from '@/lib/types';
 import { Separator } from './ui/separator';
 
 const ListItem = React.forwardRef<
   React.ElementRef<"a">,
-  React.ComponentPropsWithoutRef<"a"> & { productCount?: number }
->(({ className, title, children, productCount, ...props }, ref) => {
+  React.ComponentPropsWithoutRef<"a">
+>(({ className, title, children, ...props }, ref) => {
   return (
     <li>
       <NavigationMenuLink asChild>
@@ -45,10 +45,7 @@ const ListItem = React.forwardRef<
           )}
           {...props}
         >
-          <div className="flex justify-between items-center">
-            <div className="text-sm font-medium leading-none">{title}</div>
-            {productCount !== undefined && <span className="text-xs text-muted-foreground">{productCount}</span>}
-          </div>
+          <div className="text-sm font-medium leading-none">{title}</div>
           <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
             {children}
           </p>
@@ -64,16 +61,11 @@ export default function Header() {
   const { cartCount, setIsSidebarOpen } = useCart();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
     async function fetchData() {
-        const [fetchedCategories, fetchedProducts] = await Promise.all([
-            getCategories(),
-            getProducts()
-        ]);
+        const fetchedCategories = await getCategories();
         setCategories(fetchedCategories);
-        setProducts(fetchedProducts);
     }
     fetchData();
   }, []);
@@ -88,6 +80,16 @@ export default function Header() {
     { href: '/pages/preguntas-frecuentes', title: 'Preguntas Frecuentes', description: 'Encuentra respuestas a tus dudas.' },
     { href: '/pages/como-comprar', title: 'Cómo Comprar', description: 'Guía paso a paso para tu compra.' },
   ];
+  
+  // Split categories into three columns for the mega menu
+  const columns = categories.reduce((acc, category, index) => {
+    const columnIndex = index % 3;
+    if (!acc[columnIndex]) {
+      acc[columnIndex] = [];
+    }
+    acc[columnIndex].push(category);
+    return acc;
+  }, [] as Category[][]);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-sm supports-[backdrop-filter]:bg-background/60">
@@ -110,45 +112,21 @@ export default function Header() {
                 <NavigationMenuItem>
                     <NavigationMenuTrigger>Tienda</NavigationMenuTrigger>
                     <NavigationMenuContent>
-                      <div className="grid grid-cols-[1fr_2fr] w-[750px] p-4">
-                        <div className="flex flex-col gap-1 pr-4 border-r">
-                           <NavigationMenuLink asChild>
-                                <a
-                                className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-                                href="/tienda"
+                      <div className="grid w-[600px] grid-cols-3 gap-x-6 p-4 lg:w-[750px]">
+                        {columns.map((column, colIndex) => (
+                          <div key={colIndex} className="flex flex-col space-y-1">
+                            {column.map((category) => (
+                               <NavigationMenuLink asChild key={category.id}>
+                                <Link 
+                                    href={`/tienda?category=${category.id}`} 
+                                    className="block select-none rounded-md p-3 text-sm font-medium leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                                 >
-                                <div className="text-sm font-medium leading-none">Todos los Productos</div>
-                                <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                                    Explora nuestro catálogo completo.
-                                </p>
-                                </a>
-                            </NavigationMenuLink>
-                          <Separator className="my-2"/>
-                          <p className="p-3 text-xs font-semibold text-muted-foreground">CATEGORÍAS</p>
-                           {categories.map((category) => (
-                               <ListItem 
-                                  key={category.id} 
-                                  href={`/tienda?category=${category.id}`} 
-                                  title={category.name}
-                                  productCount={products.filter(p => p.categoryIds.includes(category.id)).length}
-                                >
-                               </ListItem>
-                           ))}
-                        </div>
-                        <div>
-                          <p className="p-3 text-xs font-semibold text-muted-foreground">PRODUCTOS DESTACADOS</p>
-                          <div className="grid grid-cols-2 gap-2">
-                            {products.filter(p => p.featured).slice(0, 4).map(product => (
-                              <Link key={product.id} href={`/products/${product.id}`} className="group block rounded-lg hover:bg-accent transition-colors p-2">
-                                <div className="relative w-full aspect-square rounded-md overflow-hidden mb-2">
-                                  <Image src={product.images[0]} alt={product.name} fill className="object-cover"/>
-                                </div>
-                                <p className="text-sm font-medium">{product.name}</p>
-                                <p className="text-sm text-primary font-bold">${product.salePrice ?? product.price}</p>
-                              </Link>
+                                  {category.name}
+                                </Link>
+                               </NavigationMenuLink>
                             ))}
                           </div>
-                        </div>
+                        ))}
                       </div>
                     </NavigationMenuContent>
                 </NavigationMenuItem>
@@ -228,3 +206,4 @@ export default function Header() {
     </header>
   );
 }
+
