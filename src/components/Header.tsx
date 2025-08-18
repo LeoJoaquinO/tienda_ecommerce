@@ -70,7 +70,7 @@ export default function Header() {
     fetchData();
   }, []);
 
-  const { categoryTree, topLevelCategories } = useMemo(() => {
+  const { categoryTree } = useMemo(() => {
     const categoryMap = new Map<number, Category & { children: Category[] }>();
     const rootCategories: (Category & { children: Category[] })[] = [];
 
@@ -79,17 +79,18 @@ export default function Header() {
     });
 
     categories.forEach(category => {
+        const categoryWithChildren = categoryMap.get(category.id)!;
         if (category.parentId) {
             const parent = categoryMap.get(category.parentId);
             if (parent) {
-                parent.children.push(categoryMap.get(category.id)!);
+                parent.children.push(categoryWithChildren);
             }
         } else {
-            rootCategories.push(categoryMap.get(category.id)!);
+            rootCategories.push(categoryWithChildren);
         }
     });
 
-    return { categoryTree: rootCategories, topLevelCategories: categories.filter(c => !c.parentId) };
+    return { categoryTree: rootCategories };
   }, [categories]);
 
 
@@ -118,6 +119,64 @@ export default function Header() {
       return columns;
   }
 
+  const MegaMenuContent = () => {
+    const perfumesCategory = categoryTree.find(c => c.name === "Perfumes");
+    const brandsParent = perfumesCategory?.children.find(c => c.name === "Por Marca");
+    const brands = brandsParent?.children ?? [];
+    
+    const otherMainCategories = categoryTree.filter(c => c.name !== "Perfumes");
+
+    return (
+      <NavigationMenuContent>
+        <div className="grid grid-cols-4 gap-x-8 p-6 w-[800px] lg:w-[1000px]">
+          <div className="col-span-1 flex flex-col space-y-4">
+              <h3 className="font-semibold text-lg">{perfumesCategory?.name}</h3>
+              <Separator/>
+              <ul className="flex flex-col space-y-2">
+                {perfumesCategory?.children.map(sub => (
+                    <li key={sub.id}>
+                       <NavigationMenuLink asChild>
+                           <Link href={`/tienda?category=${sub.id}`} className="font-medium text-sm hover:text-primary transition-colors">{sub.name}</Link>
+                       </NavigationMenuLink>
+                    </li>
+                ))}
+              </ul>
+          </div>
+          <div className="col-span-3">
+              <h3 className="font-semibold text-lg">Explorar Marcas</h3>
+              <Separator className='my-4'/>
+              <div className="grid grid-cols-3 gap-x-4 gap-y-2">
+                  {brands.map(brand => (
+                      <NavigationMenuLink asChild key={brand.id}>
+                          <Link href={`/tienda?category=${brand.id}`} className="block rounded-md p-2 text-sm hover:bg-accent hover:text-accent-foreground">
+                              {brand.name}
+                          </Link>
+                      </NavigationMenuLink>
+                  ))}
+              </div>
+          </div>
+        </div>
+        <Separator/>
+        <div className="bg-muted/50 p-6 grid grid-cols-4 gap-x-8">
+            {otherMainCategories.map(cat => (
+                 <div key={cat.id}>
+                    <h3 className="font-semibold mb-2">{cat.name}</h3>
+                    <ul className="flex flex-col space-y-1">
+                        {cat.children.map(sub => (
+                             <li key={sub.id}>
+                                <NavigationMenuLink asChild>
+                                    <Link href={`/tienda?category=${sub.id}`} className="text-sm text-muted-foreground hover:text-primary transition-colors">{sub.name}</Link>
+                                </NavigationMenuLink>
+                             </li>
+                        ))}
+                    </ul>
+                 </div>
+            ))}
+        </div>
+      </NavigationMenuContent>
+    )
+  }
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-sm supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center">
@@ -139,54 +198,7 @@ export default function Header() {
 
                 <NavigationMenuItem>
                     <NavigationMenuTrigger>Tienda</NavigationMenuTrigger>
-                    <NavigationMenuContent>
-                      <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
-                        {categoryTree.map((category) => (
-                           <li key={category.id} className="row-span-3">
-                               <NavigationMenuLink asChild>
-                                  <Link
-                                    href={`/tienda?category=${category.id}`}
-                                    className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-muted/50 to-muted p-6 no-underline outline-none focus:shadow-md"
-                                  >
-                                    <div className="mb-2 mt-4 text-lg font-medium">
-                                      {category.name}
-                                    </div>
-                                    <p className="text-sm leading-tight text-muted-foreground">
-                                        Explora todos los productos de {category.name.toLowerCase()}.
-                                    </p>
-                                  </Link>
-                                </NavigationMenuLink>
-                                 {category.children.length > 0 && (
-                                     <NavigationMenu className="relative z-[60]">
-                                        <NavigationMenuList>
-                                            <NavigationMenuItem>
-                                                <NavigationMenuTrigger className="w-full justify-between mt-2">{category.children[0].name}</NavigationMenuTrigger>
-                                                <NavigationMenuContent>
-                                                     <div className="grid w-[600px] grid-cols-4 gap-x-2 p-4 lg:w-[800px]">
-                                                        {generateBrandColumns(category.children[0].children).map((column, colIndex) => (
-                                                          <div key={colIndex} className="flex flex-col space-y-1">
-                                                            {column.map((brand) => (
-                                                               <NavigationMenuLink asChild key={brand.id}>
-                                                                <Link 
-                                                                    href={`/tienda?category=${brand.id}`} 
-                                                                    className="block select-none rounded-md p-3 text-sm font-medium leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-                                                                >
-                                                                  {brand.name}
-                                                                </Link>
-                                                               </NavigationMenuLink>
-                                                            ))}
-                                                          </div>
-                                                        ))}
-                                                      </div>
-                                                </NavigationMenuContent>
-                                            </NavigationMenuItem>
-                                        </NavigationMenuList>
-                                     </NavigationMenu>
-                                 )}
-                           </li>
-                        ))}
-                      </ul>
-                    </NavigationMenuContent>
+                    <MegaMenuContent/>
                 </NavigationMenuItem>
 
                 <NavigationMenuItem>

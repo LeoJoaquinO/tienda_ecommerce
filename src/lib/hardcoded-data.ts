@@ -4,22 +4,45 @@
 import type { Product, Coupon, Order, SalesMetrics, OrderData, OrderStatus, Category } from './types';
 
 let localCategories: Category[] = [
+    // Main Categories (Parents)
     { id: 1, name: "Perfumes", parentId: null },
     { id: 2, name: "Cuidado de Piel", parentId: null },
     { id: 3, name: "Joyas", parentId: null },
     { id: 4, name: "Accesorios", parentId: null },
+
+    // Level 2 Subcategories of "Perfumes" (id: 1)
     { id: 5, name: "Por Marca", parentId: 1 },
     { id: 6, name: "Perfumes Nicho", parentId: 1 },
     { id: 7, name: "Perfumes Árabes", parentId: 1 },
     { id: 8, name: "Por Género", parentId: 1 },
-    // Brands - Subcategories of "Por Marca" (id: 5)
+
+    // Level 3 Brands - Subcategories of "Por Marca" (id: 5)
     { id: 101, name: "Lancôme", parentId: 5 },
     { id: 102, name: "L'Occitane", parentId: 5 },
     { id: 103, name: "Dior", parentId: 5 },
     { id: 104, name: "Chanel", parentId: 5 },
     { id: 105, name: "Gucci", parentId: 5 },
+    { id: 106, name: "Tom Ford", parentId: 5 },
+    { id: 107, name: "Creed", parentId: 5 },
+    { id: 108, name: "Jo Malone", parentId: 5 },
+    
+    // Level 3 Genders - Subcategories of "Por Género" (id: 8)
+    { id: 201, name: "Hombre", parentId: 8 },
+    { id: 202, name: "Mujer", parentId: 8 },
+    { id: 203, name: "Unisex", parentId: 8 },
+
+    // Level 2 Subcategories of "Cuidado de Piel" (id: 2)
+    { id: 301, name: "Rostro", parentId: 2 },
+    { id: 302, name: "Cuerpo", parentId: 2 },
+    { id: 303, name: "Protectores Solares", parentId: 2 },
+
+    // Level 2 Subcategories of "Joyas" (id: 3)
+    { id: 401, name: "Anillos", parentId: 3 },
+    { id: 402, name: "Collares", parentId: 3 },
+    { id: 403, name: "Pulseras", parentId: 3 },
+    { id: 404, name: "Aros", parentId: 3 },
 ];
-let nextCategoryId = 106;
+let nextCategoryId = 405;
 
 let localProducts: Product[] = [
     {
@@ -29,7 +52,7 @@ let localProducts: Product[] = [
         shortDescription: "Eau de Parfum - Floral Frutal.",
         price: 75000,
         images: ["https://tascani.vtexassets.com/arquivos/ids/182034-800-auto?v=638635608787130000&width=800&height=auto&aspect=true"],
-        categoryIds: [1, 101],
+        categoryIds: [1, 202, 101], // Perfumes, Mujer, Lancôme
         stock: 15,
         featured: true,
         aiHint: "luxury perfume bottle",
@@ -45,7 +68,7 @@ let localProducts: Product[] = [
         shortDescription: "Crema de manos ultra nutritiva.",
         price: 25000,
         images: ["https://farma365.com.ar/wp-content/uploads/2024/04/3348901486392-3.webp"],
-        categoryIds: [2, 102],
+        categoryIds: [2, 302, 102], // Cuidado de Piel, Cuerpo, L'Occitane
         stock: 8,
         featured: true,
         aiHint: "hand cream tube",
@@ -61,7 +84,7 @@ let localProducts: Product[] = [
         shortDescription: "Perfume masculino concentrado.",
         price: 120000,
         images: ["https://acdn-us.mitiendanube.com/stores/001/071/596/products/snapinsta-app_457143249_18272561446241493_4114811689171539800_n_1080-copia-4c107f322e0631e79017304658593813-240-0.jpg"],
-        categoryIds: [1, 8, 103],
+        categoryIds: [1, 201, 103], // Perfumes, Hombre, Dior
         stock: 12,
         featured: true,
         aiHint: "dark perfume bottle",
@@ -77,7 +100,7 @@ let localProducts: Product[] = [
         shortDescription: "Pulsera de plata 925.",
         price: 45000,
         images: ["https://holiclothing.com.ar/wp-content/uploads/2023/10/WhatsApp-Image-2022-07-13-at-7.49.03-PM-1.jpeg"],
-        categoryIds: [3],
+        categoryIds: [3, 403], // Joyas, Pulseras
         stock: 25,
         featured: false,
         aiHint: "silver bracelet heart",
@@ -93,7 +116,7 @@ let localProducts: Product[] = [
         shortDescription: "Reloj analógico de cuero.",
         price: 85000,
         images: ["https://placehold.co/600x600.png?text=Reloj+Cuero"],
-        categoryIds: [4],
+        categoryIds: [4], // Accesorios
         stock: 5,
         featured: true,
         aiHint: "classic leather watch",
@@ -109,7 +132,7 @@ let localProducts: Product[] = [
         shortDescription: "Aros de oro minimalistas.",
         price: 60000,
         images: ["https://placehold.co/600x600.png?text=Aros+Oro"],
-        categoryIds: [3],
+        categoryIds: [3, 404], // Joyas, Aros
         stock: 20,
         featured: false,
         aiHint: "gold earrings",
@@ -125,7 +148,7 @@ let localProducts: Product[] = [
         shortDescription: "El icónico perfume femenino.",
         price: 115000,
         images: ["https://placehold.co/600x600.png?text=Chanel+N5"],
-        categoryIds: [1, 8, 104],
+        categoryIds: [1, 202, 104], // Perfumes, Mujer, Chanel
         stock: 10,
         featured: false,
         aiHint: "classic perfume bottle",
@@ -141,7 +164,7 @@ let localProducts: Product[] = [
         shortDescription: "Sérum facial de hidratación profunda.",
         price: 35000,
         images: ["https://placehold.co/600x600.png?text=Serum"],
-        categoryIds: [2],
+        categoryIds: [2, 301], // Cuidado de Piel, Rostro
         stock: 30,
         featured: false,
         aiHint: "skincare serum bottle",
@@ -157,7 +180,7 @@ let localProducts: Product[] = [
         shortDescription: "Collar de perlas clásico.",
         price: 95000,
         images: ["https://placehold.co/600x600.png?text=Collar+Perlas"],
-        categoryIds: [3],
+        categoryIds: [3, 402], // Joyas, Collares
         stock: 8,
         featured: true,
         aiHint: "pearl necklace",
@@ -173,7 +196,7 @@ let localProducts: Product[] = [
         shortDescription: "Gafas de sol clásicas.",
         price: 30000,
         images: ["https://placehold.co/600x600.png?text=Gafas+Sol"],
-        categoryIds: [4],
+        categoryIds: [4], // Accesorios
         stock: 40,
         featured: false,
         aiHint: "aviator sunglasses",
@@ -189,7 +212,7 @@ let localProducts: Product[] = [
         shortDescription: "Anillo de diamante solitario.",
         price: 250000,
         images: ["https://placehold.co/600x600.png?text=Anillo+Diamante"],
-        categoryIds: [3],
+        categoryIds: [3, 401], // Joyas, Anillos
         stock: 3,
         featured: false,
         aiHint: "diamond ring",
@@ -205,7 +228,7 @@ let localProducts: Product[] = [
         shortDescription: "Eau de Parfum floral.",
         price: 98000,
         images: ["https://placehold.co/600x600.png?text=Gucci+Bloom"],
-        categoryIds: [1, 8, 105],
+        categoryIds: [1, 202, 105], // Perfumes, Mujer, Gucci
         stock: 18,
         featured: false,
         aiHint: "pink perfume bottle",
@@ -221,7 +244,7 @@ let localProducts: Product[] = [
         shortDescription: "Protector solar facial y corporal.",
         price: 22000,
         images: ["https://placehold.co/600x600.png?text=Protector+Solar"],
-        categoryIds: [2],
+        categoryIds: [2, 303], // Cuidado de Piel, Protectores Solares
         stock: 50,
         featured: false,
         aiHint: "sunscreen bottle",
@@ -237,7 +260,7 @@ let localProducts: Product[] = [
         shortDescription: "Pañuelo de seda natural.",
         price: 28000,
         images: ["https://placehold.co/600x600.png?text=Panuelo+Seda"],
-        categoryIds: [4],
+        categoryIds: [4], // Accesorios
         stock: 22,
         featured: true,
         aiHint: "silk scarf pattern",
@@ -248,15 +271,15 @@ let localProducts: Product[] = [
     },
     {
         id: 15,
-        name: "Gemelos de Plata Personalizables",
-        description: "Elegantes gemelos de plata de ley que se pueden grabar con iniciales para un regalo único.",
-        shortDescription: "Gemelos de plata para camisa.",
-        price: 48000,
-        images: ["https://placehold.co/600x600.png?text=Gemelos+Plata"],
-        categoryIds: [3, 4],
-        stock: 15,
-        featured: false,
-        aiHint: "silver cufflinks",
+        name: "Tom Ford Tobacco Vanille",
+        description: "Una opulenta fragancia artesanal con tabaco especiado y vainilla cremosa. Lujosa, cálida y emblemática.",
+        shortDescription: "Perfume unisex de lujo.",
+        price: 180000,
+        images: ["https://placehold.co/600x600.png?text=Tobacco+Vanille"],
+        categoryIds: [1, 6, 203, 106], // Perfumes, Nicho, Unisex, Tom Ford
+        stock: 7,
+        featured: true,
+        aiHint: "dark luxury perfume",
         discountPercentage: null,
         offerStartDate: null,
         offerEndDate: null,
@@ -269,7 +292,7 @@ let localProducts: Product[] = [
         shortDescription: "Mascarilla facial purificante.",
         price: 18000,
         images: ["https://placehold.co/600x600.png?text=Mascarilla+Arcilla"],
-        categoryIds: [2],
+        categoryIds: [2, 301], // Cuidado de Piel, Rostro
         stock: 35,
         featured: false,
         aiHint: "clay face mask jar",
@@ -318,7 +341,7 @@ let localCoupons: Coupon[] = [
 let localOrders: Order[] = [];
 let nextOrderId = 1;
 
-function _calculateSalePrice(product: Omit<Product, 'salePrice'>): number | null {
+function _calculateSalePrice(product: Omit<Product, 'id' | 'salePrice'>): number | null {
     const now = new Date();
     const isOfferValid = 
         product.discountPercentage && product.discountPercentage > 0 &&
@@ -374,7 +397,7 @@ export async function createCategory(name: string): Promise<Category> {
     if (localCategories.some(c => c.name.toLowerCase() === name.toLowerCase())) {
         throw new Error(`La categoría '${name}' ya existe.`);
     }
-    const newCategory = { id: nextCategoryId++, name };
+    const newCategory = { id: nextCategoryId++, name, parentId: null };
     localCategories.push(newCategory);
     return newCategory;
 }
