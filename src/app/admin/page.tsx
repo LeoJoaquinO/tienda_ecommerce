@@ -1,10 +1,10 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { getProducts, getCoupons, getSalesMetrics } from '@/lib/data';
-import type { Product, Coupon, SalesMetrics } from '@/lib/types';
+import { getProducts, getCoupons, getSalesMetrics, getCategories } from '@/lib/data';
+import type { Product, Coupon, SalesMetrics, Category } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -17,7 +17,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PlusCircle, Edit, Trash2, LogIn, LogOut, Loader2, Package, Tag, Wallet, Calendar as CalendarIcon, BarChart, AlertTriangle, ShoppingCart, Ticket, Badge as BadgeIcon, TrendingUp, DollarSign, CheckCircle, XCircle, Download, ExternalLink, Mail, Database, HardDrive } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, LogIn, LogOut, Loader2, Package, Tag, Wallet, Calendar as CalendarIcon, BarChart, AlertTriangle, ShoppingCart, Ticket, Badge as BadgeIcon, TrendingUp, DollarSign, CheckCircle, XCircle, Download, ExternalLink, Mail, Database, HardDrive, Folder } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -42,7 +42,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { addProductAction, updateProductAction, deleteProductAction, addCouponAction, updateCouponAction, deleteCouponAction } from '@/app/actions';
+import { addProductAction, updateProductAction, deleteProductAction, addCouponAction, updateCouponAction, deleteCouponAction, addCategoryAction, deleteCategoryAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -52,6 +52,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 type FieldErrors = Record<string, string[] | undefined>;
 
@@ -80,7 +81,7 @@ function downloadCSV(csvContent: string, fileName: string) {
 // ############################################################################
 // Component: ProductForm
 // ############################################################################
-function ProductForm({ product, formId, errors }: { product?: Product, formId: string, errors: FieldErrors }) {
+function ProductForm({ product, formId, errors, categories }: { product?: Product, formId: string, errors: FieldErrors, categories: Category[] }) {
     const [startDate, setStartDate] = useState<Date | undefined>(product?.offerStartDate ? new Date(product.offerStartDate) : undefined);
     const [endDate, setEndDate] = useState<Date | undefined>(product?.offerEndDate ? new Date(product.offerEndDate) : undefined);
 
@@ -128,9 +129,27 @@ function ProductForm({ product, formId, errors }: { product?: Product, formId: s
                     <FormError message={errors.offerEndDate?.[0]} />
                 </div>
             </div>
+            <div>
+                <Label>Categorías</Label>
+                <ScrollArea className="h-32 w-full rounded-md border p-2">
+                    <div className="space-y-2">
+                        {categories.map(category => (
+                            <div key={category.id} className="flex items-center space-x-2">
+                                <Checkbox 
+                                    id={`category-${category.id}`} 
+                                    name="categoryIds" 
+                                    value={category.id}
+                                    defaultChecked={product?.categoryIds.includes(category.id)}
+                                />
+                                <Label htmlFor={`category-${category.id}`}>{category.name}</Label>
+                            </div>
+                        ))}
+                    </div>
+                </ScrollArea>
+                <FormError message={errors.categoryIds?.[0]} />
+            </div>
             <div className="grid grid-cols-2 gap-4">
                 <div><Label htmlFor="stock">Stock</Label><Input id="stock" name="stock" type="number" min="0" step="1" defaultValue={product?.stock} className={cn(errors.stock && "border-destructive")} /><FormError message={errors.stock?.[0]} /></div>
-                <div><Label htmlFor="category">Categoría</Label><Input id="category" name="category" defaultValue={product?.category} className={cn(errors.category && "border-destructive")} /><FormError message={errors.category?.[0]} /></div>
             </div>
             <div className='space-y-2'>
                 <Label>Imágenes del Producto (hasta 5)</Label>
@@ -210,17 +229,16 @@ function CouponForm({ coupon, formId, errors }: { coupon?: Coupon, formId: strin
 // ############################################################################
 // Component: MetricsTab
 // ############################################################################
-function MetricsTab({ products, salesMetrics, isLoading }: { products: Product[], salesMetrics: SalesMetrics | null, isLoading: boolean }) {
+function MetricsTab({ products, salesMetrics, isLoading, categories }: { products: Product[], salesMetrics: SalesMetrics | null, isLoading: boolean, categories: Category[] }) {
     const totalProducts = products.length;
     const totalStock = products.reduce((acc, p) => acc + p.stock, 0);
     const lowStockProducts = products.filter(p => p.stock > 0 && p.stock <= 3);
 
-    const categoryData = Object.values(products.reduce((acc, product) => {
-        const category = product.category || 'Sin Categoría';
-        if (!acc[category]) acc[category] = { category, products: 0 };
-        acc[category].products++;
-        return acc;
-    }, {} as Record<string, { category: string, products: number }>));
+    const categoryData = categories.map(cat => ({
+        category: cat.name,
+        products: products.filter(p => p.categoryIds.includes(cat.id)).length
+    }));
+
 
     return (
         <div className="space-y-6">
@@ -263,7 +281,7 @@ function MetricsTab({ products, salesMetrics, isLoading }: { products: Product[]
 // ############################################################################
 // Component: ProductsTab
 // ############################################################################
-function ProductsTab({ products, isLoading, onEdit, onDelete, onAdd, onExport }: { products: Product[], isLoading: boolean, onEdit: (p: Product) => void, onDelete: (id: number) => void, onAdd: () => void, onExport: () => void }) {
+function ProductsTab({ products, isLoading, onEdit, onDelete, onAdd, onExport, categories }: { products: Product[], isLoading: boolean, onEdit: (p: Product) => void, onDelete: (id: number) => void, onAdd: () => void, onExport: () => void, categories: Category[] }) {
     return (
          <Card className="shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between">
@@ -275,7 +293,7 @@ function ProductsTab({ products, isLoading, onEdit, onDelete, onAdd, onExport }:
             </CardHeader>
             <CardContent className='p-0'>
                 {isLoading ? <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div> : (
-                    <Table><TableHeader><TableRow><TableHead>Imagen</TableHead><TableHead>Nombre</TableHead><TableHead>Precio</TableHead><TableHead>Stock</TableHead><TableHead>Acciones</TableHead></TableRow></TableHeader><TableBody>
+                    <Table><TableHeader><TableRow><TableHead>Imagen</TableHead><TableHead>Nombre</TableHead><TableHead>Precio</TableHead><TableHead>Stock</TableHead><TableHead>Categorías</TableHead><TableHead>Acciones</TableHead></TableRow></TableHeader><TableBody>
                         {products.map(product => (
                             <TableRow key={product.id}>
                                 <TableCell>
@@ -291,6 +309,14 @@ function ProductsTab({ products, isLoading, onEdit, onDelete, onAdd, onExport }:
                                 <TableCell className="font-medium">{product.name}</TableCell>
                                 <TableCell>${(product.salePrice ?? product.price).toLocaleString('es-AR')}</TableCell>
                                 <TableCell>{product.stock}</TableCell>
+                                <TableCell>
+                                    <div className="flex flex-wrap gap-1">
+                                        {product.categoryIds.map(catId => {
+                                            const category = categories.find(c => c.id === catId);
+                                            return category ? <Badge key={catId} variant="secondary">{category.name}</Badge> : null;
+                                        })}
+                                    </div>
+                                </TableCell>
                                 <TableCell><div className="flex gap-2">
                                     <Button variant="outline" size="icon" onClick={() => onEdit(product)}><Edit className="h-4 w-4" /></Button>
                                     <AlertDialog>
@@ -312,6 +338,70 @@ function ProductsTab({ products, isLoading, onEdit, onDelete, onAdd, onExport }:
                             </TableRow>
                         ))}
                     </TableBody></Table>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
+
+// ############################################################################
+// Component: CategoriesTab
+// ############################################################################
+function CategoriesTab({ categories, isLoading, onDelete, onAdd }: { categories: Category[], isLoading: boolean, onDelete: (id: number) => void, onAdd: (name: string) => void }) {
+    const formRef = useRef<HTMLFormElement>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    
+    const handleAddCategory = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        setIsSubmitting(true);
+        const formData = new FormData(event.currentTarget);
+        await onAdd(formData.get('name') as string);
+        formRef.current?.reset();
+        setIsSubmitting(false);
+    };
+
+    return (
+        <Card className="shadow-lg">
+            <CardHeader>
+                <CardTitle>Gestionar Categorías</CardTitle>
+                <CardDescription>Crea y elimina las categorías de productos.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <form ref={formRef} onSubmit={handleAddCategory} className="flex gap-2 mb-6">
+                    <Input name="name" placeholder="Nombre de la nueva categoría" required disabled={isSubmitting}/>
+                    <Button type="submit" disabled={isSubmitting}>
+                        {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
+                        Añadir
+                    </Button>
+                </form>
+                {isLoading ? <div className="flex justify-center items-center h-40"><Loader2 className="h-8 w-8 animate-spin" /></div> : (
+                    <Table>
+                        <TableHeader><TableRow><TableHead>Nombre</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
+                        <TableBody>
+                            {categories.map(category => (
+                                <TableRow key={category.id}>
+                                    <TableCell className="font-medium">{category.name}</TableCell>
+                                    <TableCell className="text-right">
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                                <AlertDialogDescription>Esta acción no se puede deshacer. Eliminar una categoría no eliminará los productos dentro de ella.</AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                <AlertDialogAction onClick={() => onDelete(category.id)}>Eliminar</AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
                 )}
             </CardContent>
         </Card>
@@ -383,6 +473,7 @@ function CouponsTab({ coupons, isLoading, onAdd, onEdit, onDelete, onExport }: {
 function AdminDashboard({ onLogout, dbConnected }: { onLogout: () => void, dbConnected: boolean }) {
     const [products, setProducts] = useState<Product[]>([]);
     const [coupons, setCoupons] = useState<Coupon[]>([]);
+    const [categories, setCategories] = useState<Category[]>([]);
     const [salesMetrics, setSalesMetrics] = useState<SalesMetrics | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [dialogType, setDialogType] = useState<'product' | 'coupon' | null>(null);
@@ -398,14 +489,16 @@ function AdminDashboard({ onLogout, dbConnected }: { onLogout: () => void, dbCon
     const fetchData = async () => {
         setIsLoading(true);
         try {
-            const [fetchedProducts, fetchedCoupons, fetchedMetrics] = await Promise.all([
+            const [fetchedProducts, fetchedCoupons, fetchedMetrics, fetchedCategories] = await Promise.all([
                 getProducts(),
                 getCoupons(),
                 getSalesMetrics(),
+                getCategories(),
             ]);
             setProducts(fetchedProducts);
             setCoupons(fetchedCoupons);
             setSalesMetrics(fetchedMetrics);
+            setCategories(fetchedCategories);
         } catch (error) {
             toast({ title: 'Error al cargar los datos del panel', description: (error as Error).message, variant: 'destructive' });
         }
@@ -485,8 +578,30 @@ function AdminDashboard({ onLogout, dbConnected }: { onLogout: () => void, dbCon
         }
     }
 
+    const handleAddCategory = async (name: string) => {
+        const formData = new FormData();
+        formData.append('name', name);
+        const result = await addCategoryAction(formData);
+        if (result?.error) {
+            toast({ title: 'Error', description: result.error, variant: 'destructive' });
+        } else {
+            toast({ title: 'Éxito', description: result.message });
+            fetchData();
+        }
+    }
+    
+    const handleDeleteCategory = async (id: number) => {
+        const result = await deleteCategoryAction(id);
+        if (result?.error) {
+            toast({ title: 'Error', description: result.error, variant: 'destructive' });
+        } else {
+            toast({ title: 'Éxito', description: result.message });
+            fetchData();
+        }
+    }
+
     const exportProductsToCSV = () => {
-        const headers = ['ID', 'Name', 'Short Description', 'Price', 'Sale Price', 'Stock', 'Category', 'Featured', 'Image URL 1', 'Image URL 2', 'Image URL 3', 'Image URL 4', 'Image URL 5'];
+        const headers = ['ID', 'Name', 'Short Description', 'Price', 'Sale Price', 'Stock', 'Categories', 'Featured', 'Image URL 1', 'Image URL 2', 'Image URL 3', 'Image URL 4', 'Image URL 5'];
         const rows = products.map(p => [
             p.id,
             `"${p.name.replace(/"/g, '""')}"`,
@@ -494,7 +609,7 @@ function AdminDashboard({ onLogout, dbConnected }: { onLogout: () => void, dbCon
             p.price,
             p.salePrice ?? '',
             p.stock,
-            p.category,
+            `"${p.categoryIds.map(id => categories.find(c => c.id === id)?.name).filter(Boolean).join(', ')}"`,
             p.featured ? 'Yes' : 'No',
             ...(p.images.slice(0, 5).map(img => `"${img}"`) ?? []),
         ].join(','));
@@ -555,16 +670,20 @@ function AdminDashboard({ onLogout, dbConnected }: { onLogout: () => void, dbCon
             </div>
 
             <Tabs defaultValue="overview">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-4">
                     <TabsTrigger value="overview">Visión General</TabsTrigger>
                     <TabsTrigger value="products">Productos</TabsTrigger>
+                    <TabsTrigger value="categories">Categorías</TabsTrigger>
                     <TabsTrigger value="coupons">Cupones</TabsTrigger>
                 </TabsList>
                 <TabsContent value="overview" className="mt-6">
-                    <MetricsTab products={products} salesMetrics={salesMetrics} isLoading={isLoading} />
+                    <MetricsTab products={products} salesMetrics={salesMetrics} isLoading={isLoading} categories={categories} />
                 </TabsContent>
                 <TabsContent value="products" className="mt-6">
-                    <ProductsTab products={products} isLoading={isLoading} onAdd={() => handleOpenProductDialog()} onEdit={handleOpenProductDialog} onDelete={handleDeleteProduct} onExport={exportProductsToCSV} />
+                    <ProductsTab products={products} isLoading={isLoading} onAdd={() => handleOpenProductDialog()} onEdit={handleOpenProductDialog} onDelete={handleDeleteProduct} onExport={exportProductsToCSV} categories={categories} />
+                </TabsContent>
+                <TabsContent value="categories" className="mt-6">
+                    <CategoriesTab categories={categories} isLoading={isLoading} onAdd={handleAddCategory} onDelete={handleDeleteCategory} />
                 </TabsContent>
                 <TabsContent value="coupons" className="mt-6">
                     <CouponsTab coupons={coupons} isLoading={isLoading} onAdd={() => handleOpenCouponDialog()} onEdit={handleOpenCouponDialog} onDelete={handleDeleteCoupon} onExport={exportCouponsToCSV} />
@@ -577,7 +696,7 @@ function AdminDashboard({ onLogout, dbConnected }: { onLogout: () => void, dbCon
                         <DialogTitle>{dialogType === 'product' ? (editingProduct ? 'Editar Producto' : 'Añadir Nuevo Producto') : (editingCoupon ? 'Editar Cupón' : 'Crear Nuevo Cupón')}</DialogTitle>
                     </DialogHeader>
                     <div className="overflow-y-auto pr-4 -mr-4">
-                        {dialogType === 'product' && <ProductForm product={editingProduct} formId={formId} errors={formErrors} />}
+                        {dialogType === 'product' && <ProductForm product={editingProduct} formId={formId} errors={formErrors} categories={categories} />}
                         {dialogType === 'coupon' && <CouponForm coupon={editingCoupon} formId={formId} errors={formErrors} />}
                     </div>
                      <DialogFooter>

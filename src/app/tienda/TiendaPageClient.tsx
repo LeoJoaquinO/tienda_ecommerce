@@ -1,15 +1,16 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { ProductCard } from '@/components/ProductCard';
 import { Separator } from '@/components/ui/separator';
 import { Percent, Tag, Search } from 'lucide-react';
-import type { Product } from '@/lib/types';
+import type { Product, Category } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-function CategoryFilters({ categories, selected, onSelect, disabled }: { categories: string[], selected: string, onSelect: (category: string) => void, disabled: boolean }) {
+function CategoryFilters({ categories, selected, onSelect, disabled }: { categories: Category[], selected: string, onSelect: (category: string) => void, disabled: boolean }) {
     return (
         <div className="flex flex-wrap justify-center gap-2">
             <Button
@@ -22,13 +23,13 @@ function CategoryFilters({ categories, selected, onSelect, disabled }: { categor
             </Button>
             {categories.map((category) => (
                 <Button
-                    key={category}
-                    variant={selected === category ? 'default' : 'outline'}
-                    onClick={() => onSelect(category)}
+                    key={category.id}
+                    variant={selected === String(category.id) ? 'default' : 'outline'}
+                    onClick={() => onSelect(String(category.id))}
                     disabled={disabled}
                     className="rounded-full"
                 >
-                    {category}
+                    {category.name}
                 </Button>
             ))}
         </div>
@@ -37,13 +38,23 @@ function CategoryFilters({ categories, selected, onSelect, disabled }: { categor
 
 interface TiendaPageClientProps {
   allProducts: Product[];
-  allCategories: string[];
+  allCategories: Category[];
   offerProducts: Product[];
 }
 
 export function TiendaPageClient({ allProducts, allCategories, offerProducts }: TiendaPageClientProps) {
+  const searchParams = useSearchParams();
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    const categoryFromUrl = searchParams.get('category');
+    if (categoryFromUrl && allCategories.some(c => String(c.id) === categoryFromUrl)) {
+        setSelectedCategory(categoryFromUrl);
+    } else {
+        setSelectedCategory('All');
+    }
+  }, [searchParams, allCategories]);
 
   const filteredProducts = useMemo(() => {
       let items = allProducts;
@@ -53,7 +64,7 @@ export function TiendaPageClient({ allProducts, allCategories, offerProducts }: 
       }
 
       if (selectedCategory !== 'All') {
-          items = items.filter(p => p.category === selectedCategory);
+          items = items.filter(p => p.categoryIds.includes(Number(selectedCategory)));
       }
 
       return items;
@@ -63,15 +74,14 @@ export function TiendaPageClient({ allProducts, allCategories, offerProducts }: 
     if (selectedCategory !== 'All') {
       return null;
     }
-    return filteredProducts.reduce((acc, product) => {
-      const category = product.category;
-      if (!acc[category]) {
-        acc[category] = [];
-      }
-      acc[category].push(product);
-      return acc;
+    return allCategories.reduce((acc, category) => {
+        const productsInCategory = filteredProducts.filter(p => p.categoryIds.includes(category.id));
+        if (productsInCategory.length > 0) {
+            acc[category.name] = productsInCategory;
+        }
+        return acc;
     }, {} as Record<string, Product[]>);
-  }, [filteredProducts, selectedCategory]);
+  }, [filteredProducts, selectedCategory, allCategories]);
 
   return (
     <div className="space-y-12">

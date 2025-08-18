@@ -2,6 +2,7 @@
 "use client";
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { ShoppingCart, Menu } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import { Button } from '@/components/ui/button';
@@ -25,13 +26,14 @@ import {
 import { ThemeToggle } from './ThemeToggle';
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { getProducts } from '@/lib/data';
-import type { Product } from '@/lib/types';
+import { getProducts, getCategories } from '@/lib/data';
+import type { Product, Category } from '@/lib/types';
+import { Separator } from './ui/separator';
 
 const ListItem = React.forwardRef<
   React.ElementRef<"a">,
-  React.ComponentPropsWithoutRef<"a">
->(({ className, title, children, ...props }, ref) => {
+  React.ComponentPropsWithoutRef<"a"> & { productCount?: number }
+>(({ className, title, children, productCount, ...props }, ref) => {
   return (
     <li>
       <NavigationMenuLink asChild>
@@ -43,7 +45,10 @@ const ListItem = React.forwardRef<
           )}
           {...props}
         >
-          <div className="text-sm font-medium leading-none">{title}</div>
+          <div className="flex justify-between items-center">
+            <div className="text-sm font-medium leading-none">{title}</div>
+            {productCount !== undefined && <span className="text-xs text-muted-foreground">{productCount}</span>}
+          </div>
           <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
             {children}
           </p>
@@ -58,15 +63,19 @@ ListItem.displayName = "ListItem"
 export default function Header() {
   const { cartCount, setIsSidebarOpen } = useCart();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [categories, setCategories] = useState<string[]>([]);
-  
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+
   useEffect(() => {
-    async function fetchCategories() {
-      const products: Product[] = await getProducts();
-      const uniqueCategories = [...new Set(products.map(p => p.category))];
-      setCategories(uniqueCategories);
+    async function fetchData() {
+        const [fetchedCategories, fetchedProducts] = await Promise.all([
+            getCategories(),
+            getProducts()
+        ]);
+        setCategories(fetchedCategories);
+        setProducts(fetchedProducts);
     }
-    fetchCategories();
+    fetchData();
   }, []);
 
   const navLinks = [
@@ -101,27 +110,46 @@ export default function Header() {
                 <NavigationMenuItem>
                     <NavigationMenuTrigger>Tienda</NavigationMenuTrigger>
                     <NavigationMenuContent>
-                    <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
-                        <li className="row-span-3">
-                            <NavigationMenuLink asChild>
+                      <div className="grid grid-cols-[1fr_2fr] w-[750px] p-4">
+                        <div className="flex flex-col gap-1 pr-4 border-r">
+                           <NavigationMenuLink asChild>
                                 <a
-                                className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-muted/50 to-muted p-6 no-underline outline-none focus:shadow-md"
+                                className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                                 href="/tienda"
                                 >
-                                <div className="mb-2 mt-4 text-lg font-medium">
-                                    Todos los Productos
-                                </div>
-                                <p className="text-sm leading-tight text-muted-foreground">
-                                    Explora nuestro catálogo completo de fragancias y joyas.
+                                <div className="text-sm font-medium leading-none">Todos los Productos</div>
+                                <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+                                    Explora nuestro catálogo completo.
                                 </p>
                                 </a>
                             </NavigationMenuLink>
-                        </li>
-                       {categories.map((category) => (
-                           <ListItem key={category} href={`/tienda?category=${category}`} title={category}>
-                           </ListItem>
-                       ))}
-                    </ul>
+                          <Separator className="my-2"/>
+                          <p className="p-3 text-xs font-semibold text-muted-foreground">CATEGORÍAS</p>
+                           {categories.map((category) => (
+                               <ListItem 
+                                  key={category.id} 
+                                  href={`/tienda?category=${category.id}`} 
+                                  title={category.name}
+                                  productCount={products.filter(p => p.categoryIds.includes(category.id)).length}
+                                >
+                               </ListItem>
+                           ))}
+                        </div>
+                        <div>
+                          <p className="p-3 text-xs font-semibold text-muted-foreground">PRODUCTOS DESTACADOS</p>
+                          <div className="grid grid-cols-2 gap-2">
+                            {products.filter(p => p.featured).slice(0, 4).map(product => (
+                              <Link key={product.id} href={`/products/${product.id}`} className="group block rounded-lg hover:bg-accent transition-colors p-2">
+                                <div className="relative w-full aspect-square rounded-md overflow-hidden mb-2">
+                                  <Image src={product.images[0]} alt={product.name} fill className="object-cover"/>
+                                </div>
+                                <p className="text-sm font-medium">{product.name}</p>
+                                <p className="text-sm text-primary font-bold">${product.salePrice ?? product.price}</p>
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
                     </NavigationMenuContent>
                 </NavigationMenuItem>
                 <NavigationMenuItem>

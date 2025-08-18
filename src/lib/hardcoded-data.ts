@@ -1,7 +1,15 @@
 
 'use server';
 
-import type { Product, Coupon, Order, SalesMetrics, OrderData, OrderStatus } from './types';
+import type { Product, Coupon, Order, SalesMetrics, OrderData, OrderStatus, Category } from './types';
+
+let localCategories: Category[] = [
+    { id: 1, name: "Perfumes" },
+    { id: 2, name: "Cuidado de Piel" },
+    { id: 3, name: "Joyas" },
+    { id: 4, name: "Accesorios" }
+];
+let nextCategoryId = 5;
 
 let localProducts: Product[] = [
     {
@@ -11,7 +19,7 @@ let localProducts: Product[] = [
         shortDescription: "Eau de Parfum - Floral Frutal.",
         price: 75000,
         images: ["https://tascani.vtexassets.com/arquivos/ids/182034-800-auto?v=638635608787130000&width=800&height=auto&aspect=true"],
-        category: "Perfumes",
+        categoryIds: [1],
         stock: 15,
         featured: true,
         aiHint: "luxury perfume bottle",
@@ -27,7 +35,7 @@ let localProducts: Product[] = [
         shortDescription: "Crema de manos ultra nutritiva.",
         price: 25000,
         images: ["https://farma365.com.ar/wp-content/uploads/2024/04/3348901486392-3.webp"],
-        category: "Cuidado de Piel",
+        categoryIds: [2],
         stock: 8,
         featured: true,
         aiHint: "hand cream tube",
@@ -43,7 +51,7 @@ let localProducts: Product[] = [
         shortDescription: "Perfume masculino concentrado.",
         price: 120000,
         images: ["https://acdn-us.mitiendanube.com/stores/001/071/596/products/snapinsta-app_457143249_18272561446241493_4114811689171539800_n_1080-copia-4c107f322e0631e79017304658593813-240-0.jpg"],
-        category: "Perfumes",
+        categoryIds: [1],
         stock: 12,
         featured: true,
         aiHint: "dark perfume bottle",
@@ -59,7 +67,7 @@ let localProducts: Product[] = [
         shortDescription: "Pulsera de plata 925.",
         price: 45000,
         images: ["https://holiclothing.com.ar/wp-content/uploads/2023/10/WhatsApp-Image-2022-07-13-at-7.49.03-PM-1.jpeg"],
-        category: "Joyas",
+        categoryIds: [3],
         stock: 25,
         featured: false,
         aiHint: "silver bracelet heart",
@@ -75,7 +83,7 @@ let localProducts: Product[] = [
         shortDescription: "Reloj analógico de cuero.",
         price: 85000,
         images: ["https://placehold.co/600x600.png?text=Reloj+Cuero"],
-        category: "Accesorios",
+        categoryIds: [4],
         stock: 5,
         featured: true,
         aiHint: "classic leather watch",
@@ -91,7 +99,7 @@ let localProducts: Product[] = [
         shortDescription: "Aros de oro minimalistas.",
         price: 60000,
         images: ["https://placehold.co/600x600.png?text=Aros+Oro"],
-        category: "Joyas",
+        categoryIds: [3],
         stock: 20,
         featured: false,
         aiHint: "gold earrings",
@@ -186,6 +194,34 @@ export async function deleteProduct(id: number): Promise<void> {
     };
     localProducts.splice(productIndex, 1);
 }
+
+// Category Functions
+export async function getCategories(): Promise<Category[]> {
+    return JSON.parse(JSON.stringify(localCategories));
+}
+
+export async function createCategory(name: string): Promise<Category> {
+    if (localCategories.some(c => c.name.toLowerCase() === name.toLowerCase())) {
+        throw new Error(`La categoría '${name}' ya existe.`);
+    }
+    const newCategory = { id: nextCategoryId++, name };
+    localCategories.push(newCategory);
+    return newCategory;
+}
+
+export async function deleteCategory(id: number): Promise<{ success: boolean, message?: string }> {
+    const isCategoryInUse = localProducts.some(p => p.categoryIds.includes(id));
+    if (isCategoryInUse) {
+        return { success: false, message: 'No se puede eliminar la categoría porque está asignada a uno o más productos.' };
+    }
+    const index = localCategories.findIndex(c => c.id === id);
+    if (index > -1) {
+        localCategories.splice(index, 1);
+        return { success: true };
+    }
+    return { success: false, message: 'Categoría no encontrada.' };
+}
+
 
 export async function getCoupons(): Promise<Coupon[]> {
     return JSON.parse(JSON.stringify(localCoupons));

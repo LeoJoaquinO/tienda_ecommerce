@@ -1,6 +1,6 @@
 
 import { Suspense } from 'react';
-import { getProducts } from '@/lib/data';
+import { getProducts, getCategories } from '@/lib/data';
 import { Separator } from '@/components/ui/separator';
 import { Percent, Tag, Search } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -8,7 +8,7 @@ import { TiendaPageClient } from './TiendaPageClient';
 
 async function TiendaContent() {
   const products = await getProducts();
-  const categories = [...new Set(products.map(p => p.category))];
+  const categories = await getCategories();
   const offerProducts = products.filter(p => p.salePrice && p.salePrice > 0);
 
   return (

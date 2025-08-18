@@ -1,4 +1,9 @@
 
+export type Category = {
+  id: number;
+  name: string;
+};
+
 export type Product = {
   id: number;
   name: string;
@@ -7,7 +12,7 @@ export type Product = {
   price: number;
   salePrice?: number | null;
   images: string[];
-  category: string;
+  categoryIds: number[];
   stock: number;
   aiHint?: string;
   featured?: boolean;

@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import DOMPurify from 'isomorphic-dompurify';
 import { addSubscriber } from "@/lib/subscribers";
-import { createProduct, updateProduct, deleteProduct, createCoupon, updateCoupon, deleteCoupon } from '@/lib/data';
+import { createProduct, updateProduct, deleteProduct, createCoupon, updateCoupon, deleteCoupon, createCategory, deleteCategory } from '@/lib/data';
 import type { Product, Coupon } from '@/lib/types';
 
 // Helper function to sanitize form data
@@ -31,7 +31,7 @@ const productSchema = z.object({
     offerStartDate: z.string().optional().nullable().transform(val => val ? new Date(val) : null),
     offerEndDate: z.string().optional().nullable().transform(val => val ? new Date(val) : null),
     stock: z.coerce.number({ required_error: "El stock es requerido."}).int("El stock debe ser un número entero.").min(0, "El stock no puede ser negativo."),
-    category: z.string().min(1, "La categoría es requerida."),
+    categoryIds: z.array(z.coerce.number()).min(1, "Se requiere al menos una categoría."),
     images: z.array(z.string().url("La URL de la imagen no es válida.")).min(1, "Se requiere al menos una imagen."),
     aiHint: z.string().optional(),
     featured: z.boolean().optional(),
@@ -52,11 +52,13 @@ export async function addProductAction(formData: FormData) {
             images.push(sanitizedData[`image${i}`]);
         }
     }
+    const categoryIds = formData.getAll('categoryIds').map(id => Number(id));
 
     const validatedFields = productSchema.safeParse({
       ...sanitizedData,
       featured: sanitizedData.featured === 'on',
       images,
+      categoryIds,
     });
 
     if (!validatedFields.success) {
@@ -93,11 +95,13 @@ export async function updateProductAction(id: number, formData: FormData) {
             images.push(sanitizedData[`image${i}`]);
         }
     }
+    const categoryIds = formData.getAll('categoryIds').map(id => Number(id));
 
     const validatedFields = productSchema.safeParse({
         ...sanitizedData,
         featured: sanitizedData.featured === 'on',
         images,
+        categoryIds,
     });
 
     if (!validatedFields.success) {
@@ -254,4 +258,45 @@ export async function addSubscriberAction(formData: FormData) {
     }
     return { error: e.message || "No se pudo procesar la suscripción." };
   }
+}
+
+// Category Actions
+
+const categorySchema = z.object({
+    name: z.string().min(2, "El nombre de la categoría es requerido."),
+});
+
+export async function addCategoryAction(formData: FormData) {
+    const rawData = Object.fromEntries(formData.entries());
+    const sanitizedData = sanitizeData(rawData);
+    
+    const validatedFields = categorySchema.safeParse(sanitizedData);
+
+    if (!validatedFields.success) {
+        return {
+            error: "Nombre de categoría inválido.",
+            fieldErrors: validatedFields.error.flatten().fieldErrors,
+        };
+    }
+    
+    try {
+        await createCategory(validatedFields.data.name);
+        revalidatePath("/admin");
+        return { message: "Categoría creada exitosamente." };
+    } catch (e: any) {
+        return { error: e.message || "No se pudo crear la categoría." };
+    }
+}
+
+export async function deleteCategoryAction(id: number) {
+    try {
+        const result = await deleteCategory(id);
+        if (!result.success) {
+            return { error: result.message };
+        }
+        revalidatePath('/admin');
+        return { message: 'Categoría eliminada exitosamente.' }
+    } catch (e: any) {
+        return { error: e.message || 'No se pudo eliminar la categoría.' }
+    }
 }

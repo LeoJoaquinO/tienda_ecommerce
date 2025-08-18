@@ -8,6 +8,9 @@ import {
     createProduct as createProductFromHardcodedData,
     updateProduct as updateProductFromHardcodedData,
     deleteProduct as deleteProductFromHardcodedData,
+    getCategories as getCategoriesFromHardcodedData,
+    createCategory as createCategoryFromHardcodedData,
+    deleteCategory as deleteCategoryFromHardcodedData,
     getCoupons as getCouponsFromHardcodedData,
     getCouponById as getCouponByIdFromHardcodedData,
     getCouponByCode as getCouponByCodeFromHardcodedData,
@@ -20,7 +23,7 @@ import {
     restockItemsForOrder as restockItemsForOrderFromHardcodedData,
     getOrders as getOrdersFromHardcodedData,
 } from './hardcoded-data';
-import type { Product, Coupon, SalesMetrics, OrderData, OrderStatus, Order } from './types';
+import type { Product, Coupon, SalesMetrics, OrderData, OrderStatus, Order, Category } from './types';
 import { unstable_noStore as noStore } from 'next/cache';
 
 // ############################################################################
@@ -49,7 +52,7 @@ function _mapDbRowToProduct(row: any): Product {
         shortDescription: row.short_description,
         price: parseFloat(row.price),
         images: row.images,
-        category: row.category,
+        categoryIds: row.category_ids || [],
         stock: row.stock,
         aiHint: row.ai_hint,
         featured: row.featured,
@@ -71,7 +74,13 @@ export async function getProducts(): Promise<Product[]> {
     if (!db) return getProductsFromHardcodedData();
     noStore();
     try {
-        const rows = await db`SELECT * FROM products ORDER BY created_at DESC`;
+        const rows = await db`
+            SELECT p.*, COALESCE(array_agg(pc.category_id) FILTER (WHERE pc.category_id IS NOT NULL), '{}') as category_ids
+            FROM products p
+            LEFT JOIN product_categories pc ON p.id = pc.product_id
+            GROUP BY p.id
+            ORDER BY p.created_at DESC;
+        `;
         return rows.map(_mapDbRowToProduct);
     } catch (error) {
         console.error('Database Error:', error);
@@ -83,7 +92,13 @@ export async function getProductById(id: number): Promise<Product | undefined> {
     if (!db) return getProductByIdFromHardcodedData(id);
     noStore();
     try {
-        const rows = await db`SELECT * FROM products WHERE id = ${id}`;
+         const rows = await db`
+            SELECT p.*, COALESCE(array_agg(pc.category_id) FILTER (WHERE pc.category_id IS NOT NULL), '{}') as category_ids
+            FROM products p
+            LEFT JOIN product_categories pc ON p.id = pc.product_id
+            WHERE p.id = ${id}
+            GROUP BY p.id;
+        `;
         if (rows.length === 0) return undefined;
         return _mapDbRowToProduct(rows[0]);
     } catch (error) {
@@ -94,14 +109,27 @@ export async function getProductById(id: number): Promise<Product | undefined> {
 
 export async function createProduct(product: Omit<Product, 'id' | 'salePrice'>): Promise<Product> {
     if (!db) return createProductFromHardcodedData(product);
-    const { name, description, shortDescription, price, images, category, stock, aiHint, featured, discountPercentage, offerStartDate, offerEndDate } = product;
+    const { name, description, shortDescription, price, images, categoryIds, stock, aiHint, featured, discountPercentage, offerStartDate, offerEndDate } = product;
     try {
-       const result = await db`
-            INSERT INTO products (name, description, short_description, price, images, category, stock, ai_hint, featured, discount_percentage, offer_start_date, offer_end_date, created_at)
-            VALUES (${name}, ${description}, ${shortDescription}, ${price}, ${images}, ${category}, ${stock}, ${aiHint}, ${featured}, ${discountPercentage}, ${offerStartDate?.toISOString()}, ${offerEndDate?.toISOString()}, ${new Date().toISOString()})
-            RETURNING *;
-        `;
-        return _mapDbRowToProduct(result[0]);
+        const result = await db.begin(async (sql) => {
+            const productResult = await sql`
+                INSERT INTO products (name, description, short_description, price, images, stock, ai_hint, featured, discount_percentage, offer_start_date, offer_end_date, created_at)
+                VALUES (${name}, ${description}, ${shortDescription}, ${price}, ${images}, ${stock}, ${aiHint}, ${featured}, ${discountPercentage}, ${offerStartDate?.toISOString()}, ${offerEndDate?.toISOString()}, ${new Date().toISOString()})
+                RETURNING *;
+            `;
+            const newProduct = productResult[0];
+
+            if (categoryIds && categoryIds.length > 0) {
+                const values = categoryIds.map(catId => sql`(${newProduct.id}, ${catId})`).reduce((prev, curr) => sql`${prev}, ${curr}`);
+                await sql`INSERT INTO product_categories (product_id, category_id) VALUES ${values}`;
+            }
+
+            return newProduct;
+        });
+
+        const finalProduct = await getProductById(result.id);
+        return finalProduct!;
+
     } catch (error) {
         console.error('Database Error:', error);
         throw new Error('Failed to create product.');
@@ -110,26 +138,36 @@ export async function createProduct(product: Omit<Product, 'id' | 'salePrice'>):
 
 export async function updateProduct(id: number, productData: Partial<Omit<Product, 'id' | 'salePrice'>>): Promise<Product> {
     if (!db) return updateProductFromHardcodedData(id, productData);
-     const { name, description, shortDescription, price, images, category, stock, aiHint, featured, discountPercentage, offerStartDate, offerEndDate } = productData;
+     const { name, description, shortDescription, price, images, categoryIds, stock, aiHint, featured, discountPercentage, offerStartDate, offerEndDate } = productData;
     try {
-        const result = await db`
-            UPDATE products
-            SET name = ${name}, 
-                description = ${description}, 
-                short_description = ${shortDescription}, 
-                price = ${price}, 
-                images = ${images}, 
-                category = ${category}, 
-                stock = ${stock}, 
-                ai_hint = ${aiHint}, 
-                featured = ${featured}, 
-                discount_percentage = ${discountPercentage}, 
-                offer_start_date = ${offerStartDate?.toISOString()}, 
-                offer_end_date = ${offerEndDate?.toISOString()}
-            WHERE id = ${id}
-            RETURNING *;
-        `;
-        return _mapDbRowToProduct(result[0]);
+        await db.begin(async (sql) => {
+            await sql`
+                UPDATE products
+                SET name = ${name}, 
+                    description = ${description}, 
+                    short_description = ${shortDescription}, 
+                    price = ${price}, 
+                    images = ${images}, 
+                    stock = ${stock}, 
+                    ai_hint = ${aiHint}, 
+                    featured = ${featured}, 
+                    discount_percentage = ${discountPercentage}, 
+                    offer_start_date = ${offerStartDate?.toISOString()}, 
+                    offer_end_date = ${offerEndDate?.toISOString()}
+                WHERE id = ${id};
+            `;
+            
+            await sql`DELETE FROM product_categories WHERE product_id = ${id}`;
+
+            if (categoryIds && categoryIds.length > 0) {
+                const values = categoryIds.map(catId => sql`(${id}, ${catId})`).reduce((prev, curr) => sql`${prev}, ${curr}`);
+                await sql`INSERT INTO product_categories (product_id, category_id) VALUES ${values}`;
+            }
+        });
+
+        const finalProduct = await getProductById(id);
+        return finalProduct!;
+
     } catch (error) {
         console.error('Database Error:', error);
         throw new Error('Failed to update product.');
@@ -139,13 +177,70 @@ export async function updateProduct(id: number, productData: Partial<Omit<Produc
 export async function deleteProduct(id: number): Promise<void> {
     if (!db) return deleteProductFromHardcodedData(id);
     try {
-        await db`DELETE FROM products WHERE id = ${id}`;
+        await db.begin(async (sql) => {
+            await sql`DELETE FROM product_categories WHERE product_id = ${id}`;
+            await sql`DELETE FROM products WHERE id = ${id}`;
+        });
     } catch (error) {
         console.error('Database Error:', error);
         throw new Error('Failed to delete product.');
     }
 }
 
+// ############################################################################
+// Category Functions
+// ############################################################################
+
+function _mapDbRowToCategory(row: any): Category {
+    return {
+        id: row.id,
+        name: row.name,
+    };
+}
+
+export async function getCategories(): Promise<Category[]> {
+    if (!db) return getCategoriesFromHardcodedData();
+    noStore();
+    try {
+        const rows = await db`SELECT * FROM categories ORDER BY name ASC`;
+        return rows.map(_mapDbRowToCategory);
+    } catch (error) {
+        console.error('Database Error:', error);
+        throw new Error('Failed to fetch categories.');
+    }
+}
+
+export async function createCategory(name: string): Promise<Category> {
+    if (!db) return createCategoryFromHardcodedData(name);
+    try {
+        const result = await db`
+            INSERT INTO categories (name) VALUES (${name}) RETURNING *;
+        `;
+        return _mapDbRowToCategory(result[0]);
+    } catch (error: any) {
+         if (error.message.includes('duplicate key value violates unique constraint')) {
+            throw new Error(`La categoría '${name}' ya existe.`);
+        }
+        console.error('Database Error:', error);
+        throw new Error('Failed to create category.');
+    }
+}
+
+export async function deleteCategory(id: number): Promise<{ success: boolean; message?: string }> {
+    if (!db) return deleteCategoryFromHardcodedData(id);
+    try {
+        // Check if any products are using this category
+        const products = await db`SELECT 1 FROM product_categories WHERE category_id = ${id} LIMIT 1`;
+        if (products.length > 0) {
+            return { success: false, message: 'No se puede eliminar la categoría porque está asignada a uno o más productos.' };
+        }
+        await db`DELETE FROM categories WHERE id = ${id}`;
+        return { success: true };
+    } catch (error) {
+        console.error('Database Error:', error);
+        throw new Error('Failed to delete category.');
+    }
+}
 
 // ############################################################################
 // Coupon Functions
