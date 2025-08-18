@@ -4,12 +4,22 @@
 import type { Product, Coupon, Order, SalesMetrics, OrderData, OrderStatus, Category } from './types';
 
 let localCategories: Category[] = [
-    { id: 1, name: "Perfumes" },
-    { id: 2, name: "Cuidado de Piel" },
-    { id: 3, name: "Joyas" },
-    { id: 4, name: "Accesorios" }
+    { id: 1, name: "Perfumes", parentId: null },
+    { id: 2, name: "Cuidado de Piel", parentId: null },
+    { id: 3, name: "Joyas", parentId: null },
+    { id: 4, name: "Accesorios", parentId: null },
+    { id: 5, name: "Por Marca", parentId: 1 },
+    { id: 6, name: "Perfumes Nicho", parentId: 1 },
+    { id: 7, name: "Perfumes Árabes", parentId: 1 },
+    { id: 8, name: "Por Género", parentId: 1 },
+    // Brands - Subcategories of "Por Marca" (id: 5)
+    { id: 101, name: "Lancôme", parentId: 5 },
+    { id: 102, name: "L'Occitane", parentId: 5 },
+    { id: 103, name: "Dior", parentId: 5 },
+    { id: 104, name: "Chanel", parentId: 5 },
+    { id: 105, name: "Gucci", parentId: 5 },
 ];
-let nextCategoryId = 5;
+let nextCategoryId = 106;
 
 let localProducts: Product[] = [
     {
@@ -19,7 +29,7 @@ let localProducts: Product[] = [
         shortDescription: "Eau de Parfum - Floral Frutal.",
         price: 75000,
         images: ["https://tascani.vtexassets.com/arquivos/ids/182034-800-auto?v=638635608787130000&width=800&height=auto&aspect=true"],
-        categoryIds: [1],
+        categoryIds: [1, 101],
         stock: 15,
         featured: true,
         aiHint: "luxury perfume bottle",
@@ -35,7 +45,7 @@ let localProducts: Product[] = [
         shortDescription: "Crema de manos ultra nutritiva.",
         price: 25000,
         images: ["https://farma365.com.ar/wp-content/uploads/2024/04/3348901486392-3.webp"],
-        categoryIds: [2],
+        categoryIds: [2, 102],
         stock: 8,
         featured: true,
         aiHint: "hand cream tube",
@@ -51,7 +61,7 @@ let localProducts: Product[] = [
         shortDescription: "Perfume masculino concentrado.",
         price: 120000,
         images: ["https://acdn-us.mitiendanube.com/stores/001/071/596/products/snapinsta-app_457143249_18272561446241493_4114811689171539800_n_1080-copia-4c107f322e0631e79017304658593813-240-0.jpg"],
-        categoryIds: [1],
+        categoryIds: [1, 8, 103],
         stock: 12,
         featured: true,
         aiHint: "dark perfume bottle",
@@ -115,7 +125,7 @@ let localProducts: Product[] = [
         shortDescription: "El icónico perfume femenino.",
         price: 115000,
         images: ["https://placehold.co/600x600.png?text=Chanel+N5"],
-        categoryIds: [1],
+        categoryIds: [1, 8, 104],
         stock: 10,
         featured: false,
         aiHint: "classic perfume bottle",
@@ -195,7 +205,7 @@ let localProducts: Product[] = [
         shortDescription: "Eau de Parfum floral.",
         price: 98000,
         images: ["https://placehold.co/600x600.png?text=Gucci+Bloom"],
-        categoryIds: [1],
+        categoryIds: [1, 8, 105],
         stock: 18,
         featured: false,
         aiHint: "pink perfume bottle",

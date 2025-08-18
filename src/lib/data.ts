@@ -195,6 +195,7 @@ function _mapDbRowToCategory(row: any): Category {
     return {
         id: row.id,
         name: row.name,
+        parentId: row.parent_id
     };
 }
 
@@ -202,7 +203,7 @@ export async function getCategories(): Promise<Category[]> {
     if (!db) return getCategoriesFromHardcodedData();
     noStore();
     try {
-        const rows = await db`SELECT * FROM categories ORDER BY name ASC`;
+        const rows = await db`SELECT * FROM categories ORDER BY parent_id, name ASC`;
         return rows.map(_mapDbRowToCategory);
     } catch (error) {
         console.error('Database Error:', error);

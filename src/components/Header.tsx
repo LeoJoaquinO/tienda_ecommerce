@@ -3,10 +3,10 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { ShoppingCart, Menu, ChevronRight } from 'lucide-react';
+import { ShoppingCart, Menu, ChevronRight, ChevronDown } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import { Button } from '@/components/ui/button';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Sheet,
   SheetContent,
@@ -70,6 +70,29 @@ export default function Header() {
     fetchData();
   }, []);
 
+  const { categoryTree, topLevelCategories } = useMemo(() => {
+    const categoryMap = new Map<number, Category & { children: Category[] }>();
+    const rootCategories: (Category & { children: Category[] })[] = [];
+
+    categories.forEach(category => {
+        categoryMap.set(category.id, { ...category, children: [] });
+    });
+
+    categories.forEach(category => {
+        if (category.parentId) {
+            const parent = categoryMap.get(category.parentId);
+            if (parent) {
+                parent.children.push(categoryMap.get(category.id)!);
+            }
+        } else {
+            rootCategories.push(categoryMap.get(category.id)!);
+        }
+    });
+
+    return { categoryTree: rootCategories, topLevelCategories: categories.filter(c => !c.parentId) };
+  }, [categories]);
+
+
   const navLinks = [
     { href: '/', label: 'Inicio' },
     { href: '/#about', label: 'Sobre Nosotros' },
@@ -81,15 +104,19 @@ export default function Header() {
     { href: '/pages/como-comprar', title: 'Cómo Comprar', description: 'Guía paso a paso para tu compra.' },
   ];
   
-  // Split categories into three columns for the mega menu
-  const columns = categories.reduce((acc, category, index) => {
-    const columnIndex = index % 3;
-    if (!acc[columnIndex]) {
-      acc[columnIndex] = [];
-    }
-    acc[columnIndex].push(category);
-    return acc;
-  }, [] as Category[][]);
+  // This function generates the columns for the "Por Marca" mega menu
+  const generateBrandColumns = (subcategories: Category[]) => {
+      if (!subcategories || subcategories.length === 0) return [];
+      const columns = subcategories.reduce((acc, category, index) => {
+        const columnIndex = index % 4; // Distribute into 4 columns
+        if (!acc[columnIndex]) {
+          acc[columnIndex] = [];
+        }
+        acc[columnIndex].push(category);
+        return acc;
+      }, [] as Category[][]);
+      return columns;
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-sm supports-[backdrop-filter]:bg-background/60">
@@ -109,27 +136,59 @@ export default function Header() {
                       </NavigationMenuLink>
                     </NavigationMenuItem>
                 ))}
+
                 <NavigationMenuItem>
                     <NavigationMenuTrigger>Tienda</NavigationMenuTrigger>
                     <NavigationMenuContent>
-                      <div className="grid w-[600px] grid-cols-3 gap-x-6 p-4 lg:w-[750px]">
-                        {columns.map((column, colIndex) => (
-                          <div key={colIndex} className="flex flex-col space-y-1">
-                            {column.map((category) => (
-                               <NavigationMenuLink asChild key={category.id}>
-                                <Link 
-                                    href={`/tienda?category=${category.id}`} 
-                                    className="block select-none rounded-md p-3 text-sm font-medium leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-                                >
-                                  {category.name}
-                                </Link>
-                               </NavigationMenuLink>
-                            ))}
-                          </div>
+                      <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
+                        {categoryTree.map((category) => (
+                           <li key={category.id} className="row-span-3">
+                               <NavigationMenuLink asChild>
+                                  <Link
+                                    href={`/tienda?category=${category.id}`}
+                                    className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-muted/50 to-muted p-6 no-underline outline-none focus:shadow-md"
+                                  >
+                                    <div className="mb-2 mt-4 text-lg font-medium">
+                                      {category.name}
+                                    </div>
+                                    <p className="text-sm leading-tight text-muted-foreground">
+                                        Explora todos los productos de {category.name.toLowerCase()}.
+                                    </p>
+                                  </Link>
+                                </NavigationMenuLink>
+                                 {category.children.length > 0 && (
+                                     <NavigationMenu className="relative z-[60]">
+                                        <NavigationMenuList>
+                                            <NavigationMenuItem>
+                                                <NavigationMenuTrigger className="w-full justify-between mt-2">{category.children[0].name}</NavigationMenuTrigger>
+                                                <NavigationMenuContent>
+                                                     <div className="grid w-[600px] grid-cols-4 gap-x-2 p-4 lg:w-[800px]">
+                                                        {generateBrandColumns(category.children[0].children).map((column, colIndex) => (
+                                                          <div key={colIndex} className="flex flex-col space-y-1">
+                                                            {column.map((brand) => (
+                                                               <NavigationMenuLink asChild key={brand.id}>
+                                                                <Link 
+                                                                    href={`/tienda?category=${brand.id}`} 
+                                                                    className="block select-none rounded-md p-3 text-sm font-medium leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                                                                >
+                                                                  {brand.name}
+                                                                </Link>
+                                                               </NavigationMenuLink>
+                                                            ))}
+                                                          </div>
+                                                        ))}
+                                                      </div>
+                                                </NavigationMenuContent>
+                                            </NavigationMenuItem>
+                                        </NavigationMenuList>
+                                     </NavigationMenu>
+                                 )}
+                           </li>
                         ))}
-                      </div>
+                      </ul>
                     </NavigationMenuContent>
                 </NavigationMenuItem>
+
                 <NavigationMenuItem>
                     <NavigationMenuTrigger>Información</NavigationMenuTrigger>
                     <NavigationMenuContent>
@@ -206,4 +265,3 @@ export default function Header() {
     </header>
   );
 }
-
