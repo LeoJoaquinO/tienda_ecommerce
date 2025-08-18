@@ -113,10 +113,6 @@ const nextConfig: NextConfig = {
             key: 'Access-Control-Allow-Headers',
             value: 'Content-Type, Authorization'
           },
-          {
-            key: 'Permissions-Policy',
-            value: 'browsing-topics=(), private-state-token-redemption=(), private-state-token-issuance=(), private-aggregation=(), attribution-reporting=()'
-          }
         ]
       },
       {
@@ -125,7 +121,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: 'Permissions-Policy',
-            value: 'browsing-topics=(), private-state-token-redemption=(), private-state-token-issuance=(), private-aggregation=(), attribution-reporting=()'
+            value: 'browsing-topics=(), private-state-token-redemption=(), private-state-token-issuance=(), private-aggregation=(), attribution-reporting=(), join-ad-interest-group=(), run-ad-auction=()'
           },
           {
             key: 'X-Content-Type-Options',

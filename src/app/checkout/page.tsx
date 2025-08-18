@@ -19,10 +19,9 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
-import { Loader2, Ticket, ArrowLeft, ShoppingCart, CreditCard, AlertTriangle } from "lucide-react";
+import { Loader2, Ticket, ArrowLeft, ShoppingCart, CreditCard, AlertTriangle, ExternalLink } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-
 
 const shippingSchema = z.object({
   name: z.string().min(2, "El nombre es requerido."),
@@ -39,12 +38,14 @@ const MP_TEST_USERS = {
 };
 
 export default function CheckoutPage() {
-  const { cartItems, subtotal, appliedCoupon, discount, totalPrice, cartCount, clearCart } = useCart();
+  const { cartItems, subtotal, appliedCoupon, discount, totalPrice, cartCount } = useCart();
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [preferenceId, setPreferenceId] = useState<string | null>(null);
-  const [mpInitialized, setMpInitialized] = useState(false);
+  const [preferenceData, setPreferenceData] = useState<{
+    preferenceId: string;
+    initPoint: string;
+  } | null>(null);
   const [showAdBlockerWarning, setShowAdBlockerWarning] = useState(false);
   
   const form = useForm<ShippingFormData>({
@@ -52,43 +53,49 @@ export default function CheckoutPage() {
     defaultValues: { name: "", email: "", address: "", city: "", postalCode: "" },
   });
 
-  // Simple ad blocker detection
+  // Enhanced ad blocker detection
   useEffect(() => {
-    const testAd = document.createElement('div');
-    testAd.innerHTML = '&nbsp;';
-    testAd.className = 'adsbox';
-    document.body.appendChild(testAd);
-    
-    setTimeout(() => {
-      if (testAd.offsetHeight === 0) {
-        setShowAdBlockerWarning(true);
+    const checkAdBlocker = async () => {
+      try {
+        // Test multiple ad-related elements
+        const testElements = [
+          { className: 'adsbox', style: 'width: 1px; height: 1px;' },
+          { className: 'ad', style: 'width: 1px; height: 1px;' },
+          { className: 'ads', style: 'width: 1px; height: 1px;' }
+        ];
+        
+        let blockedCount = 0;
+        
+        for (const testEl of testElements) {
+          const div = document.createElement('div');
+          div.className = testEl.className;
+          div.style.cssText = testEl.style;
+          div.innerHTML = '&nbsp;';
+          document.body.appendChild(div);
+          
+          await new Promise(resolve => setTimeout(resolve, 50));
+          
+          if (div.offsetHeight === 0 || div.offsetWidth === 0) {
+            blockedCount++;
+          }
+          
+          document.body.removeChild(div);
+        }
+        
+        if (blockedCount >= 2) {
+          setShowAdBlockerWarning(true);
+        }
+      } catch (error) {
+        console.log('Ad blocker detection failed:', error);
       }
-      document.body.removeChild(testAd);
-    }, 100);
-  }, []);
-
-  // For the redirect approach, we don't need to initialize the SDK
-  useEffect(() => {
-    const publicKey = process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY;
-    if (!publicKey) {
-      console.error("CRITICAL: NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY is not configured.");
-      return;
-    }
-    setMpInitialized(true);
-    console.log("MercadoPago redirect approach ready");
+    };
+    
+    checkAdBlocker();
   }, []);
 
   const handleShippingSubmit = async (values: ShippingFormData) => {
-    if (!mpInitialized) {
-      toast({ 
-        title: "Error", 
-        description: "Sistema de pagos no inicializado. Recarga la página.", 
-        variant: "destructive" 
-      });
-      return;
-    }
-
     setIsLoading(true);
+    
     try {
       if (!cartItems || cartItems.length === 0) {
         throw new Error("El carrito está vacío");
@@ -96,16 +103,16 @@ export default function CheckoutPage() {
       
       const requestBody = {
         cartItems: cartItems.map((item, index) => ({
-            id: `item_${item.product.id}_${index}`,
-            title: item.product?.name || `Producto ${index + 1}`,
-            quantity: Math.max(1, Number(item.quantity) || 1),
-            unit_price: Math.max(0.01, Number(item.product?.salePrice ?? item.product?.price) || 1),
+          id: `item_${item.product.id}_${index}`,
+          title: item.product?.name || `Producto ${index + 1}`,
+          quantity: Math.max(1, Number(item.quantity) || 1),
+          unit_price: Math.max(0.01, Number(item.product?.salePrice ?? item.product?.price) || 1),
         })),
         payer: {
-            name: values.name,
-            email: process.env.NODE_ENV === 'development' 
-              ? MP_TEST_USERS.buyer 
-              : values.email,
+          name: values.name,
+          email: process.env.NODE_ENV === 'development' 
+            ? MP_TEST_USERS.buyer 
+            : values.email,
         },
         shippingInfo: values,
         totalPrice: Math.max(0.01, Number(totalPrice) || 1),
@@ -115,6 +122,9 @@ export default function CheckoutPage() {
 
       console.log("Creating payment preference with:", requestBody);
 
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
       const response = await fetch('/api/create-preference', {
         method: 'POST',
         headers: { 
@@ -122,69 +132,125 @@ export default function CheckoutPage() {
           'Accept': 'application/json'
         },
         body: JSON.stringify(requestBody),
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Error de red' }));
+        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+      }
 
       const data = await response.json();
       
-      if (!response.ok) {
-        throw new Error(data.error || `HTTP ${response.status}: ${response.statusText}`);
-      }
-
       if (!data.preferenceId) {
         throw new Error("No se recibió el ID de preferencia del servidor");
       }
 
-      setPreferenceId(data.preferenceId);
       console.log("Preference created successfully:", data.preferenceId);
+      
+      setPreferenceData({
+        preferenceId: data.preferenceId,
+        initPoint: data.initPoint || ''
+      });
       
     } catch (error) {
       console.error("Error creating preference:", error);
+      
+      let errorMessage = "Error desconocido";
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          errorMessage = "Tiempo de espera agotado. Intenta nuevamente.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({ 
         title: "Error", 
-        description: error instanceof Error ? error.message : "Error desconocido", 
+        description: errorMessage, 
         variant: "destructive" 
       });
     } finally {
       setIsLoading(false);
     }
   };
+
+  const handlePaymentRedirect = () => {
+    if (!preferenceData?.preferenceId) {
+      toast({
+        title: "Error",
+        description: "No se encontró la preferencia de pago",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // Use the init_point if available, otherwise construct the URL
+      let checkoutUrl: string;
+      
+      if (preferenceData.initPoint) {
+        checkoutUrl = preferenceData.initPoint;
+      } else {
+        const baseUrl = process.env.NODE_ENV === 'development'
+          ? 'https://sandbox.mercadopago.com.ar'
+          : 'https://www.mercadopago.com.ar';
+        checkoutUrl = `${baseUrl}/checkout/v1/redirect?pref_id=${preferenceData.preferenceId}`;
+      }
+
+      console.log('Redirecting to:', checkoutUrl);
+      
+      // Use window.location.href instead of window.open for better compatibility
+      window.location.href = checkoutUrl;
+      
+    } catch (error) {
+      console.error('Error redirecting to payment:', error);
+      toast({
+        title: "Error",
+        description: "Error al redirigir al sistema de pago",
+        variant: "destructive"
+      });
+    }
+  };
   
   useEffect(() => {
-    if (cartCount === 0 && !isLoading && !preferenceId) {
-        const timer = setTimeout(() => {
-          toast({ 
-            title: 'Tu carrito está vacío', 
-            description: 'Serás redirigido a la tienda.', 
-            variant: 'destructive' 
-          });
-          router.push('/tienda');
-        }, 2000);
-        return () => clearTimeout(timer);
+    if (cartCount === 0 && !isLoading && !preferenceData) {
+      const timer = setTimeout(() => {
+        toast({ 
+          title: 'Tu carrito está vacío', 
+          description: 'Serás redirigido a la tienda.', 
+          variant: 'destructive' 
+        });
+        router.push('/tienda');
+      }, 2000);
+      return () => clearTimeout(timer);
     }
-  }, [cartCount, router, isLoading, preferenceId, toast]);
+  }, [cartCount, router, isLoading, preferenceData, toast]);
 
-  if (cartCount === 0 && !preferenceId) {
+  if (cartCount === 0 && !preferenceData) {
     return (
-        <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
-            <ShoppingCart className="h-16 w-16 text-muted-foreground" />
-            <h1 className="text-2xl font-semibold">Tu carrito está vacío</h1>
-            <p className="text-muted-foreground">Serás redirigido a la tienda...</p>
-        </div>
+      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
+        <ShoppingCart className="h-16 w-16 text-muted-foreground" />
+        <h1 className="text-2xl font-semibold">Tu carrito está vacío</h1>
+        <p className="text-muted-foreground">Serás redirigido a la tienda...</p>
+      </div>
     );
   }
 
   if (!process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY) {
     return (
-        <div className="text-center py-12 text-destructive">
-             <h1 className="text-2xl font-semibold">Error de Configuración</h1>
-             <p className="text-muted-foreground mt-2">
-               El sistema de pagos no está configurado. Por favor, contacta al administrador.
-             </p>
-             <p className="text-xs text-muted-foreground mt-4">
-               Variable faltante: NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY
-             </p>
-        </div>
-    )
+      <div className="text-center py-12 text-destructive">
+        <h1 className="text-2xl font-semibold">Error de Configuración</h1>
+        <p className="text-muted-foreground mt-2">
+          El sistema de pagos no está configurado. Por favor, contacta al administrador.
+        </p>
+        <p className="text-xs text-muted-foreground mt-4">
+          Variable faltante: NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY
+        </p>
+      </div>
+    );
   }
 
   const renderOrderSummary = () => (
@@ -256,7 +322,6 @@ export default function CheckoutPage() {
   return (
     <div className="grid lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
       <div className="lg:col-span-1">
-        
         <h1 className="text-3xl font-headline font-bold mb-6">Finalizar Compra</h1>
 
         {process.env.NODE_ENV === 'development' && (
@@ -266,8 +331,8 @@ export default function CheckoutPage() {
             </CardHeader>
             <CardContent className="text-blue-700 space-y-2">
               <p className="text-sm"><strong>Email de prueba:</strong> {MP_TEST_USERS.buyer}</p>
-              <p className="text-sm"><strong>Usuario MP:</strong> TESTUSER15675670838342</p>
-              <p className="text-sm"><strong>Contraseña MP:</strong> asdasdfasfaszx</p>
+              <p className="text-sm"><strong>Usuario MP:</strong> TESTUSER2602352930</p>
+              <p className="text-sm"><strong>Contraseña MP:</strong> qatest6321</p>
               <div className="mt-3 p-3 bg-white rounded text-xs">
                 <p><strong>Tarjetas de prueba:</strong></p>
                 <p>✅ Aprobada: 4509 9535 6623 3704</p>
@@ -279,37 +344,37 @@ export default function CheckoutPage() {
         )}
 
         {showAdBlockerWarning && (
-            <Card className="border-yellow-200 bg-yellow-50 mb-6">
-                <CardContent className="p-4">
-                <div className="flex items-center gap-2 text-yellow-800">
-                    <AlertTriangle className="h-5 w-5" />
-                    <p className="text-sm">
-                    <strong>Importante:</strong> Parece que tienes un bloqueador de anuncios activo. 
-                    Por favor desactívalo para este sitio para asegurar que el sistema de pagos funcione correctamente.
-                    </p>
-                </div>
-                </CardContent>
-            </Card>
+          <Card className="border-yellow-200 bg-yellow-50 mb-6">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 text-yellow-800">
+                <AlertTriangle className="h-5 w-5" />
+                <p className="text-sm">
+                  <strong>Importante:</strong> Detectamos un bloqueador de anuncios activo. 
+                  Por favor desactívalo para este sitio para asegurar que el sistema de pagos funcione correctamente.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         )}
         
         <div className="flex items-center gap-4 mb-8">
-            <div className={cn("flex items-center gap-2", !preferenceId ? 'text-primary font-bold' : 'text-muted-foreground')}>
-                <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-sm", !preferenceId ? 'bg-primary text-primary-foreground' : 'bg-muted')}>1</div>
-                <span>Envío</span>
-            </div>
-            <Separator className="flex-1" />
-            <div className={cn("flex items-center gap-2", preferenceId ? 'text-primary font-bold' : 'text-muted-foreground')}>
-                <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-sm", preferenceId ? 'bg-primary text-primary-foreground' : 'bg-muted')}>2</div>
-                <span>Pago</span>
-            </div>
+          <div className={cn("flex items-center gap-2", !preferenceData ? 'text-primary font-bold' : 'text-muted-foreground')}>
+            <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-sm", !preferenceData ? 'bg-primary text-primary-foreground' : 'bg-muted')}>1</div>
+            <span>Envío</span>
+          </div>
+          <Separator className="flex-1" />
+          <div className={cn("flex items-center gap-2", preferenceData ? 'text-primary font-bold' : 'text-muted-foreground')}>
+            <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-sm", preferenceData ? 'bg-primary text-primary-foreground' : 'bg-muted')}>2</div>
+            <span>Pago</span>
+          </div>
         </div>
 
-        {isLoading && !preferenceId ? (
+        {isLoading && !preferenceData ? (
           <div className="flex flex-col justify-center items-center h-96 gap-4">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
             <p className="text-muted-foreground">Configurando tu pago...</p>
           </div>
-        ) : preferenceId ? (
+        ) : preferenceData ? (
           <Card>
             <CardHeader>
               <CardTitle>2. Finalizar Pago</CardTitle>
@@ -332,12 +397,7 @@ export default function CheckoutPage() {
               
               <Button 
                 size="lg" 
-                onClick={() => {
-                  const checkoutUrl = process.env.NODE_ENV === 'development'
-                    ? `https://sandbox.mercadopago.com.ar/checkout/v1/redirect?pref_id=${preferenceId}`
-                    : `https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=${preferenceId}`;
-                  window.open(checkoutUrl, '_self');
-                }}
+                onClick={handlePaymentRedirect}
                 disabled={isLoading}
                 className="w-full max-w-sm"
               >
@@ -348,7 +408,7 @@ export default function CheckoutPage() {
                   </>
                 ) : (
                   <>
-                    <CreditCard className="mr-2 h-4 w-4" />
+                    <ExternalLink className="mr-2 h-4 w-4" />
                     Continuar al Pago
                   </>
                 )}
@@ -358,7 +418,7 @@ export default function CheckoutPage() {
               <Button 
                 variant="outline" 
                 onClick={() => {
-                  setPreferenceId(null);
+                  setPreferenceData(null);
                 }} 
                 disabled={isLoading}
               >
@@ -375,43 +435,43 @@ export default function CheckoutPage() {
                   <CardDescription>Completa tus datos para el envío del pedido</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <FormField control={form.control} name="name" render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Nombre Completo</FormLabel>
-                          <FormControl><Input {...field} placeholder="Juan Pérez" /></FormControl>
-                          <FormMessage />
-                        </FormItem>
+                  <FormField control={form.control} name="name" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nombre Completo</FormLabel>
+                      <FormControl><Input {...field} placeholder="Juan Pérez" /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}/>
+                  <FormField control={form.control} name="email" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl><Input type="email" {...field} placeholder="juan@email.com" /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}/>
+                  <FormField control={form.control} name="address" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Dirección</FormLabel>
+                      <FormControl><Input {...field} placeholder="Av. Corrientes 1234" /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}/>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField control={form.control} name="city" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Ciudad</FormLabel>
+                        <FormControl><Input {...field} placeholder="Buenos Aires" /></FormControl>
+                        <FormMessage />
+                      </FormItem>
                     )}/>
-                    <FormField control={form.control} name="email" render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl><Input type="email" {...field} placeholder="juan@email.com" /></FormControl>
-                          <FormMessage />
-                        </FormItem>
+                    <FormField control={form.control} name="postalCode" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Código Postal</FormLabel>
+                        <FormControl><Input {...field} placeholder="1001" /></FormControl>
+                        <FormMessage />
+                      </FormItem>
                     )}/>
-                    <FormField control={form.control} name="address" render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Dirección</FormLabel>
-                          <FormControl><Input {...field} placeholder="Av. Corrientes 1234" /></FormControl>
-                          <FormMessage />
-                        </FormItem>
-                    )}/>
-                    <div className="grid grid-cols-2 gap-4">
-                        <FormField control={form.control} name="city" render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Ciudad</FormLabel>
-                              <FormControl><Input {...field} placeholder="Buenos Aires" /></FormControl>
-                              <FormMessage />
-                            </FormItem>
-                        )}/>
-                        <FormField control={form.control} name="postalCode" render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Código Postal</FormLabel>
-                              <FormControl><Input {...field} placeholder="1001" /></FormControl>
-                              <FormMessage />
-                            </FormItem>
-                        )}/>
-                    </div>
+                  </div>
                 </CardContent>
                 <CardFooter>
                   <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
