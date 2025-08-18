@@ -51,7 +51,7 @@ let localProducts: Product[] = [
         description: "Una declaración universal a la belleza de la vida. Una firma olfativa única, encapsulada en el aroma de este perfume dulce que representa una declaración de felicidad.",
         shortDescription: "Eau de Parfum - Floral Frutal.",
         price: 75000,
-        images: ["https://tascani.vtexassets.com/arquivos/ids/182034-800-auto?v=638635608787130000&width=800&height=auto&aspect=true"],
+        images: ["https://farma365.com.ar/wp-content/uploads/2024/04/3348901486392-3.webp"],
         categoryIds: [1, 202, 101], // Perfumes, Mujer, Lancôme
         stock: 15,
         featured: true,
@@ -67,7 +67,7 @@ let localProducts: Product[] = [
         description: "Enriquecida con un 20% de manteca de karité orgánica, esta crema de manos se absorbe rápidamente, dejando las manos suaves, nutridas y protegidas.",
         shortDescription: "Crema de manos ultra nutritiva.",
         price: 25000,
-        images: ["https://farma365.com.ar/wp-content/uploads/2024/04/3348901486392-3.webp"],
+        images: ["https://es.loccitane.com/dw/image/v2/BCMK_PRD/on/demandware.static/-/Sites-occ_master/default/dw15340f10/packshots/01MA150K23_A.jpg?sw=400&sh=400"],
         categoryIds: [2, 302, 102], // Cuidado de Piel, Cuerpo, L'Occitane
         stock: 8,
         featured: true,
@@ -113,11 +113,10 @@ let localProducts: Product[] = [
         id: 5,
         name: "Reloj Clásico de Cuero",
         description: "Reloj analógico con movimiento de cuarzo, caja de acero inoxidable y correa de cuero genuino. Un diseño atemporal para cualquier ocasión.",
-        shortDescription: "Reloj analógico de cuero.",
         price: 85000,
-        images: ["https://placehold.co/600x600.png?text=Reloj+Cuero"],
+        images: ["https://imgur.com/eBq6AMg.png"],
         categoryIds: [4], // Accesorios
-        stock: 5,
+        stock: 0, // Out of stock
         featured: true,
         aiHint: "classic leather watch",
         discountPercentage: null,
@@ -131,7 +130,7 @@ let localProducts: Product[] = [
         description: "Pequeños aros de oro de 18 quilates con un diseño minimalista y elegante, ideales para el uso diario y para combinar con otras joyas.",
         shortDescription: "Aros de oro minimalistas.",
         price: 60000,
-        images: ["https://placehold.co/600x600.png?text=Aros+Oro"],
+        images: ["https://imgur.com/vHqB5oW.png"],
         categoryIds: [3, 404], // Joyas, Aros
         stock: 20,
         featured: false,
@@ -147,7 +146,7 @@ let localProducts: Product[] = [
         description: "El perfume por excelencia. Un bouquet floral aldehído, una composición intemporal y legendaria.",
         shortDescription: "El icónico perfume femenino.",
         price: 115000,
-        images: ["https://placehold.co/600x600.png?text=Chanel+N5"],
+        images: ["https://hips.hearstapps.com/hmg-prod/images/chanel-n-5-1552904574.jpg"],
         categoryIds: [1, 202, 104], // Perfumes, Mujer, Chanel
         stock: 10,
         featured: false,
@@ -163,7 +162,7 @@ let localProducts: Product[] = [
         description: "Un sérum ligero que proporciona una hidratación intensa y duradera para una piel suave y flexible.",
         shortDescription: "Sérum facial de hidratación profunda.",
         price: 35000,
-        images: ["https://placehold.co/600x600.png?text=Serum"],
+        images: ["https://imgur.com/xVwDODZ.png"],
         categoryIds: [2, 301], // Cuidado de Piel, Rostro
         stock: 30,
         featured: false,
@@ -179,7 +178,7 @@ let localProducts: Product[] = [
         description: "Un collar clásico de perlas cultivadas de agua dulce, anudadas a mano con un broche de plata.",
         shortDescription: "Collar de perlas clásico.",
         price: 95000,
-        images: ["https://placehold.co/600x600.png?text=Collar+Perlas"],
+        images: ["https://imgur.com/gY5zP8W.png"],
         categoryIds: [3, 402], // Joyas, Collares
         stock: 8,
         featured: true,
@@ -195,7 +194,7 @@ let localProducts: Product[] = [
         description: "Gafas de sol unisex con montura metálica y lentes polarizadas con protección UV400.",
         shortDescription: "Gafas de sol clásicas.",
         price: 30000,
-        images: ["https://placehold.co/600x600.png?text=Gafas+Sol"],
+        images: ["https://imgur.com/uTjZ0eR.png"],
         categoryIds: [4], // Accesorios
         stock: 40,
         featured: false,
@@ -211,7 +210,7 @@ let localProducts: Product[] = [
         description: "Anillo de oro blanco de 14k con un diamante de corte brillante de 0.5 quilates.",
         shortDescription: "Anillo de diamante solitario.",
         price: 250000,
-        images: ["https://placehold.co/600x600.png?text=Anillo+Diamante"],
+        images: ["https://imgur.com/a9rDTEK.png"],
         categoryIds: [3, 401], // Joyas, Anillos
         stock: 3,
         featured: false,
@@ -227,7 +226,7 @@ let localProducts: Product[] = [
         description: "Una fragancia que captura el espíritu de la mujer contemporánea, diversa y auténtica.",
         shortDescription: "Eau de Parfum floral.",
         price: 98000,
-        images: ["https://placehold.co/600x600.png?text=Gucci+Bloom"],
+        images: ["https://www.lancome.cl/dw/image/v2/BCSH_PRD/on/demandware.static/-/Sites-lancome-master-catalog/default/dw73351b6d/images/3614271663116_LaVieEstBelle_EDP_50ml_pdp_img.jpg?sw=650&sh=650&sm=fit&q=70"],
         categoryIds: [1, 202, 105], // Perfumes, Mujer, Gucci
         stock: 18,
         featured: false,
@@ -243,7 +242,7 @@ let localProducts: Product[] = [
         description: "Protector solar de amplio espectro con una textura ligera y no grasa, resistente al agua.",
         shortDescription: "Protector solar facial y corporal.",
         price: 22000,
-        images: ["https://placehold.co/600x600.png?text=Protector+Solar"],
+        images: ["https://imgur.com/R3I0aKu.png"],
         categoryIds: [2, 303], // Cuidado de Piel, Protectores Solares
         stock: 50,
         featured: false,
@@ -259,7 +258,7 @@ let localProducts: Product[] = [
         description: "Un pañuelo de seda 100% natural con un vibrante estampado floral, perfecto para el cuello o como accesorio para el bolso.",
         shortDescription: "Pañuelo de seda natural.",
         price: 28000,
-        images: ["https://placehold.co/600x600.png?text=Panuelo+Seda"],
+        images: ["https://imgur.com/kP8zY4T.png"],
         categoryIds: [4], // Accesorios
         stock: 22,
         featured: true,
@@ -275,7 +274,7 @@ let localProducts: Product[] = [
         description: "Una opulenta fragancia artesanal con tabaco especiado y vainilla cremosa. Lujosa, cálida y emblemática.",
         shortDescription: "Perfume unisex de lujo.",
         price: 180000,
-        images: ["https://placehold.co/600x600.png?text=Tobacco+Vanille"],
+        images: ["https://tascani.vtexassets.com/arquivos/ids/182034-800-auto?v=638635608787130000&width=800&height=auto&aspect=true"],
         categoryIds: [1, 6, 203, 106], // Perfumes, Nicho, Unisex, Tom Ford
         stock: 7,
         featured: true,
@@ -291,7 +290,7 @@ let localProducts: Product[] = [
         description: "Mascarilla purificante con arcilla verde y aceite de árbol de té para limpiar los poros en profundidad.",
         shortDescription: "Mascarilla facial purificante.",
         price: 18000,
-        images: ["https://placehold.co/600x600.png?text=Mascarilla+Arcilla"],
+        images: ["https://imgur.com/qF0k3hY.png"],
         categoryIds: [2, 301], // Cuidado de Piel, Rostro
         stock: 35,
         featured: false,
@@ -530,3 +529,5 @@ export async function restockItemsForOrder(orderId: number): Promise<void> {
 export async function getOrders(): Promise<Order[]> {
     return JSON.parse(JSON.stringify(localOrders));
 }
+
+    

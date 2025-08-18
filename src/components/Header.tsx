@@ -61,6 +61,7 @@ export default function Header() {
   const { cartCount, setIsSidebarOpen } = useCart();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [activeMenu, setActiveMenu] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -70,29 +71,30 @@ export default function Header() {
     fetchData();
   }, []);
 
-  const { categoryTree } = useMemo(() => {
-    const categoryMap = new Map<number, Category & { children: Category[] }>();
-    const rootCategories: (Category & { children: Category[] })[] = [];
+  const { categoryTree, categoryMap } = useMemo(() => {
+    const tree: (Category & { children: Category[] })[] = [];
+    const map = new Map<number, Category & { children: Category[] }>();
 
     categories.forEach(category => {
-        categoryMap.set(category.id, { ...category, children: [] });
+        map.set(category.id, { ...category, children: [] });
     });
 
     categories.forEach(category => {
-        const categoryWithChildren = categoryMap.get(category.id)!;
-        if (category.parentId) {
-            const parent = categoryMap.get(category.parentId);
-            if (parent) {
-                parent.children.push(categoryWithChildren);
+        const categoryNode = map.get(category.id);
+        if (categoryNode) {
+            if (category.parentId) {
+                const parent = map.get(category.parentId);
+                if (parent) {
+                    parent.children.push(categoryNode);
+                }
+            } else {
+                tree.push(categoryNode);
             }
-        } else {
-            rootCategories.push(categoryWithChildren);
         }
     });
 
-    return { categoryTree: rootCategories };
+    return { categoryTree: tree, categoryMap: map };
   }, [categories]);
-
 
   const navLinks = [
     { href: '/', label: 'Inicio' },
@@ -105,77 +107,85 @@ export default function Header() {
     { href: '/pages/como-comprar', title: 'Cómo Comprar', description: 'Guía paso a paso para tu compra.' },
   ];
   
-  // This function generates the columns for the "Por Marca" mega menu
-  const generateBrandColumns = (subcategories: Category[]) => {
-      if (!subcategories || subcategories.length === 0) return [];
-      const columns = subcategories.reduce((acc, category, index) => {
-        const columnIndex = index % 4; // Distribute into 4 columns
-        if (!acc[columnIndex]) {
-          acc[columnIndex] = [];
-        }
-        acc[columnIndex].push(category);
-        return acc;
-      }, [] as Category[][]);
-      return columns;
-  }
-
   const MegaMenuContent = () => {
-    const perfumesCategory = categoryTree.find(c => c.name === "Perfumes");
-    const brandsParent = perfumesCategory?.children.find(c => c.name === "Por Marca");
-    const brands = brandsParent?.children ?? [];
-    
-    const otherMainCategories = categoryTree.filter(c => c.name !== "Perfumes");
+    const [hoveredCategory, setHoveredCategory] = useState<number | null>(null);
+
+    const mainCategories = useMemo(() => categoryTree.filter(c => c.name !== 'Por Género' && c.name !== 'Por Marca'), [categoryTree]);
+    const perfumesCategory = useMemo(() => categoryTree.find(c => c.name === 'Perfumes'), [categoryTree]);
+
+    const activeSubcategories = useMemo(() => {
+        if (!hoveredCategory) return perfumesCategory?.children ?? [];
+        const category = categoryMap.get(hoveredCategory);
+        return category?.children ?? [];
+    }, [hoveredCategory, categoryMap, perfumesCategory]);
+
+    useEffect(() => {
+        if (perfumesCategory) {
+            setHoveredCategory(perfumesCategory.id);
+        }
+    }, [perfumesCategory]);
 
     return (
-      <NavigationMenuContent>
-        <div className="grid grid-cols-4 gap-x-8 p-6 w-[800px] lg:w-[1000px]">
-          <div className="col-span-1 flex flex-col space-y-4">
-              <h3 className="font-semibold text-lg">{perfumesCategory?.name}</h3>
-              <Separator/>
-              <ul className="flex flex-col space-y-2">
-                {perfumesCategory?.children.map(sub => (
-                    <li key={sub.id}>
-                       <NavigationMenuLink asChild>
-                           <Link href={`/tienda?category=${sub.id}`} className="font-medium text-sm hover:text-primary transition-colors">{sub.name}</Link>
-                       </NavigationMenuLink>
-                    </li>
-                ))}
-              </ul>
-          </div>
-          <div className="col-span-3">
-              <h3 className="font-semibold text-lg">Explorar Marcas</h3>
-              <Separator className='my-4'/>
-              <div className="grid grid-cols-3 gap-x-4 gap-y-2">
-                  {brands.map(brand => (
-                      <NavigationMenuLink asChild key={brand.id}>
-                          <Link href={`/tienda?category=${brand.id}`} className="block rounded-md p-2 text-sm hover:bg-accent hover:text-accent-foreground">
-                              {brand.name}
-                          </Link>
-                      </NavigationMenuLink>
-                  ))}
-              </div>
-          </div>
-        </div>
-        <Separator/>
-        <div className="bg-muted/50 p-6 grid grid-cols-4 gap-x-8">
-            {otherMainCategories.map(cat => (
-                 <div key={cat.id}>
-                    <h3 className="font-semibold mb-2">{cat.name}</h3>
-                    <ul className="flex flex-col space-y-1">
-                        {cat.children.map(sub => (
-                             <li key={sub.id}>
+        <NavigationMenuContent>
+            <div className="grid grid-cols-[1fr_3fr] w-[800px] lg:w-[1000px] p-4">
+                <div className="border-r pr-4">
+                    <h3 className="font-bold text-lg px-3 pb-2">Categorías</h3>
+                    <ul className="flex flex-col">
+                        {perfumesCategory && (
+                            <li key={perfumesCategory.id}>
                                 <NavigationMenuLink asChild>
-                                    <Link href={`/tienda?category=${sub.id}`} className="text-sm text-muted-foreground hover:text-primary transition-colors">{sub.name}</Link>
+                                    <a onMouseEnter={() => setHoveredCategory(perfumesCategory.id)} className={cn("flex w-full items-center justify-between rounded-md p-3 text-sm font-medium no-underline transition-colors hover:bg-accent hover:text-accent-foreground", hoveredCategory === perfumesCategory.id && "bg-accent text-accent-foreground")}>
+                                        {perfumesCategory.name}
+                                        <ChevronRight className="h-4 w-4" />
+                                    </a>
                                 </NavigationMenuLink>
-                             </li>
+                            </li>
+                        )}
+                        {mainCategories.map(cat => (
+                            <li key={cat.id}>
+                                <NavigationMenuLink asChild>
+                                     <a href={`/tienda?category=${cat.id}`} onMouseEnter={() => setHoveredCategory(cat.id)} className={cn("flex w-full items-center justify-between rounded-md p-3 text-sm font-medium no-underline transition-colors hover:bg-accent hover:text-accent-foreground", hoveredCategory === cat.id && "bg-accent text-accent-foreground")}>
+                                        {cat.name}
+                                        <ChevronRight className="h-4 w-4" />
+                                    </a>
+                                </NavigationMenuLink>
+                            </li>
                         ))}
                     </ul>
-                 </div>
-            ))}
-        </div>
-      </NavigationMenuContent>
-    )
-  }
+                </div>
+                <div className="p-4 pl-6">
+                    <h3 className="font-bold text-lg pb-2">
+                        {hoveredCategory ? categoryMap.get(hoveredCategory)?.name : 'Selecciona una categoría'}
+                    </h3>
+                    <ul className="grid grid-cols-3 gap-x-4 gap-y-2">
+                        {activeSubcategories.map(sub => (
+                            <li key={sub.id}>
+                                <NavigationMenuLink asChild>
+                                    <Link href={`/tienda?category=${sub.id}`} className="block rounded-md p-2 text-sm hover:bg-accent hover:text-accent-foreground">
+                                        {sub.name}
+                                    </Link>
+                                </NavigationMenuLink>
+                                {sub.children.length > 0 && (
+                                     <ul className="pl-3 mt-1">
+                                        {sub.children.map(child => (
+                                            <li key={child.id}>
+                                                <NavigationMenuLink asChild>
+                                                    <Link href={`/tienda?category=${child.id}`} className="block rounded-md p-1.5 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground">
+                                                        {child.name}
+                                                    </Link>
+                                                </NavigationMenuLink>
+                                            </li>
+                                        ))}
+                                     </ul>
+                                )}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            </div>
+        </NavigationMenuContent>
+    );
+};
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-sm supports-[backdrop-filter]:bg-background/60">
@@ -277,3 +287,5 @@ export default function Header() {
     </header>
   );
 }
+
+    
