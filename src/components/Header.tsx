@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { ShoppingCart, Menu, ChevronRight, ChevronDown } from 'lucide-react';
+import { ShoppingCart, Menu, ChevronRight } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect, useMemo } from 'react';
@@ -28,7 +28,6 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { getCategories } from '@/lib/data';
 import type { Category } from '@/lib/types';
-import { Separator } from './ui/separator';
 
 const ListItem = React.forwardRef<
   React.ElementRef<"a">,
@@ -61,7 +60,6 @@ export default function Header() {
   const { cartCount, setIsSidebarOpen } = useCart();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [activeMenu, setActiveMenu] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -110,20 +108,17 @@ export default function Header() {
   const MegaMenuContent = () => {
     const [hoveredCategory, setHoveredCategory] = useState<number | null>(null);
 
-    const mainCategories = useMemo(() => categoryTree.filter(c => c.name !== 'Por Género' && c.name !== 'Por Marca'), [categoryTree]);
-    const perfumesCategory = useMemo(() => categoryTree.find(c => c.name === 'Perfumes'), [categoryTree]);
-
     const activeSubcategories = useMemo(() => {
-        if (!hoveredCategory) return perfumesCategory?.children ?? [];
+        if (!hoveredCategory) return [];
         const category = categoryMap.get(hoveredCategory);
         return category?.children ?? [];
-    }, [hoveredCategory, categoryMap, perfumesCategory]);
-
+    }, [hoveredCategory, categoryMap]);
+    
     useEffect(() => {
-        if (perfumesCategory) {
-            setHoveredCategory(perfumesCategory.id);
+        if (categoryTree.length > 0) {
+            setHoveredCategory(categoryTree[0].id);
         }
-    }, [perfumesCategory]);
+    }, [categoryTree]);
 
     return (
         <NavigationMenuContent>
@@ -131,20 +126,10 @@ export default function Header() {
                 <div className="border-r pr-4">
                     <h3 className="font-bold text-lg px-3 pb-2">Categorías</h3>
                     <ul className="flex flex-col">
-                        {perfumesCategory && (
-                            <li key={perfumesCategory.id}>
-                                <NavigationMenuLink asChild>
-                                    <a onMouseEnter={() => setHoveredCategory(perfumesCategory.id)} className={cn("flex w-full items-center justify-between rounded-md p-3 text-sm font-medium no-underline transition-colors hover:bg-accent hover:text-accent-foreground", hoveredCategory === perfumesCategory.id && "bg-accent text-accent-foreground")}>
-                                        {perfumesCategory.name}
-                                        <ChevronRight className="h-4 w-4" />
-                                    </a>
-                                </NavigationMenuLink>
-                            </li>
-                        )}
-                        {mainCategories.map(cat => (
+                        {categoryTree.map(cat => (
                             <li key={cat.id}>
                                 <NavigationMenuLink asChild>
-                                     <a href={`/tienda?category=${cat.id}`} onMouseEnter={() => setHoveredCategory(cat.id)} className={cn("flex w-full items-center justify-between rounded-md p-3 text-sm font-medium no-underline transition-colors hover:bg-accent hover:text-accent-foreground", hoveredCategory === cat.id && "bg-accent text-accent-foreground")}>
+                                    <a onMouseEnter={() => setHoveredCategory(cat.id)} className={cn("flex w-full items-center justify-between rounded-md p-3 text-sm font-medium no-underline transition-colors hover:bg-accent hover:text-accent-foreground", hoveredCategory === cat.id && "bg-accent text-accent-foreground")}>
                                         {cat.name}
                                         <ChevronRight className="h-4 w-4" />
                                     </a>
@@ -287,5 +272,3 @@ export default function Header() {
     </header>
   );
 }
-
-    
