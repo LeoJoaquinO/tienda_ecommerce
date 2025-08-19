@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { ShoppingCart, Menu, ChevronRight } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import { Button } from '@/components/ui/button';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, forwardRef } from 'react';
 import {
   Sheet,
   SheetContent,
@@ -29,7 +29,7 @@ import { cn } from '@/lib/utils';
 import { getCategories } from '@/lib/data';
 import type { Category } from '@/lib/types';
 
-const ListItem = React.forwardRef<
+const ListItem = forwardRef<
   React.ElementRef<"a">,
   React.ComponentPropsWithoutRef<"a">
 >(({ className, title, children, ...props }, ref) => {
@@ -52,7 +52,7 @@ const ListItem = React.forwardRef<
       </NavigationMenuLink>
     </li>
   )
-})
+});
 ListItem.displayName = "ListItem"
 
 
@@ -63,8 +63,12 @@ export default function Header() {
 
   useEffect(() => {
     async function fetchData() {
-        const fetchedCategories = await getCategories();
-        setCategories(fetchedCategories);
+        try {
+            const fetchedCategories = await getCategories();
+            setCategories(fetchedCategories);
+        } catch (error) {
+            console.error("Failed to fetch categories:", error);
+        }
     }
     fetchData();
   }, []);
@@ -73,21 +77,20 @@ export default function Header() {
     const tree: (Category & { children: Category[] })[] = [];
     const map = new Map<number, Category & { children: Category[] }>();
 
-    categories.forEach(category => {
-        map.set(category.id, { ...category, children: [] });
+    const items = categories.map(category => ({ ...category, children: [] }));
+    
+    items.forEach(category => {
+        map.set(category.id, category);
     });
 
-    categories.forEach(category => {
-        const categoryNode = map.get(category.id);
-        if (categoryNode) {
-            if (category.parentId) {
-                const parent = map.get(category.parentId);
-                if (parent) {
-                    parent.children.push(categoryNode);
-                }
-            } else {
-                tree.push(categoryNode);
+    items.forEach(category => {
+        if (category.parentId) {
+            const parent = map.get(category.parentId);
+            if (parent) {
+                parent.children.push(category);
             }
+        } else {
+            tree.push(category);
         }
     });
 
@@ -115,24 +118,31 @@ export default function Header() {
     }, [hoveredCategory, categoryMap]);
     
     useEffect(() => {
-        if (categoryTree.length > 0) {
+        if (categoryTree.length > 0 && !hoveredCategory) {
             setHoveredCategory(categoryTree[0].id);
         }
-    }, [categoryTree]);
+    }, [categoryTree, hoveredCategory]);
 
     return (
         <NavigationMenuContent>
-            <div className="grid grid-cols-[1fr_3fr] w-[800px] lg:w-[1000px] p-4">
+            <div className="grid grid-cols-[1fr_3fr] w-[600px] lg:w-[800px] p-4">
                 <div className="border-r pr-4">
                     <h3 className="font-bold text-lg px-3 pb-2">Categorías</h3>
                     <ul className="flex flex-col">
                         {categoryTree.map(cat => (
                             <li key={cat.id}>
                                 <NavigationMenuLink asChild>
-                                    <a onMouseEnter={() => setHoveredCategory(cat.id)} className={cn("flex w-full items-center justify-between rounded-md p-3 text-sm font-medium no-underline transition-colors hover:bg-accent hover:text-accent-foreground", hoveredCategory === cat.id && "bg-accent text-accent-foreground")}>
+                                    <Link 
+                                        href={`/tienda?category=${cat.id}`}
+                                        onMouseEnter={() => setHoveredCategory(cat.id)} 
+                                        className={cn(
+                                            "flex w-full items-center justify-between rounded-md p-3 text-sm font-medium no-underline transition-colors hover:bg-accent hover:text-accent-foreground", 
+                                            hoveredCategory === cat.id && "bg-accent text-accent-foreground"
+                                        )}
+                                    >
                                         {cat.name}
-                                        <ChevronRight className="h-4 w-4" />
-                                    </a>
+                                        {cat.children.length > 0 && <ChevronRight className="h-4 w-4" />}
+                                    </Link>
                                 </NavigationMenuLink>
                             </li>
                         ))}
@@ -142,29 +152,18 @@ export default function Header() {
                     <h3 className="font-bold text-lg pb-2">
                         {hoveredCategory ? categoryMap.get(hoveredCategory)?.name : 'Selecciona una categoría'}
                     </h3>
-                    <ul className="grid grid-cols-3 gap-x-4 gap-y-2">
-                        {activeSubcategories.map(sub => (
-                            <li key={sub.id}>
-                                <NavigationMenuLink asChild>
-                                    <Link href={`/tienda?category=${sub.id}`} className="block rounded-md p-2 text-sm hover:bg-accent hover:text-accent-foreground">
-                                        {sub.name}
-                                    </Link>
-                                </NavigationMenuLink>
-                                {sub.children.length > 0 && (
-                                     <ul className="pl-3 mt-1">
-                                        {sub.children.map(child => (
-                                            <li key={child.id}>
-                                                <NavigationMenuLink asChild>
-                                                    <Link href={`/tienda?category=${child.id}`} className="block rounded-md p-1.5 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground">
-                                                        {child.name}
-                                                    </Link>
-                                                </NavigationMenuLink>
-                                            </li>
-                                        ))}
-                                     </ul>
-                                )}
-                            </li>
-                        ))}
+                    <ul className="grid grid-cols-2 gap-x-4 gap-y-2">
+                      {activeSubcategories.length > 0 ? activeSubcategories.map(sub => (
+                          <li key={sub.id}>
+                              <NavigationMenuLink asChild>
+                                  <Link href={`/tienda?category=${sub.id}`} className="block rounded-md p-2 text-sm hover:bg-accent hover:text-accent-foreground">
+                                      {sub.name}
+                                  </Link>
+                              </NavigationMenuLink>
+                          </li>
+                      )) : (
+                        <li className="text-sm text-muted-foreground col-span-2">No hay subcategorías.</li>
+                      )}
                     </ul>
                 </div>
             </div>
@@ -190,9 +189,17 @@ export default function Header() {
                       </NavigationMenuLink>
                     </NavigationMenuItem>
                 ))}
-
+                
                 <NavigationMenuItem>
-                    <NavigationMenuTrigger>Tienda</NavigationMenuTrigger>
+                    <Link href="/tienda" legacyBehavior passHref>
+                      <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                        Tienda
+                      </NavigationMenuLink>
+                    </Link>
+                </NavigationMenuItem>
+                
+                <NavigationMenuItem>
+                    <NavigationMenuTrigger>Categorías</NavigationMenuTrigger>
                     <MegaMenuContent/>
                 </NavigationMenuItem>
 
