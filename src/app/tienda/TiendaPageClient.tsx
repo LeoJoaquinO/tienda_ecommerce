@@ -98,27 +98,37 @@ export function TiendaPageClient({ allProducts, allCategories, offerProducts }: 
   const activeSubCategories = useMemo(() => {
     if (selectedCategory === 'All') return [];
     
-    const cat = categoryMap.get(Number(selectedCategory));
+    const catId = Number(selectedCategory);
+    const cat = categoryMap.get(catId);
     if (!cat) return [];
 
-    // If it's a parent, return its children
-    if (cat.parentId === null) {
-        return subCategories.get(cat.id) ?? [];
+    // If it's a parent category, return its direct children
+    if (!cat.parentId) {
+      return subCategories.get(catId) ?? [];
     }
 
-    // If it's a child, return its siblings
+    // If it's a child category, return its siblings (children of its parent)
     if (cat.parentId) {
-        return subCategories.get(cat.parentId) ?? [];
+      return subCategories.get(cat.parentId) ?? [];
     }
 
     return [];
   }, [selectedCategory, categoryMap, subCategories]);
 
   const activeParentId = useMemo(() => {
-      if (selectedCategory === 'All') return 'All';
-      const cat = categoryMap.get(Number(selectedCategory));
-      return cat?.parentId ?? cat?.id ?? 'All';
+    if (selectedCategory === 'All') return 'All';
+    const catId = Number(selectedCategory);
+    const cat = categoryMap.get(catId);
+    return String(cat?.parentId ?? cat?.id ?? 'All');
   }, [selectedCategory, categoryMap]);
+  
+  const handleParentCategorySelect = (categoryId: string) => {
+      setSelectedCategory(categoryId);
+  };
+  
+  const handleSubCategorySelect = (categoryId: string) => {
+      setSelectedCategory(categoryId);
+  };
 
   const filteredProducts = useMemo(() => {
       let items = allProducts;
@@ -219,8 +229,8 @@ export function TiendaPageClient({ allProducts, allCategories, offerProducts }: 
               <div className="space-y-4">
                 <CategoryFilters 
                     categories={parentCategories} 
-                    selected={String(activeParentId)} 
-                    onSelect={setSelectedCategory} 
+                    selected={activeParentId} 
+                    onSelect={handleParentCategorySelect} 
                     disabled={false}
                 />
                  {activeSubCategories.length > 0 && (
@@ -228,7 +238,7 @@ export function TiendaPageClient({ allProducts, allCategories, offerProducts }: 
                         <CategoryFilters
                             categories={activeSubCategories}
                             selected={selectedCategory}
-                            onSelect={setSelectedCategory}
+                            onSelect={handleSubCategorySelect}
                             disabled={false}
                         />
                     </div>
@@ -265,7 +275,3 @@ export function TiendaPageClient({ allProducts, allCategories, offerProducts }: 
     </div>
   );
 }
-
-    
-
-    
