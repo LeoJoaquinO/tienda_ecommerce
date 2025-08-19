@@ -111,6 +111,10 @@ export default function Header() {
   const MegaMenuContent = () => {
     const [hoveredCategory, setHoveredCategory] = useState<number | null>(null);
 
+    const mainCategories = useMemo(() => {
+        return categoryTree.filter(c => c.parentId === 1); // Only children of "Perfumes"
+    }, [categoryTree]);
+
     const activeSubcategories = useMemo(() => {
         if (!hoveredCategory) return [];
         const category = categoryMap.get(hoveredCategory);
@@ -118,18 +122,17 @@ export default function Header() {
     }, [hoveredCategory, categoryMap]);
     
     useEffect(() => {
-        if (categoryTree.length > 0 && !hoveredCategory) {
-            setHoveredCategory(categoryTree[0].id);
+        if (mainCategories.length > 0 && !hoveredCategory) {
+            setHoveredCategory(mainCategories[0].id);
         }
-    }, [categoryTree, hoveredCategory]);
+    }, [mainCategories, hoveredCategory]);
 
     return (
         <NavigationMenuContent>
             <div className="grid grid-cols-[1fr_3fr] w-[600px] lg:w-[800px] p-4">
                 <div className="border-r pr-4">
-                    <h3 className="font-bold text-lg px-3 pb-2">Categorías</h3>
-                    <ul className="flex flex-col">
-                        {categoryTree.map(cat => (
+                     <ul className="flex flex-col">
+                        {mainCategories.map(cat => (
                             <li key={cat.id}>
                                 <NavigationMenuLink asChild>
                                     <Link 
@@ -189,17 +192,9 @@ export default function Header() {
                       </NavigationMenuLink>
                     </NavigationMenuItem>
                 ))}
-                
+                                
                 <NavigationMenuItem>
-                    <Link href="/tienda" legacyBehavior passHref>
-                      <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                        Tienda
-                      </NavigationMenuLink>
-                    </Link>
-                </NavigationMenuItem>
-                
-                <NavigationMenuItem>
-                    <NavigationMenuTrigger>Categorías</NavigationMenuTrigger>
+                    <NavigationMenuTrigger>Tienda</NavigationMenuTrigger>
                     <MegaMenuContent/>
                 </NavigationMenuItem>
 
@@ -279,3 +274,5 @@ export default function Header() {
     </header>
   );
 }
+
+    
