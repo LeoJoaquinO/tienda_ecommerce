@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
@@ -14,19 +13,10 @@ import { Slider } from '@/components/ui/slider';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
-function CategoryFilters({ categories, selected, onSelect, disabled, title }: { categories: Category[], selected: string, onSelect: (category: string) => void, disabled: boolean, title?: string }) {
+function CategoryFilters({ categories, selected, onSelect, disabled }: { categories: Category[], selected: string, onSelect: (category: string) => void, disabled: boolean }) {
     if (categories.length === 0) return null;
     return (
         <div className="flex flex-wrap justify-center items-center gap-2">
-             {title && <p className="text-sm font-medium text-muted-foreground mr-2">{title}</p>}
-            <Button
-                variant={selected === 'All' || !categories.some(c => String(c.id) === selected) ? 'default' : 'outline'}
-                onClick={() => onSelect('All')}
-                disabled={disabled}
-                className="rounded-full"
-            >
-                Todos
-            </Button>
             {categories.map((category) => (
                 <Button
                     key={category.id}
@@ -53,27 +43,28 @@ export function TiendaPageClient({ allProducts, allCategories, offerProducts }: 
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
   
-  const { categoryMap, parentCategories, subCategories } = useMemo(() => {
-    const map = new Map<number, Category>();
-    const parents: Category[] = [];
-    const childrenMap = new Map<number, Category[]>();
+  const { categoryTree } = useMemo(() => {
+    const tree: (Category & { children: Category[] })[] = [];
+    const map = new Map<number, Category & { children: Category[] }>();
 
-    allCategories.forEach(c => {
-        map.set(c.id, c);
-        if (c.parentId === null) {
-            parents.push(c);
-        }
-    });
-
-    allCategories.forEach(c => {
-        if (c.parentId) {
-            const parentChildren = childrenMap.get(c.parentId) ?? [];
-            parentChildren.push(c);
-            childrenMap.set(c.parentId, parentChildren);
-        }
-    });
+    const items = allCategories.map(category => ({ ...category, children: [] as Category[] }));
     
-    return { categoryMap: map, parentCategories: parents, subCategories: childrenMap };
+    items.forEach(category => {
+        map.set(category.id, category);
+    });
+
+    items.forEach(category => {
+        if (category.parentId) {
+            const parent = map.get(category.parentId);
+            if (parent) {
+                parent.children.push(category);
+            }
+        } else {
+            tree.push(category);
+        }
+    });
+
+    return { categoryTree: tree };
   }, [allCategories]);
 
   const maxPrice = useMemo(() => {
@@ -95,41 +86,10 @@ export function TiendaPageClient({ allProducts, allCategories, offerProducts }: 
     }
   }, [searchParams, allCategories]);
 
-  const activeSubCategories = useMemo(() => {
-    if (selectedCategory === 'All') return [];
-    
-    const catId = Number(selectedCategory);
-    const cat = categoryMap.get(catId);
-    if (!cat) return [];
-
-    // If it's a parent category, return its direct children
-    if (!cat.parentId) {
-      return subCategories.get(catId) ?? [];
-    }
-
-    // If it's a child category, return its siblings (children of its parent)
-    if (cat.parentId) {
-      return subCategories.get(cat.parentId) ?? [];
-    }
-
-    return [];
-  }, [selectedCategory, categoryMap, subCategories]);
-
-  const activeParentId = useMemo(() => {
-    if (selectedCategory === 'All') return 'All';
-    const catId = Number(selectedCategory);
-    const cat = categoryMap.get(catId);
-    return String(cat?.parentId ?? cat?.id ?? 'All');
-  }, [selectedCategory, categoryMap]);
-  
-  const handleParentCategorySelect = (categoryId: string) => {
+  const handleCategorySelect = (categoryId: string) => {
       setSelectedCategory(categoryId);
   };
   
-  const handleSubCategorySelect = (categoryId: string) => {
-      setSelectedCategory(categoryId);
-  };
-
   const filteredProducts = useMemo(() => {
       let items = allProducts;
 
@@ -139,9 +99,18 @@ export function TiendaPageClient({ allProducts, allCategories, offerProducts }: 
 
       if (selectedCategory !== 'All') {
           const catId = Number(selectedCategory);
+          const categoryMap = new Map(allCategories.map(c => [c.id, c]));
+          const subCategoriesMap = allCategories.reduce((acc, cat) => {
+              if (cat.parentId) {
+                  if (!acc.has(cat.parentId)) acc.set(cat.parentId, []);
+                  acc.get(cat.parentId)!.push(cat);
+              }
+              return acc;
+          }, new Map<number, Category[]>());
+          
           const category = categoryMap.get(catId);
           if (category) {
-              const idsToFilter = [catId, ...(subCategories.get(catId) ?? []).map(c => c.id)];
+              const idsToFilter = [catId, ...(subCategoriesMap.get(catId) ?? []).map(c => c.id)];
               items = items.filter(p => p.categoryIds.some(id => idsToFilter.includes(id)));
           }
       }
@@ -152,20 +121,20 @@ export function TiendaPageClient({ allProducts, allCategories, offerProducts }: 
       });
 
       return items;
-  }, [allProducts, searchQuery, selectedCategory, priceRange, categoryMap, subCategories]);
+  }, [allProducts, searchQuery, selectedCategory, priceRange, allCategories]);
 
   const productsGroupedByCategory = useMemo(() => {
     if (selectedCategory !== 'All' || searchQuery || priceRange[0] > 0 || priceRange[1] < maxPrice) {
       return null;
     }
-    return parentCategories.reduce((acc, category) => {
-        const productsInCategory = filteredProducts.filter(p => p.categoryIds.includes(category.id));
+    return categoryTree.reduce((acc, category) => {
+        const productsInCategory = filteredProducts.filter(p => p.categoryIds.includes(category.id) || category.children.some(child => p.categoryIds.includes(child.id)));
         if (productsInCategory.length > 0) {
             acc[category.name] = productsInCategory;
         }
         return acc;
     }, {} as Record<string, Product[]>);
-  }, [filteredProducts, selectedCategory, parentCategories, searchQuery, priceRange, maxPrice]);
+  }, [filteredProducts, selectedCategory, categoryTree, searchQuery, priceRange, maxPrice]);
 
   return (
     <div className="space-y-12">
@@ -226,27 +195,29 @@ export function TiendaPageClient({ allProducts, allCategories, offerProducts }: 
                   </div>
               </div>
 
-              <div className="space-y-4">
-                <CategoryFilters 
-                    categories={parentCategories} 
-                    selected={activeParentId} 
-                    onSelect={handleParentCategorySelect} 
-                    disabled={false}
-                />
-                 {activeSubCategories.length > 0 && (
-                    <div className="p-4 bg-muted/50 rounded-lg">
-                        <CategoryFilters
-                            categories={activeSubCategories}
-                            selected={selectedCategory}
-                            onSelect={handleSubCategorySelect}
-                            disabled={false}
-                        />
-                    </div>
-                )}
+              <div className="space-y-6">
+                <Button
+                    variant={selectedCategory === 'All' ? 'default' : 'outline'}
+                    onClick={() => handleCategorySelect('All')}
+                    className="rounded-full"
+                >
+                    Todos los Productos
+                </Button>
+                {categoryTree.map(parentCat => (
+                  <div key={parentCat.id} className="space-y-3">
+                      <h3 className="font-headline text-2xl font-semibold">{parentCat.name}</h3>
+                      <CategoryFilters
+                          categories={parentCat.children}
+                          selected={selectedCategory}
+                          onSelect={handleCategorySelect}
+                          disabled={false}
+                      />
+                  </div>
+                ))}
               </div>
           </div>
           
-          {productsGroupedByCategory ? (
+          {productsGroupedByCategory && selectedCategory === 'All' ? (
               <div className="space-y-12">
                 {Object.entries(productsGroupedByCategory).map(([category, catProducts]) => (
                   <div key={category}>
