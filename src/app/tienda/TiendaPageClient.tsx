@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
@@ -11,12 +12,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { Card } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
-function CategoryFilters({ categories, selected, onSelect, disabled }: { categories: Category[], selected: string, onSelect: (category: string) => void, disabled: boolean }) {
+function CategoryFilters({ categories, selected, onSelect, disabled, title }: { categories: Category[], selected: string, onSelect: (category: string) => void, disabled: boolean, title?: string }) {
+    if (categories.length === 0) return null;
     return (
-        <div className="flex flex-wrap justify-center gap-2">
+        <div className="flex flex-wrap justify-center items-center gap-2">
+             {title && <p className="text-sm font-medium text-muted-foreground mr-2">{title}</p>}
             <Button
-                variant={selected === 'All' ? 'default' : 'outline'}
+                variant={selected === 'All' || !categories.some(c => String(c.id) === selected) ? 'default' : 'outline'}
                 onClick={() => onSelect('All')}
                 disabled={disabled}
                 className="rounded-full"
@@ -49,6 +53,29 @@ export function TiendaPageClient({ allProducts, allCategories, offerProducts }: 
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
   
+  const { categoryMap, parentCategories, subCategories } = useMemo(() => {
+    const map = new Map<number, Category>();
+    const parents: Category[] = [];
+    const childrenMap = new Map<number, Category[]>();
+
+    allCategories.forEach(c => {
+        map.set(c.id, c);
+        if (c.parentId === null) {
+            parents.push(c);
+        }
+    });
+
+    allCategories.forEach(c => {
+        if (c.parentId) {
+            const parentChildren = childrenMap.get(c.parentId) ?? [];
+            parentChildren.push(c);
+            childrenMap.set(c.parentId, parentChildren);
+        }
+    });
+    
+    return { categoryMap: map, parentCategories: parents, subCategories: childrenMap };
+  }, [allCategories]);
+
   const maxPrice = useMemo(() => {
     return Math.ceil(Math.max(...allProducts.map(p => p.price)) / 100) * 100;
   }, [allProducts]);
@@ -68,6 +95,31 @@ export function TiendaPageClient({ allProducts, allCategories, offerProducts }: 
     }
   }, [searchParams, allCategories]);
 
+  const activeSubCategories = useMemo(() => {
+    if (selectedCategory === 'All') return [];
+    
+    const cat = categoryMap.get(Number(selectedCategory));
+    if (!cat) return [];
+
+    // If it's a parent, return its children
+    if (cat.parentId === null) {
+        return subCategories.get(cat.id) ?? [];
+    }
+
+    // If it's a child, return its siblings
+    if (cat.parentId) {
+        return subCategories.get(cat.parentId) ?? [];
+    }
+
+    return [];
+  }, [selectedCategory, categoryMap, subCategories]);
+
+  const activeParentId = useMemo(() => {
+      if (selectedCategory === 'All') return 'All';
+      const cat = categoryMap.get(Number(selectedCategory));
+      return cat?.parentId ?? cat?.id ?? 'All';
+  }, [selectedCategory, categoryMap]);
+
   const filteredProducts = useMemo(() => {
       let items = allProducts;
 
@@ -76,7 +128,12 @@ export function TiendaPageClient({ allProducts, allCategories, offerProducts }: 
       }
 
       if (selectedCategory !== 'All') {
-          items = items.filter(p => p.categoryIds.includes(Number(selectedCategory)));
+          const catId = Number(selectedCategory);
+          const category = categoryMap.get(catId);
+          if (category) {
+              const idsToFilter = [catId, ...(subCategories.get(catId) ?? []).map(c => c.id)];
+              items = items.filter(p => p.categoryIds.some(id => idsToFilter.includes(id)));
+          }
       }
       
       items = items.filter(p => {
@@ -85,20 +142,20 @@ export function TiendaPageClient({ allProducts, allCategories, offerProducts }: 
       });
 
       return items;
-  }, [allProducts, searchQuery, selectedCategory, priceRange]);
+  }, [allProducts, searchQuery, selectedCategory, priceRange, categoryMap, subCategories]);
 
   const productsGroupedByCategory = useMemo(() => {
     if (selectedCategory !== 'All' || searchQuery || priceRange[0] > 0 || priceRange[1] < maxPrice) {
       return null;
     }
-    return allCategories.reduce((acc, category) => {
+    return parentCategories.reduce((acc, category) => {
         const productsInCategory = filteredProducts.filter(p => p.categoryIds.includes(category.id));
         if (productsInCategory.length > 0) {
             acc[category.name] = productsInCategory;
         }
         return acc;
     }, {} as Record<string, Product[]>);
-  }, [filteredProducts, selectedCategory, allCategories, searchQuery, priceRange, maxPrice]);
+  }, [filteredProducts, selectedCategory, parentCategories, searchQuery, priceRange, maxPrice]);
 
   return (
     <div className="space-y-12">
@@ -159,7 +216,24 @@ export function TiendaPageClient({ allProducts, allCategories, offerProducts }: 
                   </div>
               </div>
 
-              <CategoryFilters categories={allCategories.filter(c => c.parentId === null)} selected={selectedCategory} onSelect={setSelectedCategory} disabled={false}/>
+              <div className="space-y-4">
+                <CategoryFilters 
+                    categories={parentCategories} 
+                    selected={String(activeParentId)} 
+                    onSelect={setSelectedCategory} 
+                    disabled={false}
+                />
+                 {activeSubCategories.length > 0 && (
+                    <div className="p-4 bg-muted/50 rounded-lg">
+                        <CategoryFilters
+                            categories={activeSubCategories}
+                            selected={selectedCategory}
+                            onSelect={setSelectedCategory}
+                            disabled={false}
+                        />
+                    </div>
+                )}
+              </div>
           </div>
           
           {productsGroupedByCategory ? (
