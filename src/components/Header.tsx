@@ -112,7 +112,7 @@ export default function Header() {
     const [hoveredCategory, setHoveredCategory] = useState<number | null>(null);
 
     const mainCategories = useMemo(() => {
-        return categoryTree.filter(c => c.parentId === 1); // Only children of "Perfumes"
+        return categoryTree.filter(c => c.parentId === null); // Only top-level categories
     }, [categoryTree]);
 
     const activeSubcategories = useMemo(() => {
