@@ -76,7 +76,7 @@ export default function Header() {
     const tree: (Category & { children: Category[] })[] = [];
     const map = new Map<number, Category & { children: Category[] }>();
 
-    const items = categories.map(category => ({ ...category, children: [] }));
+    const items = categories.map(category => ({ ...category, children: [] as Category[] }));
     
     items.forEach(category => {
         map.set(category.id, category);
@@ -108,10 +108,7 @@ export default function Header() {
   ];
   
   const MegaMenuContent = () => {
-    const mainCategories = useMemo(() => {
-        return categoryTree.filter(c => c.parentId === null);
-    }, [categoryTree]);
-
+    const mainCategories = categoryTree;
     const [hoveredCategory, setHoveredCategory] = useState<number | null>(mainCategories[0]?.id ?? null);
     
     useEffect(() => {
@@ -196,7 +193,9 @@ export default function Header() {
                 ))}
                                 
                 <NavigationMenuItem>
-                    <NavigationMenuTrigger>Tienda</NavigationMenuTrigger>
+                    <NavigationMenuTrigger>
+                        <Link href="/tienda">Tienda</Link>
+                    </NavigationMenuTrigger>
                     <MegaMenuContent/>
                 </NavigationMenuItem>
 
