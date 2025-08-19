@@ -2,7 +2,6 @@
 "use client";
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { ShoppingCart, Menu, ChevronRight } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import { Button } from '@/components/ui/button';
@@ -109,17 +108,11 @@ export default function Header() {
   ];
   
   const MegaMenuContent = () => {
-    const [hoveredCategory, setHoveredCategory] = useState<number | null>(null);
-
     const mainCategories = useMemo(() => {
-        return categoryTree.filter(c => c.parentId === null); // Only top-level categories
+        return categoryTree.filter(c => c.parentId === null);
     }, [categoryTree]);
 
-    const activeSubcategories = useMemo(() => {
-        if (!hoveredCategory) return [];
-        const category = categoryMap.get(hoveredCategory);
-        return category?.children ?? [];
-    }, [hoveredCategory, categoryMap]);
+    const [hoveredCategory, setHoveredCategory] = useState<number | null>(mainCategories[0]?.id ?? null);
     
     useEffect(() => {
         if (mainCategories.length > 0 && !hoveredCategory) {
@@ -127,17 +120,22 @@ export default function Header() {
         }
     }, [mainCategories, hoveredCategory]);
 
+    const activeSubcategories = useMemo(() => {
+        if (!hoveredCategory) return [];
+        const category = categoryMap.get(hoveredCategory);
+        return category?.children ?? [];
+    }, [hoveredCategory, categoryMap]);
+    
     return (
         <NavigationMenuContent>
             <div className="grid grid-cols-[1fr_3fr] w-[600px] lg:w-[800px] p-4">
                 <div className="border-r pr-4">
                      <ul className="flex flex-col">
                         {mainCategories.map(cat => (
-                            <li key={cat.id}>
+                            <li key={cat.id} onMouseEnter={() => setHoveredCategory(cat.id)} >
                                 <NavigationMenuLink asChild>
                                     <Link 
-                                        href={`/tienda?category=${cat.id}`}
-                                        onMouseEnter={() => setHoveredCategory(cat.id)} 
+                                        href={`/tienda?category=${cat.id}#products-grid`}
                                         className={cn(
                                             "flex w-full items-center justify-between rounded-md p-3 text-sm font-medium no-underline transition-colors hover:bg-accent hover:text-accent-foreground", 
                                             hoveredCategory === cat.id && "bg-accent text-accent-foreground"
@@ -152,22 +150,26 @@ export default function Header() {
                     </ul>
                 </div>
                 <div className="p-4 pl-6">
-                    <h3 className="font-bold text-lg pb-2">
-                        {hoveredCategory ? categoryMap.get(hoveredCategory)?.name : 'Selecciona una categoría'}
-                    </h3>
-                    <ul className="grid grid-cols-2 gap-x-4 gap-y-2">
-                      {activeSubcategories.length > 0 ? activeSubcategories.map(sub => (
-                          <li key={sub.id}>
-                              <NavigationMenuLink asChild>
-                                  <Link href={`/tienda?category=${sub.id}`} className="block rounded-md p-2 text-sm hover:bg-accent hover:text-accent-foreground">
-                                      {sub.name}
-                                  </Link>
-                              </NavigationMenuLink>
-                          </li>
-                      )) : (
-                        <li className="text-sm text-muted-foreground col-span-2">No hay subcategorías.</li>
-                      )}
-                    </ul>
+                    {hoveredCategory && (
+                        <>
+                            <h3 className="font-bold text-lg pb-2">
+                                {categoryMap.get(hoveredCategory)?.name}
+                            </h3>
+                            <ul className="grid grid-cols-2 gap-x-4 gap-y-2">
+                            {activeSubcategories.length > 0 ? activeSubcategories.map(sub => (
+                                <li key={sub.id}>
+                                    <NavigationMenuLink asChild>
+                                        <Link href={`/tienda?category=${sub.id}#products-grid`} className="block rounded-md p-2 text-sm hover:bg-accent hover:text-accent-foreground">
+                                            {sub.name}
+                                        </Link>
+                                    </NavigationMenuLink>
+                                </li>
+                            )) : (
+                                <li className="text-sm text-muted-foreground col-span-2">No hay subcategorías.</li>
+                            )}
+                            </ul>
+                        </>
+                    )}
                 </div>
             </div>
         </NavigationMenuContent>
@@ -274,5 +276,6 @@ export default function Header() {
     </header>
   );
 }
+    
 
     

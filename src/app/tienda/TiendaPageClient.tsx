@@ -125,7 +125,7 @@ export function TiendaPageClient({ allProducts, allCategories, offerProducts }: 
 
       <Separator />
 
-      <section className="space-y-8">
+      <section id="products-grid" className="space-y-8 scroll-mt-24">
           <div className="text-center space-y-8">
               <div className="flex justify-center items-center gap-4">
                 <Tag className="w-10 h-10 text-primary" />
@@ -159,7 +159,7 @@ export function TiendaPageClient({ allProducts, allCategories, offerProducts }: 
                   </div>
               </div>
 
-              <CategoryFilters categories={allCategories} selected={selectedCategory} onSelect={setSelectedCategory} disabled={false}/>
+              <CategoryFilters categories={allCategories.filter(c => c.parentId === null)} selected={selectedCategory} onSelect={setSelectedCategory} disabled={false}/>
           </div>
           
           {productsGroupedByCategory ? (
@@ -191,5 +191,7 @@ export function TiendaPageClient({ allProducts, allCategories, offerProducts }: 
     </div>
   );
 }
+
+    
 
     
