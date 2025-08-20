@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -57,36 +58,13 @@ export default function CheckoutPage() {
   useEffect(() => {
     const checkAdBlocker = async () => {
       try {
-        // Test multiple ad-related elements
-        const testElements = [
-          { className: 'adsbox', style: 'width: 1px; height: 1px;' },
-          { className: 'ad', style: 'width: 1px; height: 1px;' },
-          { className: 'ads', style: 'width: 1px; height: 1px;' }
-        ];
-        
-        let blockedCount = 0;
-        
-        for (const testEl of testElements) {
-          const div = document.createElement('div');
-          div.className = testEl.className;
-          div.style.cssText = testEl.style;
-          div.innerHTML = '&nbsp;';
-          document.body.appendChild(div);
-          
-          await new Promise(resolve => setTimeout(resolve, 50));
-          
-          if (div.offsetHeight === 0 || div.offsetWidth === 0) {
-            blockedCount++;
-          }
-          
-          document.body.removeChild(div);
-        }
-        
-        if (blockedCount >= 2) {
+        const testAdUrl = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js';
+        await fetch(new Request(testAdUrl)).catch(() => {
           setShowAdBlockerWarning(true);
-        }
+        });
       } catch (error) {
-        console.log('Ad blocker detection failed:', error);
+        setShowAdBlockerWarning(true);
+        console.log('Ad blocker detected.');
       }
     };
     
@@ -178,32 +156,18 @@ export default function CheckoutPage() {
   };
 
   const handlePaymentRedirect = () => {
-    if (!preferenceData?.preferenceId) {
+    if (!preferenceData?.initPoint) {
       toast({
         title: "Error",
-        description: "No se encontró la preferencia de pago",
+        description: "No se encontró el punto de inicio del pago.",
         variant: "destructive"
       });
       return;
     }
 
     try {
-      // Use the init_point if available, otherwise construct the URL
-      let checkoutUrl: string;
-      
-      if (preferenceData.initPoint) {
-        checkoutUrl = preferenceData.initPoint;
-      } else {
-        const baseUrl = process.env.NODE_ENV === 'development'
-          ? 'https://sandbox.mercadopago.com.ar'
-          : 'https://www.mercadopago.com.ar';
-        checkoutUrl = `${baseUrl}/checkout/v1/redirect?pref_id=${preferenceData.preferenceId}`;
-      }
-
-      console.log('Redirecting to:', checkoutUrl);
-      
-      // Use window.location.href instead of window.open for better compatibility
-      window.location.href = checkoutUrl;
+      console.log('Redirecting to:', preferenceData.initPoint);
+      window.location.href = preferenceData.initPoint;
       
     } catch (error) {
       console.error('Error redirecting to payment:', error);

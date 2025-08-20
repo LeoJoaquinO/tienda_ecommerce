@@ -1,7 +1,7 @@
 
 'use server';
 
-import type { Product, Coupon, Order, SalesMetrics, OrderData, OrderStatus, Category } from './types';
+import type { Product, Coupon, Order, SalesMetrics, OrderData, OrderStatus, Category, CartItem } from './types';
 
 let localCategories: Category[] = [
     // Main Categories (Parents)
@@ -470,18 +470,22 @@ export async function getSalesMetrics(): Promise<SalesMetrics> {
     const productCounts = paidOrders
         .flatMap(o => o.items)
         .reduce((acc, item) => {
-            acc[item.product.id] = (acc[item.product.id] || 0) + item.quantity;
+            const productId = item.product.id;
+            acc[productId] = (acc[productId] || 0) + item.quantity;
             return acc;
         }, {} as Record<number, number>);
 
     const topSellingProducts = Object.entries(productCounts)
         .sort(([, countA], [, countB]) => countB - countA)
         .slice(0, 5)
-        .map(([productId, count]) => ({
-            productId: Number(productId),
-            name: localProducts.find(p => p.id === Number(productId))?.name || 'Unknown Product',
-            count: count,
-        }));
+        .map(([productIdStr, count]) => {
+            const productId = Number(productIdStr);
+            return {
+                productId,
+                name: localProducts.find(p => p.id === productId)?.name || 'Unknown Product',
+                count: count,
+            }
+        });
 
     return { totalRevenue, totalSales, topSellingProducts };
 }
@@ -490,16 +494,15 @@ export async function createOrder(orderData: OrderData): Promise<{orderId?: numb
     for (const item of orderData.items) {
         const product = localProducts.find(p => p.id === item.product.id);
         if (!product || product.stock < item.quantity) {
-            return { error: `Insufficient stock for product ID: ${item.product.id}` };
+            return { error: `Stock insuficiente para el producto: ${item.product.name}` };
         }
         product.stock -= item.quantity;
     }
     
     const newOrder: Order = {
-        ...orderData,
         id: nextOrderId++,
+        ...orderData,
         createdAt: new Date(),
-        paymentId: orderData.paymentId || undefined,
     };
     localOrders.unshift(newOrder);
 
@@ -516,18 +519,72 @@ export async function updateOrderStatus(orderId: number, status: OrderStatus, pa
 
 export async function restockItemsForOrder(orderId: number): Promise<void> {
     const order = localOrders.find(o => o.id === orderId);
-    if (order) {
+    if (order && order.status !== 'paid' && order.status !== 'shipped') {
         for (const item of order.items) {
             const product = localProducts.find(p => p.id === item.product.id);
             if (product) {
                 product.stock += item.quantity;
             }
         }
+        console.log(`Restocked items for cancelled/failed order ${orderId}`);
+    } else if (order) {
+        console.log(`Skipped restocking for order ${orderId} with status ${order.status}`);
     }
 }
+
+export async function getOrderById(id: number): Promise<Order | undefined> {
+    const order = localOrders.find(o => o.id === id);
+    return order ? JSON.parse(JSON.stringify(order)) : undefined;
+}
+
+
+export async function createOrderFromWebhook(paymentData: any): Promise<{ newOrder?: Order; error?: string }> {
+    const { external_reference } = paymentData;
+    const orderId = parseInt(external_reference, 10);
+    
+    if (await getOrderById(orderId)) {
+        console.log(`Order ${orderId} already exists. Skipping creation from webhook.`);
+        return { newOrder: await getOrderById(orderId) };
+    }
+    
+    // Simplified creation for fallback
+     const items: CartItem[] = paymentData.additional_info.items.map((item: any) => {
+        const product = localProducts.find(p => p.id === parseInt(item.id)) || {
+            id: parseInt(item.id),
+            name: item.title,
+            price: parseFloat(item.unit_price),
+            images: [],
+            categoryIds: [],
+            stock: 0,
+            description: item.description,
+        };
+        return { product, quantity: parseInt(item.quantity) };
+    });
+
+
+    const orderData: OrderData = {
+        customerName: paymentData.payer?.first_name ? `${paymentData.payer.first_name} ${paymentData.payer.last_name || ''}`.trim() : 'N/A',
+        customerEmail: paymentData.payer.email,
+        total: paymentData.transaction_amount,
+        status: 'pending',
+        items,
+        shippingAddress: 'N/A from webhook',
+        shippingCity: 'N/A from webhook',
+        shippingPostalCode: 'N/A from webhook',
+        paymentId: String(paymentData.id),
+    };
+
+    const newOrder: Order = {
+        id: orderId,
+        ...orderData,
+        createdAt: new Date(),
+    };
+    localOrders.unshift(newOrder);
+    console.log(`Created new order ${orderId} from webhook as a fallback.`);
+    return { newOrder };
+}
+
 
 export async function getOrders(): Promise<Order[]> {
     return JSON.parse(JSON.stringify(localOrders));
 }
-
-    

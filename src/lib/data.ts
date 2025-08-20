@@ -22,6 +22,8 @@ import {
     updateOrderStatus as updateOrderStatusFromHardcodedData,
     restockItemsForOrder as restockItemsForOrderFromHardcodedData,
     getOrders as getOrdersFromHardcodedData,
+    getOrderById as getOrderByIdFromHardcodedData,
+    createOrderFromWebhook as createOrderFromWebhookFromHardcodedData,
 } from './hardcoded-data';
 import type { Product, Coupon, SalesMetrics, OrderData, OrderStatus, Order, Category } from './types';
 import { unstable_noStore as noStore } from 'next/cache';
@@ -71,7 +73,7 @@ function _mapDbRowToProduct(row: any): Product {
 // ############################################################################
 
 export async function getProducts(): Promise<Product[]> {
-    if (!db) return getProductsFromHardcodedData();
+    if (!isDbConnected) return getProductsFromHardcodedData();
     noStore();
     try {
         const rows = await db`
@@ -89,7 +91,7 @@ export async function getProducts(): Promise<Product[]> {
 }
 
 export async function getProductById(id: number): Promise<Product | undefined> {
-    if (!db) return getProductByIdFromHardcodedData(id);
+    if (!isDbConnected) return getProductByIdFromHardcodedData(id);
     noStore();
     try {
          const rows = await db`
@@ -108,7 +110,7 @@ export async function getProductById(id: number): Promise<Product | undefined> {
 }
 
 export async function createProduct(product: Omit<Product, 'id' | 'salePrice'>): Promise<Product> {
-    if (!db) return createProductFromHardcodedData(product);
+    if (!isDbConnected) return createProductFromHardcodedData(product);
     const { name, description, shortDescription, price, images, categoryIds, stock, aiHint, featured, discountPercentage, offerStartDate, offerEndDate } = product;
     try {
         const result = await db.begin(async (sql) => {
@@ -137,7 +139,7 @@ export async function createProduct(product: Omit<Product, 'id' | 'salePrice'>):
 }
 
 export async function updateProduct(id: number, productData: Partial<Omit<Product, 'id' | 'salePrice'>>): Promise<Product> {
-    if (!db) return updateProductFromHardcodedData(id, productData);
+    if (!isDbConnected) return updateProductFromHardcodedData(id, productData);
      const { name, description, shortDescription, price, images, categoryIds, stock, aiHint, featured, discountPercentage, offerStartDate, offerEndDate } = productData;
     try {
         await db.begin(async (sql) => {
@@ -175,7 +177,7 @@ export async function updateProduct(id: number, productData: Partial<Omit<Produc
 }
 
 export async function deleteProduct(id: number): Promise<void> {
-    if (!db) return deleteProductFromHardcodedData(id);
+    if (!isDbConnected) return deleteProductFromHardcodedData(id);
     try {
         await db.begin(async (sql) => {
             await sql`DELETE FROM product_categories WHERE product_id = ${id}`;
@@ -200,7 +202,7 @@ function _mapDbRowToCategory(row: any): Category {
 }
 
 export async function getCategories(): Promise<Category[]> {
-    if (!db) return getCategoriesFromHardcodedData();
+    if (!isDbConnected) return getCategoriesFromHardcodedData();
     noStore();
     try {
         const rows = await db`SELECT * FROM categories ORDER BY parent_id, name ASC`;
@@ -212,7 +214,7 @@ export async function getCategories(): Promise<Category[]> {
 }
 
 export async function createCategory(name: string): Promise<Category> {
-    if (!db) return createCategoryFromHardcodedData(name);
+    if (!isDbConnected) return createCategoryFromHardcodedData(name);
     try {
         const result = await db`
             INSERT INTO categories (name) VALUES (${name}) RETURNING *;
@@ -228,9 +230,8 @@ export async function createCategory(name: string): Promise<Category> {
 }
 
 export async function deleteCategory(id: number): Promise<{ success: boolean; message?: string }> {
-    if (!db) return deleteCategoryFromHardcodedData(id);
+    if (!isDbConnected) return deleteCategoryFromHardcodedData(id);
     try {
-        // Check if any products are using this category
         const products = await db`SELECT 1 FROM product_categories WHERE category_id = ${id} LIMIT 1`;
         if (products.length > 0) {
             return { success: false, message: 'No se puede eliminar la categoría porque está asignada a uno o más productos.' };
@@ -260,7 +261,7 @@ function _mapDbRowToCoupon(row: any): Coupon {
 
 
 export async function getCoupons(): Promise<Coupon[]> {
-    if (!db) return getCouponsFromHardcodedData();
+    if (!isDbConnected) return getCouponsFromHardcodedData();
     noStore();
     try {
         const rows = await db`SELECT * FROM coupons ORDER BY created_at DESC`;
@@ -272,7 +273,7 @@ export async function getCoupons(): Promise<Coupon[]> {
 }
 
 export async function getCouponByCode(code: string): Promise<Coupon | undefined> {
-    if (!db) return getCouponByCodeFromHardcodedData(code);
+    if (!isDbConnected) return getCouponByCodeFromHardcodedData(code);
     noStore();
     try {
         const rows = await db`
@@ -289,7 +290,7 @@ export async function getCouponByCode(code: string): Promise<Coupon | undefined>
 
 
 export async function createCoupon(coupon: Omit<Coupon, 'id'>): Promise<Coupon> {
-    if (!db) return createCouponFromHardcodedData(coupon);
+    if (!isDbConnected) return createCouponFromHardcodedData(coupon);
     const { code, discountType, discountValue, expiryDate, isActive } = coupon;
     try {
         const result = await db`
@@ -308,7 +309,7 @@ export async function createCoupon(coupon: Omit<Coupon, 'id'>): Promise<Coupon> 
 }
 
 export async function updateCoupon(id: number, couponData: Partial<Omit<Coupon, 'id'>>): Promise<Coupon> {
-    if (!db) return updateCouponFromHardcodedData(id, couponData);
+    if (!isDbConnected) return updateCouponFromHardcodedData(id, couponData);
     const { code, discountType, discountValue, expiryDate, isActive } = couponData;
     try {
         const result = await db`
@@ -332,7 +333,7 @@ export async function updateCoupon(id: number, couponData: Partial<Omit<Coupon, 
 }
 
 export async function deleteCoupon(id: number): Promise<void> {
-    if (!db) return deleteCouponFromHardcodedData(id);
+    if (!isDbConnected) return deleteCouponFromHardcodedData(id);
     try {
         await db`DELETE FROM coupons WHERE id = ${id}`;
     } catch (error) {
@@ -347,23 +348,19 @@ export async function deleteCoupon(id: number): Promise<void> {
 // ############################################################################
 
 export async function createOrder(orderData: OrderData): Promise<{orderId?: number, error?: string}> {
-    if (!db) return createOrderFromHardcodedData(orderData);
+    if (!isDbConnected) return createOrderFromHardcodedData(orderData);
     
-    // The neon driver doesn't support transactions in the same way as node-postgres.
-    // We will perform operations sequentially and handle potential race conditions gracefully.
     try {
-        // Check stock for all items first
-        for (const item of orderData.items) {
-            const productResult = await db`SELECT stock FROM products WHERE id = ${item.product.id}`;
-            if (productResult.length === 0 || productResult[0].stock < item.quantity) {
-                throw new Error(`Insufficient stock for product ID: ${item.product.id}`);
-            }
-        }
-        
         // Decrease stock for all items
-        for (const item of orderData.items) {
-             await db`UPDATE products SET stock = stock - ${item.quantity} WHERE id = ${item.product.id}`;
-        }
+        await db.begin(async sql => {
+            for (const item of orderData.items) {
+                 const productResult = await sql`SELECT stock FROM products WHERE id = ${item.product.id} FOR UPDATE`;
+                if (productResult.length === 0 || productResult[0].stock < item.quantity) {
+                    throw new Error(`Insufficient stock for product ID: ${item.product.id}`);
+                }
+                await sql`UPDATE products SET stock = stock - ${item.quantity} WHERE id = ${item.product.id}`;
+            }
+        })
         
         const { customerName, customerEmail, total, status, items, couponCode, discountAmount, shippingAddress, shippingCity, shippingPostalCode } = orderData;
         
@@ -376,17 +373,15 @@ export async function createOrder(orderData: OrderData): Promise<{orderId?: numb
         return { orderId: orderResult[0].id };
 
     } catch (error: any) {
-        // If order creation fails, we should ideally roll back stock changes.
-        // This is complex without transactions. For now, we log the error.
-        // A more robust solution might involve a background job to correct stock.
         console.error('Database Error during order creation:', error);
-        return { error: 'Failed to create order due to a database error.' };
+        // Note: The transaction should automatically rollback on error.
+        return { error: error.message || 'Failed to create order due to a database error.' };
     }
 }
 
 
 export async function updateOrderStatus(orderId: number, status: OrderStatus, paymentId?: string): Promise<void> {
-    if (!db) return updateOrderStatusFromHardcodedData(orderId, status, paymentId);
+    if (!isDbConnected) return updateOrderStatusFromHardcodedData(orderId, status, paymentId);
     try {
         await db`UPDATE orders SET status = ${status}, payment_id = ${paymentId} WHERE id = ${orderId}`;
     } catch (error) {
@@ -396,13 +391,20 @@ export async function updateOrderStatus(orderId: number, status: OrderStatus, pa
 }
 
 export async function restockItemsForOrder(orderId: number): Promise<void> {
-    if (!db) return restockItemsForOrderFromHardcodedData(orderId);
+    if (!isDbConnected) return restockItemsForOrderFromHardcodedData(orderId);
      try {
-        const rows = await db`SELECT items FROM orders WHERE id = ${orderId}`;
+        const rows = await db`SELECT items, status FROM orders WHERE id = ${orderId}`;
         if (rows.length > 0) {
-            const items = rows[0].items as OrderData['items'];
-            for (const item of items) {
-                await db`UPDATE products SET stock = stock + ${item.quantity} WHERE id = ${item.product.id}`;
+            const order = rows[0];
+            // Only restock if the order is not already paid or shipped
+            if (order.status !== 'paid' && order.status !== 'shipped') {
+                const items = order.items as OrderData['items'];
+                for (const item of items) {
+                    await db`UPDATE products SET stock = stock + ${item.quantity} WHERE id = ${item.product.id}`;
+                }
+                console.log(`Restocked items for cancelled/failed order ${orderId}`);
+            } else {
+                 console.log(`Skipped restocking for order ${orderId} with status ${order.status}`);
             }
         }
     } catch (error) {
@@ -411,9 +413,93 @@ export async function restockItemsForOrder(orderId: number): Promise<void> {
     }
 }
 
+export async function getOrderById(id: number): Promise<Order | undefined> {
+    if (!isDbConnected) return getOrderByIdFromHardcodedData(id);
+    noStore();
+    try {
+        const result = await db`SELECT * FROM orders WHERE id = ${id}`;
+        if (result.length === 0) return undefined;
+        const row = result[0];
+        return {
+            id: row.id,
+            customerName: row.customer_name,
+            customerEmail: row.customer_email,
+            total: parseFloat(row.total),
+            status: row.status as OrderStatus,
+            createdAt: new Date(row.created_at),
+            items: row.items,
+            couponCode: row.coupon_code,
+            discountAmount: row.discount_amount ? parseFloat(row.discount_amount) : undefined,
+            paymentId: row.payment_id,
+            shippingAddress: row.shipping_address,
+            shippingCity: row.shipping_city,
+            shippingPostalCode: row.shipping_postal_code,
+        };
+    } catch (error) {
+        console.error('Database Error:', error);
+        throw new Error('Failed to fetch order.');
+    }
+}
+
+export async function createOrderFromWebhook(paymentData: any): Promise<{newOrder?: Order, error?: string}> {
+    if (!isDbConnected) return createOrderFromWebhookFromHardcodedData(paymentData);
+
+    const {
+        payer,
+        additional_info,
+        transaction_amount,
+        external_reference,
+        id: paymentId,
+        status: paymentStatus
+    } = paymentData;
+
+    if (!external_reference || !additional_info?.items || additional_info.items.length === 0) {
+        return { error: 'Webhook data is missing required fields to create an order.' };
+    }
+
+    // This is a simplified creation and assumes a lot. A real implementation might need more info.
+    const orderData: OrderData = {
+        customerName: payer.first_name ? `${payer.first_name} ${payer.last_name}` : 'N/A',
+        customerEmail: payer.email,
+        total: transaction_amount,
+        status: 'pending', // Will be updated immediately after by the webhook logic
+        items: additional_info.items.map((item: any) => ({
+            product: {
+                id: parseInt(item.id),
+                name: item.title,
+                price: parseFloat(item.unit_price),
+                // Other product details would be missing here
+            },
+            quantity: parseInt(item.quantity)
+        })),
+        shippingAddress: 'N/A',
+        shippingCity: 'N/A',
+        shippingPostalCode: 'N/A',
+        paymentId: String(paymentId)
+    };
+    
+    try {
+        const orderResult = await db`
+            INSERT INTO orders (id, customer_name, customer_email, total, status, items, payment_id, shipping_address, shipping_city, shipping_postal_code)
+            VALUES (${external_reference}, ${orderData.customerName}, ${orderData.customerEmail}, ${orderData.total}, ${orderData.status}, ${JSON.stringify(orderData.items)}::jsonb, ${orderData.paymentId}, ${orderData.shippingAddress}, ${orderData.shippingCity}, ${orderData.shippingPostalCode})
+            ON CONFLICT (id) DO NOTHING
+            RETURNING *;
+        `;
+         if (orderResult.length === 0) {
+             console.log(`Order ${external_reference} already existed. Skipped creation.`);
+             return { newOrder: await getOrderById(external_reference) };
+        }
+        const newOrder = await getOrderById(orderResult[0].id);
+        return { newOrder };
+
+    } catch (error: any) {
+        return { error: error.message || 'Failed to create order from webhook.' };
+    }
+}
+
 
 export async function getSalesMetrics(): Promise<SalesMetrics> {
-    if (!db) return getSalesMetricsFromHardcodedData();
+    if (!isDbConnected) return getSalesMetricsFromHardcodedData();
     noStore();
     try {
         const revenueResult = await db`SELECT SUM(total) as totalRevenue, COUNT(*) as totalSales FROM orders WHERE status = 'paid'`;
@@ -434,7 +520,7 @@ export async function getSalesMetrics(): Promise<SalesMetrics> {
         return {
             totalRevenue: parseFloat(totalrevenue) || 0,
             totalSales: parseInt(totalsales) || 0,
-            topSellingProducts: productsResult.map(r => ({ ...r, count: Number(r.count) })), // Convert count to number
+            topSellingProducts: productsResult.map(r => ({ ...r, count: Number(r.count) })),
         };
     } catch (error) {
         console.error('Database Error:', error);
@@ -443,7 +529,7 @@ export async function getSalesMetrics(): Promise<SalesMetrics> {
 }
 
 export async function getOrders(): Promise<Order[]> {
-    if (!db) return getOrdersFromHardcodedData();
+    if (!isDbConnected) return getOrdersFromHardcodedData();
     // This is a placeholder as getting orders is not yet implemented in the UI
     return [];
 }

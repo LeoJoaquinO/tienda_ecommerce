@@ -36,7 +36,7 @@ export type Coupon = {
   isActive: boolean;
 };
 
-export type OrderStatus = 'pending' | 'paid' | 'failed' | 'cancelled' | 'shipped' | 'delivered';
+export type OrderStatus = 'pending' | 'paid' | 'failed' | 'cancelled' | 'shipped' | 'delivered' | 'refunded';
 
 export type OrderData = {
     customerName: string;
@@ -84,5 +84,3 @@ export type Subscriber = {
   email: string;
   created_at: Date;
 };
-
-    

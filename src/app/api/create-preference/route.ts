@@ -1,17 +1,12 @@
 
 import { NextRequest, NextResponse } from 'next/server';
+import { MercadoPagoConfig, Preference } from 'mercadopago';
+import { createOrder } from '@/lib/data';
+import type { CartItem } from '@/lib/types';
 
-// Use dynamic import to avoid server-side issues
-let MercadoPagoConfig: any;
-let Preference: any;
 
+// This function initializes the MercadoPago SDK.
 async function initializeMercadoPago() {
-  if (!MercadoPagoConfig || !Preference) {
-    const mercadopago = await import('mercadopago');
-    MercadoPagoConfig = mercadopago.MercadoPagoConfig;
-    Preference = mercadopago.Preference;
-  }
-  
   const client = new MercadoPagoConfig({
     accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN!,
     options: {
@@ -22,71 +17,64 @@ async function initializeMercadoPago() {
   return new Preference(client);
 }
 
+// This function handles the POST request to create a payment preference.
 export async function POST(request: NextRequest) {
   const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:9002';
-  // Handle CORS preflight
-  const headers = new Headers({
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Content-Type': 'application/json',
-  });
-
+  
   try {
-    // Validate environment variables first
-    if (!process.env.MERCADOPAGO_ACCESS_TOKEN) {
-      console.error('MERCADOPAGO_ACCESS_TOKEN is not configured');
-      return NextResponse.json(
-        { 
-          error: 'Payment system configuration error',
-          details: 'Missing access token'
-        },
-        { status: 500, headers }
-      );
+    // 1. Validate environment variables first.
+    if (!process.env.MERCADOPAGO_ACCESS_TOKEN || !process.env.NEXT_PUBLIC_SITE_URL) {
+      console.error('Missing required environment variables for payment processing.');
+      return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 });
     }
-
+    
+    // 2. Parse and validate the incoming request body.
     const body = await request.json();
-    console.log('Creating payment preference for items:', body.cartItems?.length || 0);
+    const { cartItems, shippingInfo, totalPrice, discount, appliedCoupon } = body;
 
-    // Validate request data
-    if (!body.cartItems || !Array.isArray(body.cartItems) || body.cartItems.length === 0) {
-      return NextResponse.json(
-        { error: 'Cart items are required' },
-        { status: 400, headers }
-      );
+    if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
+      return NextResponse.json({ error: 'Cart items are required.' }, { status: 400 });
+    }
+    if (!shippingInfo?.email || !shippingInfo?.name) {
+      return NextResponse.json({ error: 'Customer information is required.' }, { status: 400 });
     }
 
-    if (!body.payer?.email) {
-      return NextResponse.json(
-        { error: 'Customer email is required' },
-        { status: 400, headers }
-      );
+    // 3. Create a pending order in our database.
+    const { orderId, error: orderError } = await createOrder({
+      customerName: shippingInfo.name,
+      customerEmail: shippingInfo.email,
+      total: totalPrice,
+      status: 'pending',
+      items: cartItems,
+      couponCode: appliedCoupon?.code,
+      discountAmount: discount,
+      shippingAddress: shippingInfo.address,
+      shippingCity: shippingInfo.city,
+      shippingPostalCode: shippingInfo.postalCode,
+    });
+
+    if (orderError || !orderId) {
+      console.error('Failed to create initial order in DB:', orderError);
+      return NextResponse.json({ error: orderError || 'Failed to create order.' }, { status: 500 });
     }
 
-    // Initialize MercadoPago dynamically
-    const preference = await initializeMercadoPago();
+    console.log(`Created pending order with ID: ${orderId}`);
 
-    // Create preference body
+    // 4. Prepare the data for the MercadoPago preference.
+    const preferenceItems = cartItems.map((item: CartItem) => ({
+      id: String(item.product.id),
+      title: item.product.name,
+      quantity: item.quantity,
+      unit_price: item.product.salePrice ?? item.product.price,
+      currency_id: "ARS",
+      description: item.product.shortDescription || item.product.name,
+    }));
+
     const preferenceBody = {
-      items: body.cartItems.map((item: any, index: number) => ({
-        id: item.id || `item_${index}`,
-        title: item.title || item.name || `Producto ${index + 1}`,
-        quantity: Math.max(1, parseInt(item.quantity) || 1),
-        unit_price: Math.max(0.01, parseFloat(item.unit_price) || 1),
-        currency_id: "ARS",
-        description: item.description || item.title
-      })),
-      purpose: "wallet_purchase",
+      items: preferenceItems,
       payer: {
-        name: body.payer?.name || body.shippingInfo?.name,
-        email: body.payer?.email || body.shippingInfo?.email,
-      },
-      payment_methods: {
-        excluded_payment_methods: [],
-        excluded_payment_types: [],
-        installments: 12,
-        default_installments: 1,
-        default_payment_method_id: null
+        name: shippingInfo.name,
+        email: shippingInfo.email,
       },
       back_urls: {
         success: `${BASE_URL}/checkout/success`,
@@ -94,76 +82,37 @@ export async function POST(request: NextRequest) {
         pending: `${BASE_URL}/checkout/pending`
       },
       auto_return: "approved" as const,
-      external_reference: `order_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
-      statement_descriptor: 'TIENDA_ONLINE',
-      metadata: {
-        total_amount: Number(body.totalPrice) || 0,
-        discount: Number(body.discount) || 0,
-        items_count: body.cartItems.length
-      }
+      // Use the order ID from our DB as the external reference. This is crucial for linking webhooks.
+      external_reference: String(orderId), 
+      statement_descriptor: 'TIENDA SIMPLE',
+      notification_url: `${BASE_URL}/api/mercadopago-webhook`,
     };
 
-    console.log('Creating preference with total:', preferenceBody.items.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0));
-
-    // Create the preference
+    // 5. Create the preference using the MercadoPago SDK.
+    const preference = await initializeMercadoPago();
     const response = await preference.create({ body: preferenceBody });
     
     if (!response.id) {
-      throw new Error('Failed to create payment preference - no ID returned');
+      throw new Error('Failed to create payment preference - no ID returned from MercadoPago.');
     }
+    
+    console.log('Preference created successfully:', { id: response.id, init_point: response.init_point });
 
-    console.log('Preference created successfully:', response.id);
-
-    return NextResponse.json(
-      { 
+    // 6. Return the preference details to the client.
+    return NextResponse.json({ 
         preferenceId: response.id,
-        initPoint: response.init_point,
-        externalReference: preferenceBody.external_reference,
-        status: 'created'
-      },
-      { status: 200, headers }
-    );
+        initPoint: response.init_point
+    });
 
   } catch (error: any) {
     console.error('Error creating MercadoPago preference:', error);
-    
-    // Enhanced error handling
     let errorMessage = 'Error creating payment preference';
-    let statusCode = 500;
-    
     if (error?.cause) {
       console.error('MercadoPago API Error:', error.cause);
       errorMessage = error.cause.message || errorMessage;
-      statusCode = error.cause.status || 500;
     } else if (error?.message) {
       errorMessage = error.message;
     }
-
-    // Handle specific MercadoPago errors
-    if (errorMessage.includes('invalid_client')) {
-      errorMessage = 'Invalid MercadoPago credentials';
-    } else if (errorMessage.includes('unauthorized')) {
-      errorMessage = 'Unauthorized - check your access token';
-    }
-
-    return NextResponse.json(
-      { 
-        error: errorMessage,
-        timestamp: new Date().toISOString()
-      },
-      { status: statusCode, headers }
-    );
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
-}
-
-// Handle CORS preflight requests
-export async function OPTIONS(request: NextRequest) {
-  return new NextResponse(null, {
-    status: 200,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    },
-  });
 }
