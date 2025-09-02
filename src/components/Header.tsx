@@ -27,6 +27,7 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { getCategories } from '@/lib/data';
 import type { Category } from '@/lib/types';
+import { GlobalSearch } from './GlobalSearch';
 
 const ListItem = forwardRef<
   React.ElementRef<"a">,
@@ -123,10 +124,19 @@ export default function Header() {
         return category?.children ?? [];
     }, [hoveredCategory, categoryMap]);
     
+    if (mainCategories.length === 0) return null;
+
     return (
         <NavigationMenuContent>
-            <div className="grid grid-cols-[1fr_3fr] w-[600px] lg:w-[800px] p-4">
+            <div className="grid grid-cols-[1fr_2fr] w-[600px] lg:w-[800px] p-4">
                 <div className="border-r pr-4">
+                     <div className="pb-3 mb-2 border-b">
+                        <NavigationMenuLink asChild>
+                            <Link href="/tienda" className="font-semibold text-lg p-3 block hover:text-primary">
+                                Ver toda la Tienda
+                            </Link>
+                        </NavigationMenuLink>
+                     </div>
                      <ul className="flex flex-col">
                         {mainCategories.map(cat => (
                             <li key={cat.id} onMouseEnter={() => setHoveredCategory(cat.id)} >
@@ -149,7 +159,7 @@ export default function Header() {
                 <div className="p-4 pl-6">
                     {hoveredCategory && (
                         <>
-                            <h3 className="font-bold text-lg pb-2">
+                            <h3 className="font-bold text-lg mb-2">
                                 {categoryMap.get(hoveredCategory)?.name}
                             </h3>
                             <ul className="grid grid-cols-2 gap-x-4 gap-y-2">
@@ -162,7 +172,7 @@ export default function Header() {
                                     </NavigationMenuLink>
                                 </li>
                             )) : (
-                                <li className="text-sm text-muted-foreground col-span-2">No hay subcategorías.</li>
+                                <li className="text-sm text-muted-foreground col-span-2 p-2">No hay subcategorías.</li>
                             )}
                             </ul>
                         </>
@@ -232,6 +242,9 @@ export default function Header() {
                         </Link>
                     </SheetTitle>
                 </SheetHeader>
+                <div className='p-4'>
+                    <GlobalSearch />
+                </div>
                 <nav className="flex flex-col gap-6 p-4 text-lg mt-4">
                     {navLinks.map((link) => (
                     <Link key={link.href} href={link.href} onClick={() => setIsMobileMenuOpen(false)} className="text-foreground hover:text-primary transition-colors">
@@ -252,13 +265,16 @@ export default function Header() {
         </div>
         
         {/* Centered Title on Mobile */}
-        <div className="flex-1 flex justify-center md:hidden">
+        <div className="flex-1 flex justify-center items-center md:hidden">
              <Link href="/" className="flex items-center space-x-2">
                 <span className="font-bold font-headline text-xl">Joya</span>
              </Link>
         </div>
 
         <div className="flex items-center justify-end space-x-1 md:flex-1">
+          <div className="hidden md:block w-full max-w-sm mr-4">
+            <GlobalSearch />
+          </div>
           <ThemeToggle />
           <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(true)} aria-label="Carrito de compras">
             <div className="relative">
@@ -275,6 +291,3 @@ export default function Header() {
     </header>
   );
 }
-    
-
-    

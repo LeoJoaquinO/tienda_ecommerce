@@ -12,25 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-
-function CategoryFilters({ categories, selected, onSelect, disabled }: { categories: Category[], selected: string, onSelect: (category: string) => void, disabled: boolean }) {
-    if (categories.length === 0) return null;
-    return (
-        <div className="flex flex-wrap justify-center items-center gap-2">
-            {categories.map((category) => (
-                <Button
-                    key={category.id}
-                    variant={selected === String(category.id) ? 'default' : 'outline'}
-                    onClick={() => onSelect(String(category.id))}
-                    disabled={disabled}
-                    className="rounded-full"
-                >
-                    {category.name}
-                </Button>
-            ))}
-        </div>
-    )
-}
+import { GlobalSearch } from '@/components/GlobalSearch';
 
 interface TiendaPageClientProps {
   allProducts: Product[];
@@ -41,8 +23,10 @@ interface TiendaPageClientProps {
 export function TiendaPageClient({ allProducts, allCategories, offerProducts }: TiendaPageClientProps) {
   const searchParams = useSearchParams();
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
-  const [searchQuery, setSearchQuery] = useState('');
   
+  // The search query is now primarily driven by the URL
+  const searchQuery = searchParams.get('q') || '';
+
   const { categoryTree } = useMemo(() => {
     const tree: (Category & { children: Category[] })[] = [];
     const map = new Map<number, Category & { children: Category[] }>();
@@ -99,20 +83,7 @@ export function TiendaPageClient({ allProducts, allCategories, offerProducts }: 
 
       if (selectedCategory !== 'All') {
           const catId = Number(selectedCategory);
-          const categoryMap = new Map(allCategories.map(c => [c.id, c]));
-          const subCategoriesMap = allCategories.reduce((acc, cat) => {
-              if (cat.parentId) {
-                  if (!acc.has(cat.parentId)) acc.set(cat.parentId, []);
-                  acc.get(cat.parentId)!.push(cat);
-              }
-              return acc;
-          }, new Map<number, Category[]>());
-          
-          const category = categoryMap.get(catId);
-          if (category) {
-              const idsToFilter = [catId, ...(subCategoriesMap.get(catId) ?? []).map(c => c.id)];
-              items = items.filter(p => p.categoryIds.some(id => idsToFilter.includes(id)));
-          }
+          items = items.filter(p => p.categoryIds.includes(catId));
       }
       
       items = items.filter(p => {
@@ -121,7 +92,7 @@ export function TiendaPageClient({ allProducts, allCategories, offerProducts }: 
       });
 
       return items;
-  }, [allProducts, searchQuery, selectedCategory, priceRange, allCategories]);
+  }, [allProducts, searchQuery, selectedCategory, priceRange]);
 
   const productsGroupedByCategory = useMemo(() => {
     if (selectedCategory !== 'All' || searchQuery || priceRange[0] > 0 || priceRange[1] < maxPrice) {
@@ -167,16 +138,9 @@ export function TiendaPageClient({ allProducts, allCategories, offerProducts }: 
                 <Tag className="w-10 h-10 text-primary" />
                 <h2 className="text-4xl font-headline font-bold">Todos los Productos</h2>
               </div>
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-4xl mx-auto items-center">
-                  <div className="relative w-full lg:col-span-1">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                      <Input 
-                          type="search"
-                          placeholder="Buscar por nombre..."
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          className="pl-10"
-                      />
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-4xl mx-auto items-start">
+                  <div className="w-full lg:col-span-1">
+                      {/* The GlobalSearch now controls the search query via URL */}
                   </div>
                   <div className="w-full lg:col-span-2 space-y-4">
                       <div className="flex justify-between items-center text-muted-foreground font-medium">
@@ -194,7 +158,6 @@ export function TiendaPageClient({ allProducts, allCategories, offerProducts }: 
                       />
                   </div>
               </div>
-
               <div className="space-y-6">
                 <Button
                     variant={selectedCategory === 'All' ? 'default' : 'outline'}
@@ -204,20 +167,26 @@ export function TiendaPageClient({ allProducts, allCategories, offerProducts }: 
                     Todos los Productos
                 </Button>
                 {categoryTree.map(parentCat => (
-                  <div key={parentCat.id} className="space-y-3">
+                  <div key={parentCat.id} className="space-y-4">
                       <h3 className="font-headline text-2xl font-semibold">{parentCat.name}</h3>
-                      <CategoryFilters
-                          categories={parentCat.children}
-                          selected={selectedCategory}
-                          onSelect={handleCategorySelect}
-                          disabled={false}
-                      />
+                      <div className="flex flex-wrap justify-center items-center gap-2">
+                          {parentCat.children.map((category) => (
+                              <Button
+                                  key={category.id}
+                                  variant={selectedCategory === String(category.id) ? 'default' : 'outline'}
+                                  onClick={() => handleCategorySelect(String(category.id))}
+                                  className="rounded-full"
+                              >
+                                  {category.name}
+                              </Button>
+                          ))}
+                      </div>
                   </div>
                 ))}
               </div>
           </div>
           
-          {productsGroupedByCategory && selectedCategory === 'All' ? (
+          {productsGroupedByCategory && selectedCategory === 'All' && !searchQuery ? (
               <div className="space-y-12">
                 {Object.entries(productsGroupedByCategory).map(([category, catProducts]) => (
                   <div key={category}>
