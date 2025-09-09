@@ -55,8 +55,7 @@ function TiendaSkeleton() {
             <h2 className="text-4xl font-headline font-bold">Todos los Productos</h2>
           </div>
           <div className="relative w-full max-w-lg mx-auto">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Skeleton className="h-10 w-full" />
+             <Skeleton className="h-10 w-full pl-10" />
           </div>
           <div className="flex flex-wrap justify-center gap-2">
             {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-9 w-24 rounded-full" />)}

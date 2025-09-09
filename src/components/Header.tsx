@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { ShoppingCart, Menu, ChevronRight } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import { Button } from '@/components/ui/button';
-import { useState, useEffect, useMemo, forwardRef } from 'react';
+import { useState, useEffect, useMemo, forwardRef, Suspense } from 'react';
 import {
   Sheet,
   SheetContent,
@@ -28,6 +28,7 @@ import { cn } from '@/lib/utils';
 import { getCategories } from '@/lib/data';
 import type { Category } from '@/lib/types';
 import { GlobalSearch } from './GlobalSearch';
+import { Skeleton } from './ui/skeleton';
 
 const ListItem = forwardRef<
   React.ElementRef<"a">,
@@ -110,7 +111,7 @@ export default function Header() {
   
   const MegaMenuContent = () => {
     const mainCategories = categoryTree;
-    const [hoveredCategory, setHoveredCategory] = useState<number | null>(mainCategories[0]?.id ?? null);
+    const [hoveredCategory, setHoveredCategory] = useState<number | null>(null);
     
     useEffect(() => {
         if (mainCategories.length > 0 && !hoveredCategory) {
@@ -243,7 +244,9 @@ export default function Header() {
                     </SheetTitle>
                 </SheetHeader>
                 <div className='p-4'>
-                    <GlobalSearch />
+                    <Suspense fallback={<Skeleton className="h-10 w-full" />}>
+                        <GlobalSearch />
+                    </Suspense>
                 </div>
                 <nav className="flex flex-col gap-6 p-4 text-lg mt-4">
                     {navLinks.map((link) => (
@@ -273,7 +276,9 @@ export default function Header() {
 
         <div className="flex items-center justify-end space-x-1 md:flex-1">
           <div className="hidden md:block w-full max-w-sm mr-4">
-            <GlobalSearch />
+            <Suspense fallback={<Skeleton className="h-10 w-full" />}>
+              <GlobalSearch />
+            </Suspense>
           </div>
           <ThemeToggle />
           <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(true)} aria-label="Carrito de compras">
