@@ -1,0 +1,73 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: 'Alegreya', serif;
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 224 71.4% 4.1%;
+    --card: 0 0% 100%;
+    --card-foreground: 224 71.4% 4.1%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 71.4% 4.1%;
+    --primary: 180 82% 35%; /* Teal */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 215 28% 96%;
+    --secondary-foreground: 224 71.4% 4.1%;
+    --muted: 215 28% 94%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 38 92% 60%; /* Warm Sand */
+    --accent-foreground: 224 71.4% 4.1%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 215 20% 90%;
+    --input: 215 20% 90%;
+    --ring: 180 82% 35%;
+    --radius: 0.5rem;
+  }
+ 
+  .dark {
+    --background: 220 18% 12%;
+    --foreground: 210 40% 98%;
+    --card: 220 18% 12%;
+    --card-foreground: 210 40% 98%;
+    --popover: 220 18% 12%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 180 75% 45%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 217 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 38 85% 65%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217 32.6% 17.5%;
+    --input: 217 32.6% 17.5%;
+    --ring: 180 75% 45%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    background-color: hsl(var(--background));
+    background-image:
+        radial-gradient(at 27% 37%, hsl(var(--secondary)) 0px, transparent 50%),
+        radial-gradient(at 97% 21%, hsl(var(--accent) / 0.1) 0px, transparent 50%),
+        radial-gradient(at 52% 99%, hsl(var(--primary) / 0.15) 0px, transparent 50%),
+        radial-gradient(at 10% 29%, hsl(var(--primary) / 0.2) 0px, transparent 50%),
+        radial-gradient(at 97% 96%, hsl(var(--secondary)) 0px, transparent 50%),
+        radial-gradient(at 33% 50%, hsl(var(--accent) / 0.05) 0px, transparent 50%),
+        radial-gradient(at 79% 53%, hsl(var(--background)) 0px, transparent 50%);
+  }
+}
