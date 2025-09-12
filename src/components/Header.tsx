@@ -25,8 +25,8 @@ import {
 import { ThemeToggle } from './ThemeToggle';
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { getCategories } from '@/lib/data';
-import type { Category } from '@/lib/types';
+import { getCategories, getProducts } from '@/lib/data';
+import type { Category, Product } from '@/lib/types';
 import { GlobalSearch } from './GlobalSearch';
 import { Skeleton } from './ui/skeleton';
 
@@ -61,14 +61,19 @@ export default function Header() {
   const { cartCount, setIsSidebarOpen } = useCart();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
     async function fetchData() {
         try {
-            const fetchedCategories = await getCategories();
+            const [fetchedCategories, fetchedProducts] = await Promise.all([
+              getCategories(),
+              getProducts()
+            ]);
             setCategories(fetchedCategories);
+            setProducts(fetchedProducts);
         } catch (error) {
-            console.error("Failed to fetch categories:", error);
+            console.error("Failed to fetch data for header:", error);
         }
     }
     fetchData();
@@ -245,7 +250,7 @@ export default function Header() {
                 </SheetHeader>
                 <div className='p-4'>
                     <Suspense fallback={<Skeleton className="h-10 w-full" />}>
-                        <GlobalSearch />
+                        <GlobalSearch allProducts={products} />
                     </Suspense>
                 </div>
                 <nav className="flex flex-col gap-6 p-4 text-lg mt-4">
@@ -277,7 +282,7 @@ export default function Header() {
         <div className="flex items-center justify-end space-x-1 md:flex-1">
           <div className="hidden md:block w-full max-w-sm mr-4">
             <Suspense fallback={<Skeleton className="h-10 w-full" />}>
-              <GlobalSearch />
+              <GlobalSearch allProducts={products} />
             </Suspense>
           </div>
           <ThemeToggle />
@@ -296,5 +301,3 @@ export default function Header() {
     </header>
   );
 }
-
-    
