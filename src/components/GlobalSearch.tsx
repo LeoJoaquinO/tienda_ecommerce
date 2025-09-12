@@ -30,7 +30,8 @@ export function GlobalSearch() {
     if(window.location.pathname === '/tienda') {
         const search = currentQuery.toString();
         const query = search ? `?${search}` : '';
-        router.push(`/tienda${query}`);
+        // Append the hash to scroll to the products grid
+        router.push(`/tienda${query}#products-grid`);
     }
 
   }, [debouncedSearchTerm, router, searchParams]);
@@ -53,7 +54,8 @@ export function GlobalSearch() {
 
     const search = currentQuery.toString();
     const query = search ? `?${search}` : '';
-
+    
+    // Append the hash to scroll to the products grid
     router.push(`/tienda${query}#products-grid`);
   };
 
@@ -71,3 +73,5 @@ export function GlobalSearch() {
     </form>
   );
 }
+
+    

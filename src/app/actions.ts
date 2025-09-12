@@ -82,6 +82,7 @@ export async function addProductAction(formData: FormData) {
 }
 
 export async function updateProductAction(id: number, formData: FormData) {
+    console.log(`[Action] Starting update for product ID: ${id}`);
     const rawData = Object.fromEntries(formData.entries());
     const sanitizedData = sanitizeData(rawData);
 
@@ -105,36 +106,42 @@ export async function updateProductAction(id: number, formData: FormData) {
     });
 
     if (!validatedFields.success) {
-        console.error("Validation failed", validatedFields.error.flatten().fieldErrors);
+        console.error("[Action] Validation failed for updateProductAction:", validatedFields.error.flatten().fieldErrors);
         return {
             error: "Datos inválidos. Por favor, revisa los campos.",
             fieldErrors: validatedFields.error.flatten().fieldErrors,
         };
     }
+    
+    console.log("[Action] Data validated successfully. Attempting to update product in DB.");
+    console.log("[Action] Payload:", JSON.stringify(validatedFields.data, null, 2));
 
     try {
         await updateProduct(id, validatedFields.data);
+        console.log(`[Action] Successfully updated product ID: ${id}. Revalidating paths.`);
         revalidatePath("/admin");
         revalidatePath(`/products/${id}`);
         revalidatePath("/tienda");
         revalidatePath("/");
         return { message: "Producto actualizado exitosamente." };
     } catch (e: any) {
-        console.error(e);
+        console.error(`[Action] CRITICAL: Failed to update product ID ${id}. Error:`, e.message);
         return { error: e.message || "No se pudo actualizar el producto." };
     }
 }
 
 
 export async function deleteProductAction(id: number) {
+    console.log(`[Action] Starting delete for product ID: ${id}`);
     try {
         await deleteProduct(id);
+        console.log(`[Action] Successfully deleted product ID: ${id}. Revalidating paths.`);
         revalidatePath('/admin');
         revalidatePath("/tienda");
         revalidatePath("/");
         return { message: 'Producto eliminado exitosamente.' }
     } catch (e: any) {
-        console.error(e);
+        console.error(`[Action] CRITICAL: Failed to delete product ID ${id}. Error:`, e.message);
         return { error: e.message || 'No se pudo eliminar el producto.' }
     }
 }
@@ -300,3 +307,5 @@ export async function deleteCategoryAction(id: number) {
         return { error: e.message || 'No se pudo eliminar la categoría.' }
     }
 }
+
+    
