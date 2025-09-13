@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { db, isDbConnected } from './db';
@@ -113,24 +114,23 @@ export async function createProduct(product: Omit<Product, 'id' | 'salePrice'>):
     if (!isDbConnected) return createProductFromHardcodedData(product);
     const { name, description, shortDescription, price, images, categoryIds, stock, aiHint, featured, discountPercentage, offerStartDate, offerEndDate } = product;
     try {
-        const result = await db.begin(async (sql) => {
-            const productResult = await sql`
-                INSERT INTO products (name, description, short_description, price, images, stock, ai_hint, featured, discount_percentage, offer_start_date, offer_end_date, created_at)
-                VALUES (${name}, ${description}, ${shortDescription}, ${price}, ${images}, ${stock}, ${aiHint}, ${featured}, ${discountPercentage}, ${offerStartDate?.toISOString()}, ${offerEndDate?.toISOString()}, ${new Date().toISOString()})
-                RETURNING *;
-            `;
-            const newProduct = productResult[0];
+        const productResult = await db`
+            INSERT INTO products (name, description, short_description, price, images, stock, ai_hint, featured, discount_percentage, offer_start_date, offer_end_date, created_at)
+            VALUES (${name}, ${description}, ${shortDescription}, ${price}, ${images}, ${stock}, ${aiHint}, ${featured}, ${discountPercentage}, ${offerStartDate?.toISOString()}, ${offerEndDate?.toISOString()}, ${new Date().toISOString()})
+            RETURNING *;
+        `;
+        const newProduct = productResult[0];
 
-            if (categoryIds && categoryIds.length > 0) {
-                const values = categoryIds.map(catId => sql`(${newProduct.id}, ${catId})`).reduce((prev, curr) => sql`${prev}, ${curr}`);
-                await sql`INSERT INTO product_categories (product_id, category_id) VALUES ${values}`;
-            }
+        if (categoryIds && categoryIds.length > 0) {
+            const values = categoryIds.map(catId => db`(${newProduct.id}, ${catId})`).reduce((prev, curr) => db`${prev}, ${curr}`);
+            await db`INSERT INTO product_categories (product_id, category_id) VALUES ${values}`;
+        }
 
-            return newProduct;
-        });
-
-        const finalProduct = await getProductById(result.id);
-        return finalProduct!;
+        const finalProduct = await getProductById(newProduct.id);
+        if (!finalProduct) {
+            throw new Error('Failed to fetch product after creation.');
+        }
+        return finalProduct;
 
     } catch (error) {
         console.error('Database Error:', error);
@@ -144,37 +144,31 @@ export async function updateProduct(id: number, productData: Partial<Omit<Produc
     const { name, description, shortDescription, price, images, categoryIds, stock, aiHint, featured, discountPercentage, offerStartDate, offerEndDate } = productData;
     
     try {
-        // Option 1: If using postgres.js, use db.begin() correctly
-        const result = await db.begin(async (sql) => {
-            // Update the product
-            await sql`
-                UPDATE products
-                SET name = ${name}, 
-                    description = ${description}, 
-                    short_description = ${shortDescription}, 
-                    price = ${price}, 
-                    images = ${images}, 
-                    stock = ${stock}, 
-                    ai_hint = ${aiHint}, 
-                    featured = ${featured}, 
-                    discount_percentage = ${discountPercentage}, 
-                    offer_start_date = ${offerStartDate?.toISOString() || null}, 
-                    offer_end_date = ${offerEndDate?.toISOString() || null}
-                WHERE id = ${id}
-            `;
-            
-            // Delete existing categories
-            await sql`DELETE FROM product_categories WHERE product_id = ${id}`;
+        // Update the product
+        await db`
+            UPDATE products
+            SET name = ${name}, 
+                description = ${description}, 
+                short_description = ${shortDescription}, 
+                price = ${price}, 
+                images = ${images}, 
+                stock = ${stock}, 
+                ai_hint = ${aiHint}, 
+                featured = ${featured}, 
+                discount_percentage = ${discountPercentage}, 
+                offer_start_date = ${offerStartDate?.toISOString() || null}, 
+                offer_end_date = ${offerEndDate?.toISOString() || null}
+            WHERE id = ${id}
+        `;
+        
+        // Delete existing categories
+        await db`DELETE FROM product_categories WHERE product_id = ${id}`;
 
-            // Insert new categories
-            if (categoryIds && categoryIds.length > 0) {
-                for (const catId of categoryIds) {
-                    await sql`INSERT INTO product_categories (product_id, category_id) VALUES (${id}, ${catId})`;
-                }
-            }
-            
-            return true;
-        });
+        // Insert new categories
+        if (categoryIds && categoryIds.length > 0) {
+            const values = categoryIds.map(catId => db`(${id}, ${catId})`).reduce((prev, curr) => db`${prev}, ${curr}`);
+            await db`INSERT INTO product_categories (product_id, category_id) VALUES ${values}`;
+        }
 
         // Get the updated product
         const finalProduct = await getProductById(id);
@@ -186,7 +180,7 @@ export async function updateProduct(id: number, productData: Partial<Omit<Produc
 
     } catch (error) {
         console.error('Database Error:', error);
-        console.error('Error details:', error.message, error.stack);
+        console.error('Error details:', (error as Error).message, (error as Error).stack);
         throw new Error('Failed to update product.');
     }
 }
@@ -195,10 +189,8 @@ export async function updateProduct(id: number, productData: Partial<Omit<Produc
 export async function deleteProduct(id: number): Promise<void> {
     if (!isDbConnected) return deleteProductFromHardcodedData(id);
     try {
-        await db.begin(async (sql) => {
-            await sql`DELETE FROM product_categories WHERE product_id = ${id}`;
-            await sql`DELETE FROM products WHERE id = ${id}`;
-        });
+        await db`DELETE FROM product_categories WHERE product_id = ${id}`;
+        await db`DELETE FROM products WHERE id = ${id}`;
     } catch (error) {
         console.error('Database Error:', error);
         throw new Error('Failed to delete product.');
@@ -368,15 +360,14 @@ export async function createOrder(orderData: OrderData): Promise<{orderId?: numb
     
     try {
         // Decrease stock for all items
-        await db.begin(async sql => {
-            for (const item of orderData.items) {
-                 const productResult = await sql`SELECT stock FROM products WHERE id = ${item.product.id} FOR UPDATE`;
-                if (productResult.length === 0 || productResult[0].stock < item.quantity) {
-                    throw new Error(`Insufficient stock for product ID: ${item.product.id}`);
-                }
-                await sql`UPDATE products SET stock = stock - ${item.quantity} WHERE id = ${item.product.id}`;
+        // This is not a true transaction, but it's the best we can do without a working `begin`
+        for (const item of orderData.items) {
+            const productResult = await db`SELECT stock FROM products WHERE id = ${item.product.id}`;
+            if (productResult.length === 0 || productResult[0].stock < item.quantity) {
+                throw new Error(`Insufficient stock for product ID: ${item.product.id}`);
             }
-        })
+            await db`UPDATE products SET stock = stock - ${item.quantity} WHERE id = ${item.product.id}`;
+        }
         
         const { customerName, customerEmail, total, status, items, couponCode, discountAmount, shippingAddress, shippingCity, shippingPostalCode } = orderData;
         
@@ -390,7 +381,15 @@ export async function createOrder(orderData: OrderData): Promise<{orderId?: numb
 
     } catch (error: any) {
         console.error('Database Error during order creation:', error);
-        // Note: The transaction should automatically rollback on error.
+        // Attempt to restock items on failure
+        console.log('Attempting to restock items due to order creation failure...');
+        for (const item of orderData.items) {
+            try {
+                await db`UPDATE products SET stock = stock + ${item.quantity} WHERE id = ${item.product.id}`;
+            } catch (restockError) {
+                console.error(`CRITICAL: Failed to restock product ID ${item.product.id} after order failure. Manual intervention required.`);
+            }
+        }
         return { error: error.message || 'Failed to create order due to a database error.' };
     }
 }
@@ -503,7 +502,7 @@ export async function createOrderFromWebhook(paymentData: any): Promise<{newOrde
         `;
          if (orderResult.length === 0) {
              console.log(`Order ${external_reference} already existed. Skipped creation.`);
-             return { newOrder: await getOrderById(external_reference) };
+             return { newOrder: await getOrderById(parseInt(external_reference, 10)) };
         }
         const newOrder = await getOrderById(orderResult[0].id);
         return { newOrder };
