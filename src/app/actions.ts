@@ -84,7 +84,20 @@ export async function addProductAction(formData: FormData) {
 export async function updateProductAction(id: number, formData: FormData) {
     console.log(`[Action] Starting update for product ID: ${id}`);
     const rawData = Object.fromEntries(formData.entries());
-    const sanitizedData = sanitizeData(rawData);
+    console.log(`[Action] Raw form data:`, rawData);
+    
+    // Handle the "1_" prefixed form fields
+    const processedData: Record<string, any> = {};
+    
+    for (const [key, value] of Object.entries(rawData)) {
+        // Remove the "1_" prefix if it exists
+        const cleanKey = key.startsWith('1_') ? key.substring(2) : key;
+        processedData[cleanKey] = value;
+    }
+    
+    console.log(`[Action] Processed data:`, processedData);
+    
+    const sanitizedData = sanitizeData(processedData);
 
     if (sanitizedData.discountPercentage === '') sanitizedData.discountPercentage = null;
     if (sanitizedData.offerStartDate === '') sanitizedData.offerStartDate = null;
@@ -96,7 +109,14 @@ export async function updateProductAction(id: number, formData: FormData) {
             images.push(sanitizedData[`image${i}`]);
         }
     }
-    const categoryIds = formData.getAll('categoryIds').map(id => Number(id));
+    
+    // Handle categoryIds - they might come as "1_categoryIds" multiple times
+    const categoryIds = formData.getAll('1_categoryIds').length > 0 
+        ? formData.getAll('1_categoryIds').map(id => Number(id))
+        : formData.getAll('categoryIds').map(id => Number(id));
+
+    console.log(`[Action] Extracted categoryIds:`, categoryIds);
+    console.log(`[Action] Extracted images:`, images);
 
     const validatedFields = productSchema.safeParse({
         ...sanitizedData,
@@ -307,5 +327,7 @@ export async function deleteCategoryAction(id: number) {
         return { error: e.message || 'No se pudo eliminar la categoría.' }
     }
 }
+
+    
 
     
