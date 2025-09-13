@@ -140,9 +140,13 @@ export async function createProduct(product: Omit<Product, 'id' | 'salePrice'>):
 
 export async function updateProduct(id: number, productData: Partial<Omit<Product, 'id' | 'salePrice'>>): Promise<Product> {
     if (!isDbConnected) return updateProductFromHardcodedData(id, productData);
-     const { name, description, shortDescription, price, images, categoryIds, stock, aiHint, featured, discountPercentage, offerStartDate, offerEndDate } = productData;
+    
+    const { name, description, shortDescription, price, images, categoryIds, stock, aiHint, featured, discountPercentage, offerStartDate, offerEndDate } = productData;
+    
     try {
-        await db.begin(async (sql) => {
+        // Option 1: If using postgres.js, use db.begin() correctly
+        const result = await db.begin(async (sql) => {
+            // Update the product
             await sql`
                 UPDATE products
                 SET name = ${name}, 
@@ -154,27 +158,39 @@ export async function updateProduct(id: number, productData: Partial<Omit<Produc
                     ai_hint = ${aiHint}, 
                     featured = ${featured}, 
                     discount_percentage = ${discountPercentage}, 
-                    offer_start_date = ${offerStartDate?.toISOString()}, 
-                    offer_end_date = ${offerEndDate?.toISOString()}
-                WHERE id = ${id};
+                    offer_start_date = ${offerStartDate?.toISOString() || null}, 
+                    offer_end_date = ${offerEndDate?.toISOString() || null}
+                WHERE id = ${id}
             `;
             
+            // Delete existing categories
             await sql`DELETE FROM product_categories WHERE product_id = ${id}`;
 
+            // Insert new categories
             if (categoryIds && categoryIds.length > 0) {
-                const values = categoryIds.map(catId => sql`(${id}, ${catId})`).reduce((prev, curr) => sql`${prev}, ${curr}`);
-                await sql`INSERT INTO product_categories (product_id, category_id) VALUES ${values}`;
+                for (const catId of categoryIds) {
+                    await sql`INSERT INTO product_categories (product_id, category_id) VALUES (${id}, ${catId})`;
+                }
             }
+            
+            return true;
         });
 
+        // Get the updated product
         const finalProduct = await getProductById(id);
-        return finalProduct!;
+        if (!finalProduct) {
+            throw new Error('Product not found after update');
+        }
+        
+        return finalProduct;
 
     } catch (error) {
         console.error('Database Error:', error);
+        console.error('Error details:', error.message, error.stack);
         throw new Error('Failed to update product.');
     }
 }
+
 
 export async function deleteProduct(id: number): Promise<void> {
     if (!isDbConnected) return deleteProductFromHardcodedData(id);
