@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import { db, isDbConnected } from './db';
@@ -68,7 +67,6 @@ function _mapDbRowToProduct(row: any): Product {
     return product;
 }
 
-
 // ############################################################################
 // Product Functions
 // ############################################################################
@@ -122,8 +120,10 @@ export async function createProduct(product: Omit<Product, 'id' | 'salePrice'>):
         const newProduct = productResult[0];
 
         if (categoryIds && categoryIds.length > 0) {
-            const values = categoryIds.map(catId => db`(${newProduct.id}, ${catId})`).reduce((prev, curr) => db`${prev}, ${curr}`);
-            await db`INSERT INTO product_categories (product_id, category_id) VALUES ${values}`;
+            // Fixed: Use individual INSERT statements instead of template literal concatenation
+            for (const catId of categoryIds) {
+                await db`INSERT INTO product_categories (product_id, category_id) VALUES (${newProduct.id}, ${catId})`;
+            }
         }
 
         const finalProduct = await getProductById(newProduct.id);
@@ -144,30 +144,35 @@ export async function updateProduct(id: number, productData: Partial<Omit<Produc
     const { name, description, shortDescription, price, images, categoryIds, stock, aiHint, featured, discountPercentage, offerStartDate, offerEndDate } = productData;
     
     try {
-        // Update the product
+        // Update the product - handle null/undefined values properly
         await db`
             UPDATE products
-            SET name = ${name}, 
-                description = ${description}, 
-                short_description = ${shortDescription}, 
-                price = ${price}, 
-                images = ${images}, 
-                stock = ${stock}, 
-                ai_hint = ${aiHint}, 
-                featured = ${featured}, 
+            SET name = COALESCE(${name}, name), 
+                description = COALESCE(${description}, description), 
+                short_description = COALESCE(${shortDescription}, short_description), 
+                price = COALESCE(${price}, price), 
+                images = COALESCE(${images}, images), 
+                stock = COALESCE(${stock}, stock), 
+                ai_hint = COALESCE(${aiHint}, ai_hint), 
+                featured = COALESCE(${featured}, featured), 
                 discount_percentage = ${discountPercentage}, 
                 offer_start_date = ${offerStartDate?.toISOString() || null}, 
                 offer_end_date = ${offerEndDate?.toISOString() || null}
             WHERE id = ${id}
         `;
         
-        // Delete existing categories
-        await db`DELETE FROM product_categories WHERE product_id = ${id}`;
+        // Only update categories if categoryIds is provided
+        if (categoryIds !== undefined) {
+            // Delete existing categories
+            await db`DELETE FROM product_categories WHERE product_id = ${id}`;
 
-        // Insert new categories
-        if (categoryIds && categoryIds.length > 0) {
-            const values = categoryIds.map(catId => db`(${id}, ${catId})`).reduce((prev, curr) => db`${prev}, ${curr}`);
-            await db`INSERT INTO product_categories (product_id, category_id) VALUES ${values}`;
+            // Insert new categories if any
+            if (categoryIds && categoryIds.length > 0) {
+                // Fixed: Use individual INSERT statements instead of template literal concatenation
+                for (const catId of categoryIds) {
+                    await db`INSERT INTO product_categories (product_id, category_id) VALUES (${id}, ${catId})`;
+                }
+            }
         }
 
         // Get the updated product
@@ -184,7 +189,6 @@ export async function updateProduct(id: number, productData: Partial<Omit<Produc
         throw new Error('Failed to update product.');
     }
 }
-
 
 export async function deleteProduct(id: number): Promise<void> {
     if (!isDbConnected) return deleteProductFromHardcodedData(id);
@@ -267,7 +271,6 @@ function _mapDbRowToCoupon(row: any): Coupon {
     };
 }
 
-
 export async function getCoupons(): Promise<Coupon[]> {
     if (!isDbConnected) return getCouponsFromHardcodedData();
     noStore();
@@ -296,7 +299,6 @@ export async function getCouponByCode(code: string): Promise<Coupon | undefined>
     }
 }
 
-
 export async function createCoupon(coupon: Omit<Coupon, 'id'>): Promise<Coupon> {
     if (!isDbConnected) return createCouponFromHardcodedData(coupon);
     const { code, discountType, discountValue, expiryDate, isActive } = coupon;
@@ -308,7 +310,7 @@ export async function createCoupon(coupon: Omit<Coupon, 'id'>): Promise<Coupon> 
         `;
         return _mapDbRowToCoupon(result[0]);
     } catch (error: any) {
-        if (error.message.includes('duplicate key value violates unique constraint')) { // Specific to Postgres
+        if (error.message.includes('duplicate key value violates unique constraint')) {
             throw new Error(`El código de cupón '${coupon.code}' ya existe.`);
         }
         console.error('Database Error:', error);
@@ -322,17 +324,17 @@ export async function updateCoupon(id: number, couponData: Partial<Omit<Coupon, 
     try {
         const result = await db`
             UPDATE coupons
-            SET code = ${code?.toUpperCase()}, 
-                discount_type = ${discountType}, 
-                discount_value = ${discountValue}, 
-                expiry_date = ${expiryDate?.toISOString()}, 
-                is_active = ${isActive}
+            SET code = COALESCE(${code?.toUpperCase()}, code), 
+                discount_type = COALESCE(${discountType}, discount_type), 
+                discount_value = COALESCE(${discountValue}, discount_value), 
+                expiry_date = ${expiryDate?.toISOString() || null}, 
+                is_active = COALESCE(${isActive}, is_active)
             WHERE id = ${id}
             RETURNING *;
         `;
         return _mapDbRowToCoupon(result[0]);
     } catch (error: any) {
-        if (error.message.includes('duplicate key value violates unique constraint')) { // Specific to Postgres
+        if (error.message.includes('duplicate key value violates unique constraint')) {
              throw new Error(`El código de cupón '${couponData.code}' ya existe.`);
         }
         console.error('Database Error:', error);
@@ -350,7 +352,6 @@ export async function deleteCoupon(id: number): Promise<void> {
     }
 }
 
-
 // ############################################################################
 // Order & Sales Functions
 // ############################################################################
@@ -359,21 +360,27 @@ export async function createOrder(orderData: OrderData): Promise<{orderId?: numb
     if (!isDbConnected) return createOrderFromHardcodedData(orderData);
     
     try {
-        // Decrease stock for all items
-        // This is not a true transaction, but it's the best we can do without a working `begin`
+        // Check stock availability first
         for (const item of orderData.items) {
             const productResult = await db`SELECT stock FROM products WHERE id = ${item.product.id}`;
-            if (productResult.length === 0 || productResult[0].stock < item.quantity) {
-                throw new Error(`Insufficient stock for product ID: ${item.product.id}`);
+            if (productResult.length === 0) {
+                throw new Error(`Product not found: ${item.product.id}`);
             }
+            if (productResult[0].stock < item.quantity) {
+                throw new Error(`Insufficient stock for product "${item.product.name}". Available: ${productResult[0].stock}, Requested: ${item.quantity}`);
+            }
+        }
+
+        // Decrease stock for all items
+        for (const item of orderData.items) {
             await db`UPDATE products SET stock = stock - ${item.quantity} WHERE id = ${item.product.id}`;
         }
         
         const { customerName, customerEmail, total, status, items, couponCode, discountAmount, shippingAddress, shippingCity, shippingPostalCode } = orderData;
         
         const orderResult = await db`
-            INSERT INTO orders (customer_name, customer_email, total, status, items, coupon_code, discount_amount, shipping_address, shipping_city, shipping_postal_code)
-            VALUES (${customerName}, ${customerEmail}, ${total}, ${status}, ${JSON.stringify(items)}::jsonb, ${couponCode}, ${discountAmount}, ${shippingAddress}, ${shippingCity}, ${shippingPostalCode})
+            INSERT INTO orders (customer_name, customer_email, total, status, items, coupon_code, discount_amount, shipping_address, shipping_city, shipping_postal_code, created_at)
+            VALUES (${customerName}, ${customerEmail}, ${total}, ${status}, ${JSON.stringify(items)}::jsonb, ${couponCode}, ${discountAmount}, ${shippingAddress}, ${shippingCity}, ${shippingPostalCode}, ${new Date().toISOString()})
             RETURNING id;
         `;
 
@@ -387,13 +394,12 @@ export async function createOrder(orderData: OrderData): Promise<{orderId?: numb
             try {
                 await db`UPDATE products SET stock = stock + ${item.quantity} WHERE id = ${item.product.id}`;
             } catch (restockError) {
-                console.error(`CRITICAL: Failed to restock product ID ${item.product.id} after order failure. Manual intervention required.`);
+                console.error(`CRITICAL: Failed to restock product ID ${item.product.id} after order failure. Manual intervention required.`, restockError);
             }
         }
         return { error: error.message || 'Failed to create order due to a database error.' };
     }
 }
-
 
 export async function updateOrderStatus(orderId: number, status: OrderStatus, paymentId?: string): Promise<void> {
     if (!isDbConnected) return updateOrderStatusFromHardcodedData(orderId, status, paymentId);
@@ -495,8 +501,8 @@ export async function createOrderFromWebhook(paymentData: any): Promise<{newOrde
     
     try {
         const orderResult = await db`
-            INSERT INTO orders (id, customer_name, customer_email, total, status, items, payment_id, shipping_address, shipping_city, shipping_postal_code)
-            VALUES (${external_reference}, ${orderData.customerName}, ${orderData.customerEmail}, ${orderData.total}, ${orderData.status}, ${JSON.stringify(orderData.items)}::jsonb, ${orderData.paymentId}, ${orderData.shippingAddress}, ${orderData.shippingCity}, ${orderData.shippingPostalCode})
+            INSERT INTO orders (id, customer_name, customer_email, total, status, items, payment_id, shipping_address, shipping_city, shipping_postal_code, created_at)
+            VALUES (${external_reference}, ${orderData.customerName}, ${orderData.customerEmail}, ${orderData.total}, ${orderData.status}, ${JSON.stringify(orderData.items)}::jsonb, ${orderData.paymentId}, ${orderData.shippingAddress}, ${orderData.shippingCity}, ${orderData.shippingPostalCode}, ${new Date().toISOString()})
             ON CONFLICT (id) DO NOTHING
             RETURNING *;
         `;
@@ -508,10 +514,10 @@ export async function createOrderFromWebhook(paymentData: any): Promise<{newOrde
         return { newOrder };
 
     } catch (error: any) {
+        console.error('Database Error in createOrderFromWebhook:', error);
         return { error: error.message || 'Failed to create order from webhook.' };
     }
 }
-
 
 export async function getSalesMetrics(): Promise<SalesMetrics> {
     if (!isDbConnected) return getSalesMetricsFromHardcodedData();
@@ -545,6 +551,29 @@ export async function getSalesMetrics(): Promise<SalesMetrics> {
 
 export async function getOrders(): Promise<Order[]> {
     if (!isDbConnected) return getOrdersFromHardcodedData();
-    // This is a placeholder as getting orders is not yet implemented in the UI
-    return [];
+    noStore();
+    try {
+        const rows = await db`
+            SELECT * FROM orders 
+            ORDER BY created_at DESC
+        `;
+        return rows.map(row => ({
+            id: row.id,
+            customerName: row.customer_name,
+            customerEmail: row.customer_email,
+            total: parseFloat(row.total),
+            status: row.status as OrderStatus,
+            createdAt: new Date(row.created_at),
+            items: row.items,
+            couponCode: row.coupon_code,
+            discountAmount: row.discount_amount ? parseFloat(row.discount_amount) : undefined,
+            paymentId: row.payment_id,
+            shippingAddress: row.shipping_address,
+            shippingCity: row.shipping_city,
+            shippingPostalCode: row.shipping_postal_code,
+        }));
+    } catch (error) {
+        console.error('Database Error:', error);
+        throw new Error('Failed to fetch orders.');
+    }
 }
