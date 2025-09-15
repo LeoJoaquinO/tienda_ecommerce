@@ -5,13 +5,12 @@ import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ProductCard } from '@/components/ProductCard';
 import { Separator } from '@/components/ui/separator';
-import { Percent, Tag, Search, DollarSign, ListFilter, ChevronRight } from 'lucide-react';
+import { Percent, Tag, Search, ListFilter, ChevronRight } from 'lucide-react';
 import type { Product, Category } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { Label } from '@/components/ui/label';
 
 interface TiendaPageClientProps {
   allProducts: Product[];
@@ -23,16 +22,28 @@ export function TiendaPageClient({ allProducts, allCategories, offerProducts }: 
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  // State for the currently applied filters
+  const [activeCategory, setActiveCategory] = useState<string>(searchParams.get('category') || 'All');
   const searchQuery = searchParams.get('q') || '';
+  const activeMinPrice = searchParams.get('minPrice') || '';
+  const activeMaxPrice = searchParams.get('maxPrice') || '';
 
-  const maxPrice = useMemo(() => {
-    if (allProducts.length === 0) return 100000;
-    return Math.ceil(Math.max(...allProducts.map(p => p.price)) / 100) * 100;
-  }, [allProducts]);
+  // State for the filters selected in the UI, before applying
+  const [pendingCategory, setPendingCategory] = useState<string>(activeCategory);
+  const [pendingMinPrice, setPendingMinPrice] = useState<string>(activeMinPrice);
+  const [pendingMaxPrice, setPendingMaxPrice] = useState<string>(activeMaxPrice);
 
-  const [minPrice, setMinPrice] = useState<string>(searchParams.get('minPrice') || '');
-  const [maxPriceInput, setMaxPriceInput] = useState<string>(searchParams.get('maxPrice') || '');
+  useEffect(() => {
+    // When URL changes, update both active and pending filters
+    const category = searchParams.get('category') || 'All';
+    const minPrice = searchParams.get('minPrice') || '';
+    const maxPrice = searchParams.get('maxPrice') || '';
+    
+    setActiveCategory(category);
+    setPendingCategory(category);
+    setPendingMinPrice(minPrice);
+    setPendingMaxPrice(maxPrice);
+  }, [searchParams]);
 
   const { categoryTree } = useMemo(() => {
     const tree: (Category & { children: Category[] })[] = [];
@@ -53,19 +64,24 @@ export function TiendaPageClient({ allProducts, allCategories, offerProducts }: 
     return { categoryTree: tree };
   }, [allCategories]);
 
-  useEffect(() => {
-    const categoryFromUrl = searchParams.get('category');
-    const validCategory = allCategories.some(c => String(c.id) === categoryFromUrl);
-    setSelectedCategory(validCategory ? categoryFromUrl! : 'All');
-  }, [searchParams, allCategories]);
 
-  const updateUrlParams = (key: string, value: string | null) => {
+  const handleApplyFilters = () => {
     const current = new URLSearchParams(Array.from(searchParams.entries()));
-    if (value === null || value === '') {
-      current.delete(key);
-    } else {
-      current.set(key, value);
-    }
+
+    if (pendingCategory === 'All') current.delete('category');
+    else current.set('category', pendingCategory);
+
+    if (pendingMinPrice) current.set('minPrice', pendingMinPrice);
+    else current.delete('minPrice');
+
+    if (pendingMaxPrice) current.set('maxPrice', pendingMaxPrice);
+    else current.delete('maxPrice');
+    
+    // q param should persist
+    if (searchQuery) current.set('q', searchQuery);
+    else current.delete('q');
+
+
     const search = current.toString();
     const query = search ? `?${search}` : "";
     router.push(`/tienda${query}#products-grid`, { scroll: false });
@@ -73,15 +89,15 @@ export function TiendaPageClient({ allProducts, allCategories, offerProducts }: 
   
   const filteredProducts = useMemo(() => {
     let items = allProducts;
-    const min = parseFloat(minPrice);
-    const max = parseFloat(maxPriceInput);
+    const min = parseFloat(activeMinPrice);
+    const max = parseFloat(activeMaxPrice);
 
     if (searchQuery) {
         items = items.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
     }
 
-    if (selectedCategory !== 'All') {
-        const catId = Number(selectedCategory);
+    if (activeCategory !== 'All') {
+        const catId = Number(activeCategory);
         items = items.filter(p => p.categoryIds.includes(catId));
     }
     
@@ -93,7 +109,7 @@ export function TiendaPageClient({ allProducts, allCategories, offerProducts }: 
     }
 
     return items;
-  }, [allProducts, searchQuery, selectedCategory, minPrice, maxPriceInput]);
+  }, [allProducts, searchQuery, activeCategory, activeMinPrice, activeMaxPrice]);
 
   return (
     <div className="space-y-12">
@@ -143,18 +159,16 @@ export function TiendaPageClient({ allProducts, allCategories, offerProducts }: 
                                 <Input 
                                     type="number" 
                                     placeholder='Desde' 
-                                    value={minPrice} 
-                                    onChange={(e) => setMinPrice(e.target.value)}
-                                    onBlur={(e) => updateUrlParams('minPrice', e.target.value)}
+                                    value={pendingMinPrice} 
+                                    onChange={(e) => setPendingMinPrice(e.target.value)}
                                     aria-label="Precio mínimo"
                                 />
                                 <span>-</span>
                                 <Input 
                                     type="number" 
                                     placeholder='Hasta' 
-                                    value={maxPriceInput} 
-                                    onChange={(e) => setMaxPriceInput(e.target.value)}
-                                    onBlur={(e) => updateUrlParams('maxPrice', e.target.value)}
+                                    value={pendingMaxPrice} 
+                                    onChange={(e) => setPendingMaxPrice(e.target.value)}
                                     aria-label="Precio máximo"
                                 />
                             </div>
@@ -167,10 +181,10 @@ export function TiendaPageClient({ allProducts, allCategories, offerProducts }: 
                            <h3 className="font-semibold">Categorías</h3>
                            <nav className="space-y-1">
                              <button
-                                onClick={() => updateUrlParams('category', null)}
+                                onClick={() => setPendingCategory('All')}
                                 className={cn(
                                     "w-full text-left px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
-                                    selectedCategory === 'All' ? 'bg-primary/10 text-primary' : 'hover:bg-accent/50'
+                                    pendingCategory === 'All' ? 'bg-primary/10 text-primary' : 'hover:bg-accent/50'
                                 )}
                              >
                                 Todos los Productos
@@ -182,10 +196,10 @@ export function TiendaPageClient({ allProducts, allCategories, offerProducts }: 
                                     {parentCat.children.map(category => (
                                         <button
                                             key={category.id}
-                                            onClick={() => updateUrlParams('category', String(category.id))}
+                                            onClick={() => setPendingCategory(String(category.id))}
                                             className={cn(
                                                 "w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors flex items-center gap-2",
-                                                selectedCategory === String(category.id) ? 'bg-primary/10 text-primary font-semibold' : 'hover:bg-accent/50'
+                                                pendingCategory === String(category.id) ? 'bg-primary/10 text-primary font-semibold' : 'hover:bg-accent/50'
                                             )}
                                         >
                                             <ChevronRight className="w-3 h-3" />
@@ -197,6 +211,9 @@ export function TiendaPageClient({ allProducts, allCategories, offerProducts }: 
                              ))}
                            </nav>
                         </div>
+                        <Button onClick={handleApplyFilters} className='w-full'>
+                            Aplicar Filtros
+                        </Button>
                     </CardContent>
                 </Card>
             </aside>
@@ -224,3 +241,6 @@ export function TiendaPageClient({ allProducts, allCategories, offerProducts }: 
     </div>
   );
 }
+
+
+    
