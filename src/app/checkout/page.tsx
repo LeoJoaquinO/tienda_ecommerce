@@ -80,19 +80,13 @@ export default function CheckoutPage() {
       }
       
       const requestBody = {
-        cartItems: cartItems.map((item, index) => ({
-          id: `item_${item.product.id}_${index}`,
-          title: item.product?.name || `Producto ${index + 1}`,
-          quantity: Math.max(1, Number(item.quantity) || 1),
-          unit_price: Math.max(0.01, Number(item.product?.salePrice ?? item.product?.price) || 1),
-        })),
-        payer: {
-          name: values.name,
+        cartItems: cartItems, // Pass the full cartItems array
+        shippingInfo: {
+          ...values,
           email: process.env.NODE_ENV === 'development' 
             ? MP_TEST_USERS.buyer 
             : values.email,
         },
-        shippingInfo: values,
         totalPrice: Math.max(0.01, Number(totalPrice) || 1),
         discount: Number(discount) || 0,
         appliedCoupon: appliedCoupon || null
@@ -459,3 +453,5 @@ export default function CheckoutPage() {
     </div>
   );
 }
+
+    
