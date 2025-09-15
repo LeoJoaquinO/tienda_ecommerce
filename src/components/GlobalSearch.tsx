@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Image from 'next/image';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -96,9 +97,18 @@ export function GlobalSearch({ allProducts }: { allProducts: Product[] }) {
               <li key={product.id}>
                 <button
                   onClick={() => handleSuggestionClick(product.name)}
-                  className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-accent transition-colors"
+                  className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-accent transition-colors flex items-center gap-4"
                 >
-                  {product.name}
+                    <div className="relative w-10 h-10 rounded-md overflow-hidden shrink-0">
+                        <Image
+                            src={product.images[0] ?? 'https://placehold.co/40x40.png'}
+                            alt={product.name}
+                            fill
+                            className="object-cover"
+                            sizes="40px"
+                        />
+                    </div>
+                  <span className="flex-1">{product.name}</span>
                 </button>
               </li>
             ))}
