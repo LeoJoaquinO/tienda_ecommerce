@@ -22,27 +22,20 @@ export function TiendaPageClient({ allProducts, allCategories, offerProducts }: 
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  // State for the currently applied filters
-  const [activeCategory, setActiveCategory] = useState<string>(searchParams.get('category') || 'All');
+  // State for the currently applied filters from the URL
+  const activeCategory = searchParams.get('category') || 'All';
   const searchQuery = searchParams.get('q') || '';
   const activeMinPrice = searchParams.get('minPrice') || '';
   const activeMaxPrice = searchParams.get('maxPrice') || '';
 
-  // State for the filters selected in the UI, before applying
-  const [pendingCategory, setPendingCategory] = useState<string>(activeCategory);
+  // State for the price inputs, before applying
   const [pendingMinPrice, setPendingMinPrice] = useState<string>(activeMinPrice);
   const [pendingMaxPrice, setPendingMaxPrice] = useState<string>(activeMaxPrice);
 
   useEffect(() => {
-    // When URL changes, update both active and pending filters
-    const category = searchParams.get('category') || 'All';
-    const minPrice = searchParams.get('minPrice') || '';
-    const maxPrice = searchParams.get('maxPrice') || '';
-    
-    setActiveCategory(category);
-    setPendingCategory(category);
-    setPendingMinPrice(minPrice);
-    setPendingMaxPrice(maxPrice);
+    // When URL changes, update pending prices to match
+    setPendingMinPrice(searchParams.get('minPrice') || '');
+    setPendingMaxPrice(searchParams.get('maxPrice') || '');
   }, [searchParams]);
 
   const { categoryTree } = useMemo(() => {
@@ -65,23 +58,26 @@ export function TiendaPageClient({ allProducts, allCategories, offerProducts }: 
   }, [allCategories]);
 
 
-  const handleApplyFilters = () => {
+  const handleCategoryClick = (categoryId: string) => {
     const current = new URLSearchParams(Array.from(searchParams.entries()));
-
-    if (pendingCategory === 'All') current.delete('category');
-    else current.set('category', pendingCategory);
-
+    if (categoryId === 'All') {
+        current.delete('category');
+    } else {
+        current.set('category', categoryId);
+    }
+    const search = current.toString();
+    const query = search ? `?${search}` : "";
+    router.push(`/tienda${query}#products-grid`, { scroll: false });
+  };
+  
+  const handlePriceFilterApply = () => {
+    const current = new URLSearchParams(Array.from(searchParams.entries()));
     if (pendingMinPrice) current.set('minPrice', pendingMinPrice);
     else current.delete('minPrice');
 
     if (pendingMaxPrice) current.set('maxPrice', pendingMaxPrice);
     else current.delete('maxPrice');
     
-    // q param should persist
-    if (searchQuery) current.set('q', searchQuery);
-    else current.delete('q');
-
-
     const search = current.toString();
     const query = search ? `?${search}` : "";
     router.push(`/tienda${query}#products-grid`, { scroll: false });
@@ -172,6 +168,9 @@ export function TiendaPageClient({ allProducts, allCategories, offerProducts }: 
                                     aria-label="Precio máximo"
                                 />
                             </div>
+                            <Button onClick={handlePriceFilterApply} className='w-full'>
+                                Aplicar Precio
+                            </Button>
                         </div>
 
                         <Separator />
@@ -181,10 +180,10 @@ export function TiendaPageClient({ allProducts, allCategories, offerProducts }: 
                            <h3 className="font-semibold">Categorías</h3>
                            <nav className="space-y-1">
                              <button
-                                onClick={() => setPendingCategory('All')}
+                                onClick={() => handleCategoryClick('All')}
                                 className={cn(
                                     "w-full text-left px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
-                                    pendingCategory === 'All' ? 'bg-primary/10 text-primary' : 'hover:bg-accent/50'
+                                    activeCategory === 'All' ? 'bg-primary/10 text-primary' : 'hover:bg-accent/50'
                                 )}
                              >
                                 Todos los Productos
@@ -196,10 +195,10 @@ export function TiendaPageClient({ allProducts, allCategories, offerProducts }: 
                                     {parentCat.children.map(category => (
                                         <button
                                             key={category.id}
-                                            onClick={() => setPendingCategory(String(category.id))}
+                                            onClick={() => handleCategoryClick(String(category.id))}
                                             className={cn(
                                                 "w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors flex items-center gap-2",
-                                                pendingCategory === String(category.id) ? 'bg-primary/10 text-primary font-semibold' : 'hover:bg-accent/50'
+                                                activeCategory === String(category.id) ? 'bg-primary/10 text-primary font-semibold' : 'hover:bg-accent/50'
                                             )}
                                         >
                                             <ChevronRight className="w-3 h-3" />
@@ -211,9 +210,6 @@ export function TiendaPageClient({ allProducts, allCategories, offerProducts }: 
                              ))}
                            </nav>
                         </div>
-                        <Button onClick={handleApplyFilters} className='w-full'>
-                            Aplicar Filtros
-                        </Button>
                     </CardContent>
                 </Card>
             </aside>
@@ -241,6 +237,3 @@ export function TiendaPageClient({ allProducts, allCategories, offerProducts }: 
     </div>
   );
 }
-
-
-    
