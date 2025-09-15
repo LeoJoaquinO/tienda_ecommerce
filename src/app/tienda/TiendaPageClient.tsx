@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
@@ -67,7 +68,7 @@ export function TiendaPageClient({ allProducts, allCategories, offerProducts }: 
     }
     const search = current.toString();
     const query = search ? `?${search}` : "";
-    router.push(`/tienda${query}#products-grid`, { scroll: false });
+    router.push(`/tienda${query}#products-grid`, { scroll: true });
   };
   
   const handlePriceFilterApply = () => {
