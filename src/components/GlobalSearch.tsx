@@ -61,13 +61,9 @@ export function GlobalSearch({ allProducts }: { allProducts: Product[] }) {
     setSuggestions([]);
   };
 
-  const handleSuggestionClick = (suggestionName: string) => {
-    setSearchTerm(suggestionName);
-    const currentQuery = new URLSearchParams(Array.from(searchParams.entries()));
-    currentQuery.set('q', suggestionName);
-    const search = currentQuery.toString();
-    const query = search ? `?${search}` : '';
-    router.push(`/tienda${query}#products-grid`);
+  const handleSuggestionClick = (product: Product) => {
+    setSearchTerm('');
+    router.push(`/products/${product.id}`);
     setIsFocused(false);
     setSuggestions([]);
   };
@@ -96,7 +92,7 @@ export function GlobalSearch({ allProducts }: { allProducts: Product[] }) {
             {suggestions.map(product => (
               <li key={product.id}>
                 <button
-                  onClick={() => handleSuggestionClick(product.name)}
+                  onClick={() => handleSuggestionClick(product)}
                   className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-accent transition-colors flex items-center gap-4"
                 >
                     <div className="relative w-10 h-10 rounded-md overflow-hidden shrink-0">
