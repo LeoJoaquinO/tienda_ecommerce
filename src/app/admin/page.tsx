@@ -1,9 +1,10 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { getProducts, getCoupons, getSalesMetrics, getCategories, getOrders } from '@/lib/data';
-import type { Product, Coupon, SalesMetrics, Category, Order } from '@/lib/types';
+import type { Product, Coupon, SalesMetrics, Category, Order, OrderStatus } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -41,7 +42,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { addProductAction, updateProductAction, deleteProductAction, addCouponAction, updateCouponAction, deleteCouponAction, addCategoryAction, deleteCategoryAction } from '@/app/actions';
+import { addProductAction, updateProductAction, deleteProductAction, addCouponAction, updateCouponAction, deleteCouponAction, addCategoryAction, deleteCategoryAction, updateOrderStatusAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -472,9 +473,10 @@ function CouponsTab({ coupons, isLoading, onAdd, onEdit, onDelete, onExport }: {
 // ############################################################################
 // Component: OrdersTab (Fixed)
 // ############################################################################
-function OrdersTab({ orders, isLoading, onExport }: { orders: Order[], isLoading: boolean, onExport: () => void }) {
+function OrdersTab({ orders, isLoading, onExport, onStatusChange }: { orders: Order[], isLoading: boolean, onExport: () => void, onStatusChange: (orderId: number, newStatus: OrderStatus) => void }) {
     
     const getStatusBadge = (status: Order['status']) => {
+        const baseClasses = "text-xs font-bold py-1 px-2 rounded-full";
         switch (status) {
             case 'paid': return <Badge className="bg-green-100 text-green-800">Pagado</Badge>;
             case 'pending': return <Badge className="bg-yellow-100 text-yellow-800">Pendiente</Badge>;
@@ -485,6 +487,8 @@ function OrdersTab({ orders, isLoading, onExport }: { orders: Order[], isLoading
             default: return <Badge variant="outline">Desconocido</Badge>;
         }
     }
+
+    const orderStatuses: OrderStatus[] = ['pending', 'paid', 'shipped', 'cancelled', 'failed', 'refunded'];
 
     return (
         <Card className="shadow-lg">
@@ -501,7 +505,7 @@ function OrdersTab({ orders, isLoading, onExport }: { orders: Order[], isLoading
                                 <TableHead>Cliente</TableHead>
                                 <TableHead>Fecha</TableHead>
                                 <TableHead>Total</TableHead>
-                                <TableHead>Estado</TableHead>
+                                <TableHead className="w-[150px]">Estado</TableHead>
                                 <TableHead className="w-12"></TableHead>
                             </TableRow>
                         </TableHeader>
@@ -511,14 +515,30 @@ function OrdersTab({ orders, isLoading, onExport }: { orders: Order[], isLoading
                                 
                                 return (
                                     <React.Fragment key={order.id}>
-                                        <TableRow className="cursor-pointer hover:bg-muted/80" onClick={() => setIsOpen(!isOpen)}>
-                                            <TableCell className="font-mono text-sm">#{order.id}</TableCell>
-                                            <TableCell className="font-medium">{order.customerName}</TableCell>
-                                            <TableCell>{format(new Date(order.createdAt), "dd MMM yyyy, HH:mm", { locale: es })}</TableCell>
-                                            <TableCell className="font-semibold">${order.total.toLocaleString('es-AR')}</TableCell>
-                                            <TableCell>{getStatusBadge(order.status)}</TableCell>
+                                        <TableRow className="hover:bg-muted/50" data-state={isOpen ? 'open' : 'closed'}>
+                                            <TableCell className="font-mono text-sm cursor-pointer" onClick={() => setIsOpen(!isOpen)}>#{order.id}</TableCell>
+                                            <TableCell className="font-medium cursor-pointer" onClick={() => setIsOpen(!isOpen)}>{order.customerName}</TableCell>
+                                            <TableCell className="cursor-pointer" onClick={() => setIsOpen(!isOpen)}>{format(new Date(order.createdAt), "dd MMM yyyy, HH:mm", { locale: es })}</TableCell>
+                                            <TableCell className="font-semibold cursor-pointer" onClick={() => setIsOpen(!isOpen)}>${order.total.toLocaleString('es-AR')}</TableCell>
                                             <TableCell>
-                                                <Button variant="ghost" size="sm" className={cn("transition-transform", isOpen && "rotate-90")}>
+                                                <Select
+                                                    defaultValue={order.status}
+                                                    onValueChange={(newStatus: OrderStatus) => onStatusChange(order.id, newStatus)}
+                                                >
+                                                    <SelectTrigger className="h-8 text-xs">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {orderStatuses.map(status => (
+                                                            <SelectItem key={status} value={status} className="text-xs">
+                                                                {status.charAt(0).toUpperCase() + status.slice(1)}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Button variant="ghost" size="sm" onClick={() => setIsOpen(!isOpen)} className={cn("transition-transform", isOpen && "rotate-90")}>
                                                     <ChevronRight className="h-4 w-4" />
                                                 </Button>
                                             </TableCell>
@@ -709,6 +729,16 @@ function AdminDashboard({ onLogout, dbConnected }: { onLogout: () => void, dbCon
         }
     }
 
+    const handleOrderStatusChange = async (orderId: number, newStatus: OrderStatus) => {
+        const result = await updateOrderStatusAction(orderId, newStatus);
+        if (result?.error) {
+            toast({ title: 'Error', description: result.error, variant: 'destructive' });
+        } else {
+            toast({ title: 'Éxito', description: result.message });
+            fetchData();
+        }
+    };
+
     const exportProductsToCSV = () => {
         const headers = ['ID', 'Name', 'Short Description', 'Price', 'Sale Price', 'Stock', 'Categories', 'Featured', 'Image URL 1', 'Image URL 2', 'Image URL 3', 'Image URL 4', 'Image URL 5'];
         const rows = products.map(p => [
@@ -823,7 +853,7 @@ function AdminDashboard({ onLogout, dbConnected }: { onLogout: () => void, dbCon
                     <CouponsTab coupons={coupons} isLoading={isLoading} onAdd={() => handleOpenCouponDialog()} onEdit={handleOpenCouponDialog} onDelete={handleDeleteCoupon} onExport={exportCouponsToCSV} />
                 </TabsContent>
                 <TabsContent value="orders" className="mt-6">
-                    <OrdersTab orders={orders} isLoading={isLoading} onExport={exportOrdersToCSV} />
+                    <OrdersTab orders={orders} isLoading={isLoading} onExport={exportOrdersToCSV} onStatusChange={handleOrderStatusChange} />
                 </TabsContent>
             </Tabs>
 

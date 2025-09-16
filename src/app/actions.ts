@@ -5,8 +5,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import DOMPurify from 'isomorphic-dompurify';
 import { addSubscriber } from "@/lib/subscribers";
-import { createProduct, updateProduct, deleteProduct, createCoupon, updateCoupon, deleteCoupon, createCategory, deleteCategory } from '@/lib/data';
-import type { Product, Coupon } from '@/lib/types';
+import { createProduct, updateProduct, deleteProduct, createCoupon, updateCoupon, deleteCoupon, createCategory, deleteCategory, updateOrderStatus } from '@/lib/data';
+import type { Product, Coupon, OrderStatus } from '@/lib/types';
 
 // Helper function to sanitize form data
 function sanitizeData(data: Record<string, any>): Record<string, any> {
@@ -328,6 +328,23 @@ export async function deleteCategoryAction(id: number) {
     }
 }
 
+// Order Actions
+const orderStatusSchema = z.enum(['pending', 'paid', 'shipped', 'cancelled', 'failed', 'refunded', 'delivered']);
+
+export async function updateOrderStatusAction(orderId: number, newStatus: OrderStatus) {
+    const validatedStatus = orderStatusSchema.safeParse(newStatus);
+    if (!validatedStatus.success) {
+        return { error: 'Estado de orden inválido.' };
+    }
+
+    try {
+        await updateOrderStatus(orderId, validatedStatus.data);
+        revalidatePath('/admin');
+        return { message: 'El estado de la orden fue actualizado exitosamente.' };
+    } catch (e: any) {
+        return { error: e.message || 'No se pudo actualizar el estado de la orden.' };
+    }
+}
     
 
     

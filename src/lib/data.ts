@@ -401,10 +401,14 @@ export async function createOrder(orderData: OrderData): Promise<{orderId?: numb
     }
 }
 
-export async function updateOrderStatus(orderId: number, status: OrderStatus, paymentId?: string): Promise<void> {
+export async function updateOrderStatus(orderId: number, status: OrderStatus, paymentId?: string | null): Promise<void> {
     if (!isDbConnected) return updateOrderStatusFromHardcodedData(orderId, status, paymentId);
     try {
-        await db`UPDATE orders SET status = ${status}, payment_id = ${paymentId} WHERE id = ${orderId}`;
+        if (paymentId !== undefined) {
+             await db`UPDATE orders SET status = ${status}, payment_id = COALESCE(${paymentId}, payment_id) WHERE id = ${orderId}`;
+        } else {
+             await db`UPDATE orders SET status = ${status} WHERE id = ${orderId}`;
+        }
     } catch (error) {
         console.error('Database Error:', error);
         throw new Error('Failed to update order status.');
