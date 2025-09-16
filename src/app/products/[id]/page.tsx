@@ -3,6 +3,41 @@ import { notFound } from 'next/navigation';
 import { getProductById, getProducts } from '@/lib/data';
 import { ProductPageClient } from './ProductPageClient';
 import type { Product } from '@/lib/types';
+import type { Metadata, ResolvingMetadata } from 'next'
+
+type Props = {
+  params: { id: string }
+}
+
+export async function generateMetadata(
+  { params }: Props,
+  parent: ResolvingMetadata
+): Promise<Metadata> {
+  const id = parseInt(params.id, 10);
+  if (isNaN(id)) {
+      notFound();
+  }
+  const product = await getProductById(id);
+
+  if (!product) {
+    return {
+      title: 'Producto no encontrado',
+    }
+  }
+
+  // optionally access and extend (rather than replace) parent metadata
+  const previousImages = (await parent).openGraph?.images || []
+
+  return {
+    title: `${product.name} | Joya - Elegancia Atemporal`,
+    description: product.shortDescription || product.description,
+    openGraph: {
+      title: product.name,
+      description: product.shortDescription || product.description,
+      images: [product.images[0], ...previousImages],
+    },
+  }
+}
 
 export default async function ProductPage({ params }: { params: { id: string } }) {
   const productId = parseInt(params.id, 10);
