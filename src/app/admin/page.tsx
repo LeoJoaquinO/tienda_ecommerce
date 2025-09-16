@@ -492,18 +492,17 @@ function OrdersTab({ orders, isLoading, onExport, onStatusChange }: { orders: Or
     
     const getStatusClasses = (status: Order['status']) => {
         switch (status) {
-            case 'paid': return "bg-green-100 text-green-800 border-green-200";
+            case 'paid': return "bg-blue-100 text-blue-800 border-blue-200"; // Using blue for paid as per original logic before delivered
             case 'pending': return "bg-yellow-100 text-yellow-800 border-yellow-200";
             case 'failed': return "bg-red-100 text-red-800 border-red-200";
-            case 'cancelled': return "bg-gray-100 text-gray-800 border-gray-200";
-            case 'refunded': return "bg-blue-100 text-blue-800 border-blue-200";
+            case 'cancelled': return "bg-red-100 text-red-800 border-red-200"; // Same as failed
             case 'shipped': return "bg-purple-100 text-purple-800 border-purple-200";
-            case 'delivered': return "bg-teal-100 text-teal-800 border-teal-200";
+            case 'delivered': return "bg-green-100 text-green-800 border-green-200";
             default: return "bg-background border-input";
         }
     }
 
-    const orderStatuses: OrderStatus[] = ['pending', 'paid', 'shipped', 'delivered', 'cancelled', 'failed', 'refunded'];
+    const orderStatuses: OrderStatus[] = ['pending', 'delivered', 'failed'];
     const statusLabels: Record<OrderStatus, string> = {
         pending: 'Pendiente',
         paid: 'Pagado',
