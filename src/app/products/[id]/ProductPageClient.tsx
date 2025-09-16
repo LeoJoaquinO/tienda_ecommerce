@@ -8,8 +8,10 @@ import { AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { LiveVisitorCounter } from './LiveVisitorCounter';
+import { Separator } from '@/components/ui/separator';
+import { ProductCard } from '@/components/ProductCard';
 
-export function ProductPageClient({ product }: { product: Product }) {
+export function ProductPageClient({ product, relatedProducts }: { product: Product, relatedProducts: Product[] }) {
   return (
     <div className="space-y-16">
       <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
@@ -75,6 +77,20 @@ export function ProductPageClient({ product }: { product: Product }) {
           </div>
         </div>
       </div>
+      
+      {relatedProducts.length > 0 && (
+        <section className="space-y-8">
+            <Separator />
+            <div className="text-center">
+                <h2 className="text-3xl font-headline font-bold">También te podrían interesar</h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {relatedProducts.map((p) => (
+                    <ProductCard key={p.id} product={p} />
+                ))}
+            </div>
+        </section>
+      )}
     </div>
   );
 }
