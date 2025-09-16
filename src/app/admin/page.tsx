@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
@@ -499,12 +498,21 @@ function OrdersTab({ orders, isLoading, onExport }: { orders: Order[], isLoading
             </CardHeader>
             <CardContent className='p-0'>
                 {isLoading ? <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div> : (
-                    <Collapsible asChild>
-                        <>
-                            <Table><TableHeader><TableRow><TableHead>ID</TableHead><TableHead>Cliente</TableHead><TableHead>Fecha</TableHead><TableHead>Total</TableHead><TableHead>Estado</TableHead><TableHead className="w-12"></TableHead></TableRow></TableHeader>
-                            <TableBody>
-                                {orders.map(order => (
-                                    <Collapsible key={order.id}>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>ID</TableHead>
+                                <TableHead>Cliente</TableHead>
+                                <TableHead>Fecha</TableHead>
+                                <TableHead>Total</TableHead>
+                                <TableHead>Estado</TableHead>
+                                <TableHead className="w-12"></TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {orders.map(order => (
+                                <Collapsible asChild key={order.id}>
+                                    <>
                                         <CollapsibleTrigger asChild>
                                             <TableRow className="cursor-pointer hover:bg-muted/80">
                                                 <TableCell className="font-mono text-sm">#{order.id}</TableCell>
@@ -558,12 +566,11 @@ function OrdersTab({ orders, isLoading, onExport }: { orders: Order[], isLoading
                                                 </td>
                                             </tr>
                                         </CollapsibleContent>
-                                    </Collapsible>
-                                ))}
-                            </TableBody>
-                            </Table>
-                        </>
-                    </Collapsible>
+                                    </>
+                                </Collapsible>
+                            ))}
+                        </TableBody>
+                    </Table>
                 )}
             </CardContent>
         </Card>
