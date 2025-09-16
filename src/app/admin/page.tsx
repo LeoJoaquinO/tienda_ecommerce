@@ -53,11 +53,7 @@ import { Switch } from '@/components/ui/switch';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
+import React from 'react';
 
 
 type FieldErrors = Record<string, string[] | undefined>;
@@ -510,63 +506,65 @@ function OrdersTab({ orders, isLoading, onExport }: { orders: Order[], isLoading
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {orders.map(order => (
-                                <Collapsible key={order.id}>
-                                    <CollapsibleTrigger asChild>
-                                        <TableRow className="cursor-pointer hover:bg-muted/80">
+                            {orders.map(order => {
+                                const [isOpen, setIsOpen] = useState(false);
+                                
+                                return (
+                                    <React.Fragment key={order.id}>
+                                        <TableRow className="cursor-pointer hover:bg-muted/80" onClick={() => setIsOpen(!isOpen)}>
                                             <TableCell className="font-mono text-sm">#{order.id}</TableCell>
                                             <TableCell className="font-medium">{order.customerName}</TableCell>
                                             <TableCell>{format(new Date(order.createdAt), "dd MMM yyyy, HH:mm", { locale: es })}</TableCell>
                                             <TableCell className="font-semibold">${order.total.toLocaleString('es-AR')}</TableCell>
                                             <TableCell>{getStatusBadge(order.status)}</TableCell>
                                             <TableCell>
-                                                <Button variant="ghost" size="sm" className="data-[state=open]:rotate-90">
+                                                <Button variant="ghost" size="sm" className={cn("transition-transform", isOpen && "rotate-90")}>
                                                     <ChevronRight className="h-4 w-4" />
                                                 </Button>
                                             </TableCell>
                                         </TableRow>
-                                    </CollapsibleTrigger>
-                                    <CollapsibleContent asChild>
-                                        <TableRow>
-                                            <TableCell colSpan={6} className="p-0">
-                                                <div className="bg-muted/50 p-4">
-                                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                                        <div className="md:col-span-2 space-y-4">
-                                                            <h4 className="font-semibold text-lg">Productos Comprados</h4>
-                                                            {order.items.map(item => (
-                                                                <div key={item.product.id} className="flex items-center gap-4">
-                                                                    <Image src={item.product.images[0]} alt={item.product.name} width={50} height={50} className="rounded-md border object-cover" data-ai-hint={item.product.aiHint}/>
-                                                                    <div className="flex-1">
-                                                                        <p className="font-semibold">{item.product.name}</p>
-                                                                        <p className="text-sm text-muted-foreground">Cantidad: {item.quantity} | Precio Unit.: ${item.product.price.toLocaleString('es-AR')}</p>
+                                        {isOpen && (
+                                            <TableRow>
+                                                <TableCell colSpan={6} className="p-0">
+                                                    <div className="bg-muted/50 p-4">
+                                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                                            <div className="md:col-span-2 space-y-4">
+                                                                <h4 className="font-semibold text-lg">Productos Comprados</h4>
+                                                                {order.items.map(item => (
+                                                                    <div key={item.product.id} className="flex items-center gap-4">
+                                                                        <Image src={item.product.images[0]} alt={item.product.name} width={50} height={50} className="rounded-md border object-cover" data-ai-hint={item.product.aiHint}/>
+                                                                        <div className="flex-1">
+                                                                            <p className="font-semibold">{item.product.name}</p>
+                                                                            <p className="text-sm text-muted-foreground">Cantidad: {item.quantity} | Precio Unit.: ${item.product.price.toLocaleString('es-AR')}</p>
+                                                                        </div>
+                                                                        <p className="font-semibold">${(item.product.price * item.quantity).toLocaleString('es-AR')}</p>
                                                                     </div>
-                                                                    <p className="font-semibold">${(item.product.price * item.quantity).toLocaleString('es-AR')}</p>
+                                                                ))}
+                                                            </div>
+                                                            <div className="space-y-4">
+                                                                <h4 className="font-semibold text-lg">Información del Cliente</h4>
+                                                                <div className="space-y-2 text-sm">
+                                                                    <div className="flex items-center gap-2"><User className="h-4 w-4 text-muted-foreground" /> <span>{order.customerName}</span></div>
+                                                                    <div className="flex items-center gap-2"><Mail className="h-4 w-4 text-muted-foreground" /> <a href={`mailto:${order.customerEmail}`} className="text-primary hover:underline">{order.customerEmail}</a></div>
                                                                 </div>
-                                                            ))}
-                                                        </div>
-                                                        <div className="space-y-4">
-                                                            <h4 className="font-semibold text-lg">Información del Cliente</h4>
-                                                            <div className="space-y-2 text-sm">
-                                                                <div className="flex items-center gap-2"><User className="h-4 w-4 text-muted-foreground" /> <span>{order.customerName}</span></div>
-                                                                <div className="flex items-center gap-2"><Mail className="h-4 w-4 text-muted-foreground" /> <a href={`mailto:${order.customerEmail}`} className="text-primary hover:underline">{order.customerEmail}</a></div>
-                                                            </div>
-                                                            <h4 className="font-semibold text-lg">Envío</h4>
-                                                            <div className="space-y-2 text-sm">
-                                                                <div className="flex items-start gap-2"><HomeIcon className="h-4 w-4 text-muted-foreground mt-1"/><span>{order.shippingAddress}, {order.shippingCity}, {order.shippingPostalCode}</span></div>
-                                                            </div>
-                                                            <h4 className="font-semibold text-lg">Pago</h4>
-                                                            <div className="space-y-2 text-sm">
-                                                                <div className="flex items-center gap-2"><Wallet className="h-4 w-4 text-muted-foreground" /><span>ID de Pago: <span className="font-mono">{order.paymentId || 'N/A'}</span></span></div>
-                                                                {order.couponCode && <div className="flex items-center gap-2"><Ticket className="h-4 w-4 text-muted-foreground" /><span>Cupón: <span className="font-semibold">{order.couponCode}</span> (-${order.discountAmount?.toLocaleString('es-AR')})</span></div>}
+                                                                <h4 className="font-semibold text-lg">Envío</h4>
+                                                                <div className="space-y-2 text-sm">
+                                                                    <div className="flex items-start gap-2"><HomeIcon className="h-4 w-4 text-muted-foreground mt-1"/><span>{order.shippingAddress}, {order.shippingCity}, {order.shippingPostalCode}</span></div>
+                                                                </div>
+                                                                <h4 className="font-semibold text-lg">Pago</h4>
+                                                                <div className="space-y-2 text-sm">
+                                                                    <div className="flex items-center gap-2"><Wallet className="h-4 w-4 text-muted-foreground" /><span>ID de Pago: <span className="font-mono">{order.paymentId || 'N/A'}</span></span></div>
+                                                                    {order.couponCode && <div className="flex items-center gap-2"><Ticket className="h-4 w-4 text-muted-foreground" /><span>Cupón: <span className="font-semibold">{order.couponCode}</span> (-${order.discountAmount?.toLocaleString('es-AR')})</span></div>}
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    </CollapsibleContent>
-                                </Collapsible>
-                            ))}
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                    </React.Fragment>
+                                );
+                            })}
                         </TableBody>
                     </Table>
                 )}
