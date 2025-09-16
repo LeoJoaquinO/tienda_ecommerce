@@ -1,7 +1,8 @@
 
+
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import Image from 'next/image';
 import { getProducts, getCoupons, getSalesMetrics, getCategories, getOrders } from '@/lib/data';
 import type { Product, Coupon, SalesMetrics, Category, Order, OrderStatus } from '@/lib/types';
@@ -237,10 +238,24 @@ function MetricsTab({ products, salesMetrics, isLoading, categories }: { product
     const totalStock = products.reduce((acc, p) => acc + p.stock, 0);
     const lowStockProducts = products.filter(p => p.stock > 0 && p.stock <= 3);
 
-    const categoryData = categories.map(cat => ({
-        category: cat.name,
-        products: products.filter(p => p.categoryIds.includes(cat.id)).length
-    }));
+    const categoryData = useMemo(() => {
+      const parentCategories = categories.filter(c => !c.parentId);
+      const categoryMap = new Map(categories.map(c => [c.id, c.name]));
+      
+      const data = parentCategories.map(parentCat => {
+        const childCategoryIds = categories.filter(c => c.parentId === parentCat.id).map(c => c.id);
+        const allCategoryIds = [parentCat.id, ...childCategoryIds];
+        
+        const productCount = products.filter(p => p.categoryIds.some(catId => allCategoryIds.includes(catId))).length;
+
+        return {
+          category: parentCat.name,
+          products: productCount
+        };
+      }).filter(d => d.products > 0);
+
+      return data;
+    }, [categories, products]);
 
 
     return (
@@ -475,20 +490,29 @@ function CouponsTab({ coupons, isLoading, onAdd, onEdit, onDelete, onExport }: {
 // ############################################################################
 function OrdersTab({ orders, isLoading, onExport, onStatusChange }: { orders: Order[], isLoading: boolean, onExport: () => void, onStatusChange: (orderId: number, newStatus: OrderStatus) => void }) {
     
-    const getStatusBadge = (status: Order['status']) => {
-        const baseClasses = "text-xs font-bold py-1 px-2 rounded-full";
+    const getStatusClasses = (status: Order['status']) => {
         switch (status) {
-            case 'paid': return <Badge className="bg-green-100 text-green-800">Pagado</Badge>;
-            case 'pending': return <Badge className="bg-yellow-100 text-yellow-800">Pendiente</Badge>;
-            case 'failed': return <Badge variant="destructive">Fallido</Badge>;
-            case 'cancelled': return <Badge variant="secondary">Cancelado</Badge>;
-            case 'refunded': return <Badge className="bg-blue-100 text-blue-800">Reintegrado</Badge>;
-            case 'shipped': return <Badge className="bg-purple-100 text-purple-800">Enviado</Badge>;
-            default: return <Badge variant="outline">Desconocido</Badge>;
+            case 'paid': return "bg-green-100 text-green-800 border-green-200";
+            case 'pending': return "bg-yellow-100 text-yellow-800 border-yellow-200";
+            case 'failed': return "bg-red-100 text-red-800 border-red-200";
+            case 'cancelled': return "bg-gray-100 text-gray-800 border-gray-200";
+            case 'refunded': return "bg-blue-100 text-blue-800 border-blue-200";
+            case 'shipped': return "bg-purple-100 text-purple-800 border-purple-200";
+            case 'delivered': return "bg-teal-100 text-teal-800 border-teal-200";
+            default: return "bg-background border-input";
         }
     }
 
-    const orderStatuses: OrderStatus[] = ['pending', 'paid', 'shipped', 'cancelled', 'failed', 'refunded'];
+    const orderStatuses: OrderStatus[] = ['pending', 'paid', 'shipped', 'delivered', 'cancelled', 'failed', 'refunded'];
+    const statusLabels: Record<OrderStatus, string> = {
+        pending: 'Pendiente',
+        paid: 'Pagado',
+        shipped: 'Enviado',
+        delivered: 'Entregado',
+        cancelled: 'Cancelado',
+        failed: 'Fallido',
+        refunded: 'Reintegrado'
+    };
 
     return (
         <Card className="shadow-lg">
@@ -505,7 +529,7 @@ function OrdersTab({ orders, isLoading, onExport, onStatusChange }: { orders: Or
                                 <TableHead>Cliente</TableHead>
                                 <TableHead>Fecha</TableHead>
                                 <TableHead>Total</TableHead>
-                                <TableHead className="w-[150px]">Estado</TableHead>
+                                <TableHead className="w-[180px]">Estado</TableHead>
                                 <TableHead className="w-12"></TableHead>
                             </TableRow>
                         </TableHeader>
@@ -525,20 +549,20 @@ function OrdersTab({ orders, isLoading, onExport, onStatusChange }: { orders: Or
                                                     defaultValue={order.status}
                                                     onValueChange={(newStatus: OrderStatus) => onStatusChange(order.id, newStatus)}
                                                 >
-                                                    <SelectTrigger className="h-8 text-xs">
+                                                    <SelectTrigger className={cn("h-8 text-xs font-semibold", getStatusClasses(order.status))}>
                                                         <SelectValue />
                                                     </SelectTrigger>
                                                     <SelectContent>
                                                         {orderStatuses.map(status => (
                                                             <SelectItem key={status} value={status} className="text-xs">
-                                                                {status.charAt(0).toUpperCase() + status.slice(1)}
+                                                                {statusLabels[status]}
                                                             </SelectItem>
                                                         ))}
                                                     </SelectContent>
                                                 </Select>
                                             </TableCell>
                                             <TableCell>
-                                                <Button variant="ghost" size="sm" onClick={() => setIsOpen(!isOpen)} className={cn("transition-transform", isOpen && "rotate-90")}>
+                                                <Button variant="ghost" size="sm" onClick={() => setIsOpen(!isOpen)} className="transition-transform data-[state=open]:rotate-90">
                                                     <ChevronRight className="h-4 w-4" />
                                                 </Button>
                                             </TableCell>
@@ -730,12 +754,23 @@ function AdminDashboard({ onLogout, dbConnected }: { onLogout: () => void, dbCon
     }
 
     const handleOrderStatusChange = async (orderId: number, newStatus: OrderStatus) => {
+        const originalOrders = [...orders];
+        
+        // Optimistically update UI
+        setOrders(prevOrders => 
+            prevOrders.map(o => o.id === orderId ? {...o, status: newStatus} : o)
+        );
+
         const result = await updateOrderStatusAction(orderId, newStatus);
+        
         if (result?.error) {
             toast({ title: 'Error', description: result.error, variant: 'destructive' });
+            // Revert UI on error
+            setOrders(originalOrders);
         } else {
             toast({ title: 'Éxito', description: result.message });
-            fetchData();
+            // Re-fetch to ensure data consistency, even though UI is updated
+            fetchData(); 
         }
     };
 
