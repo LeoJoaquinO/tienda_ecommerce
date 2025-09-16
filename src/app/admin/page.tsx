@@ -512,7 +512,7 @@ function OrdersTab({ orders, isLoading, onExport }: { orders: Order[], isLoading
                         <TableBody>
                             {orders.map(order => (
                                 <Collapsible asChild key={order.id}>
-                                    <>
+                                    <tbody>
                                         <CollapsibleTrigger asChild>
                                             <TableRow className="cursor-pointer hover:bg-muted/80">
                                                 <TableCell className="font-mono text-sm">#{order.id}</TableCell>
@@ -566,7 +566,7 @@ function OrdersTab({ orders, isLoading, onExport }: { orders: Order[], isLoading
                                                 </td>
                                             </tr>
                                         </CollapsibleContent>
-                                    </>
+                                    </tbody>
                                 </Collapsible>
                             ))}
                         </TableBody>
