@@ -67,7 +67,7 @@ let localProducts: Product[] = [
         description: "Enriquecida con un 20% de manteca de karité orgánica, esta crema de manos se absorbe rápidamente, dejando las manos suaves, nutridas y protegidas.",
         shortDescription: "Crema de manos ultra nutritiva.",
         price: 25000,
-        images: ["https://es.loccitane.com/dw/image/v2/BCMK_PRD/on/demandware.static/-/Sites-occ_master/default/dw15340f10/packshots/01MA150K23_A.jpg?sw=400&sh=400"],
+        images: ["https://i.imgur.com/urkAB35.jpeg"],
         categoryIds: [2, 302, 102], // Cuidado de Piel, Cuerpo, L'Occitane
         stock: 8,
         featured: true,
@@ -83,7 +83,7 @@ let localProducts: Product[] = [
         description: "Un licor con una estela embriagadora, compuesto por ingredientes excepcionales. Un corazón de especias, una esencia de lavanda 'a medida' y una mezcla de maderas licorosas.",
         shortDescription: "Perfume masculino concentrado.",
         price: 120000,
-        images: ["https://acdn-us.mitiendanube.com/stores/001/071/596/products/snapinsta-app_457143249_18272561446241493_4114811689171539800_n_1080-copia-4c107f322e0631e79017304658593813-240-0.jpg"],
+        images: ["https://i.imgur.com/KzOMf2W.jpeg"],
         categoryIds: [1, 201, 103], // Perfumes, Hombre, Dior
         stock: 12,
         featured: true,
@@ -586,5 +586,53 @@ export async function createOrderFromWebhook(paymentData: any): Promise<{ newOrd
 
 
 export async function getOrders(): Promise<Order[]> {
-    return JSON.parse(JSON.stringify(localOrders));
+    // Simulate some recent orders for demonstration purposes
+    if (localOrders.length === 0) {
+        const product1 = await getProductById(1);
+        const product4 = await getProductById(4);
+        if (product1 && product4) {
+             localOrders = [
+                {
+                    id: 1,
+                    customerName: "Juan Pérez",
+                    customerEmail: "juan.perez@example.com",
+                    total: 75000,
+                    status: 'paid',
+                    createdAt: new Date('2024-07-20T10:30:00Z'),
+                    items: [{ product: product1, quantity: 1 }],
+                    paymentId: '123456789',
+                    shippingAddress: 'Av. Corrientes 123',
+                    shippingCity: 'CABA',
+                    shippingPostalCode: '1043',
+                },
+                {
+                    id: 2,
+                    customerName: "Maria García",
+                    customerEmail: "maria.garcia@example.com",
+                    total: 45000,
+                    status: 'shipped',
+                    createdAt: new Date('2024-07-19T15:00:00Z'),
+                    items: [{ product: product4, quantity: 1 }],
+                    paymentId: '987654321',
+                    shippingAddress: 'Calle Falsa 123',
+                    shippingCity: 'Springfield',
+                    shippingPostalCode: 'B7500',
+                },
+                {
+                    id: 3,
+                    customerName: "Carlos López",
+                    customerEmail: "carlos.lopez@example.com",
+                    total: 120000,
+                    status: 'pending',
+                    createdAt: new Date('2024-07-21T09:00:00Z'),
+                    items: [{ product: (await getProductById(3))!, quantity: 1 }],
+                    shippingAddress: 'Av. de Mayo 567',
+                    shippingCity: 'CABA',
+                    shippingPostalCode: '1084',
+                },
+             ];
+             nextOrderId = 4;
+        }
+    }
+    return JSON.parse(JSON.stringify(localOrders.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())));
 }

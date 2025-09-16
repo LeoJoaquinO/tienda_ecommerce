@@ -3,8 +3,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { getProducts, getCoupons, getSalesMetrics, getCategories } from '@/lib/data';
-import type { Product, Coupon, SalesMetrics, Category } from '@/lib/types';
+import { getProducts, getCoupons, getSalesMetrics, getCategories, getOrders } from '@/lib/data';
+import type { Product, Coupon, SalesMetrics, Category, Order } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -17,7 +17,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PlusCircle, Edit, Trash2, LogIn, LogOut, Loader2, Package, Tag, Wallet, Calendar as CalendarIcon, BarChart, AlertTriangle, ShoppingCart, Ticket, Badge as BadgeIcon, TrendingUp, DollarSign, CheckCircle, XCircle, Download, ExternalLink, Mail, Database, HardDrive, Folder } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, LogIn, LogOut, Loader2, Package, Tag, Wallet, Calendar as CalendarIcon, BarChart, AlertTriangle, ShoppingCart, Ticket, Badge as BadgeIcon, TrendingUp, DollarSign, CheckCircle, XCircle, Download, ExternalLink, Mail, Database, HardDrive, Folder, ChevronDown, ChevronRight, User, Truck, Home as HomeIcon } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -46,6 +46,7 @@ import { addProductAction, updateProductAction, deleteProductAction, addCouponAc
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { BarChart as RechartsBarChart, Bar as RechartsBar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -53,6 +54,12 @@ import { Switch } from '@/components/ui/switch';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
+
 
 type FieldErrors = Record<string, string[] | undefined>;
 
@@ -65,7 +72,7 @@ const FormError = ({ message }: { message?: string }) => {
 // Helper: CSV Export
 // ############################################################################
 function downloadCSV(csvContent: string, fileName: string) {
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     if (link.download !== undefined) {
         const url = URL.createObjectURL(blob);
@@ -109,7 +116,7 @@ function ProductForm({ product, formId, errors, categories }: { product?: Produc
                      <Popover>
                         <PopoverTrigger asChild>
                             <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !startDate && "text-muted-foreground", errors.offerStartDate && "border-destructive")}>
-                                <CalendarIcon className="mr-2 h-4 w-4" />{startDate ? format(startDate, "PPP") : <span>Elegir fecha</span>}
+                                <CalendarIcon className="mr-2 h-4 w-4" />{startDate ? format(startDate, "PPP", { locale: es }) : <span>Elegir fecha</span>}
                             </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus fromDate={new Date()} /></PopoverContent>
@@ -121,7 +128,7 @@ function ProductForm({ product, formId, errors, categories }: { product?: Produc
                      <Popover>
                         <PopoverTrigger asChild>
                              <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !endDate && "text-muted-foreground", errors.offerEndDate && "border-destructive")}>
-                                <CalendarIcon className="mr-2 h-4 w-4" />{endDate ? format(endDate, "PPP") : <span>Elegir fecha</span>}
+                                <CalendarIcon className="mr-2 h-4 w-4" />{endDate ? format(endDate, "PPP", { locale: es }) : <span>Elegir fecha</span>}
                             </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={endDate} onSelect={setEndDate} initialFocus fromDate={startDate || new Date()} /></PopoverContent>
@@ -203,7 +210,7 @@ function CouponForm({ coupon, formId, errors }: { coupon?: Coupon, formId: strin
                 <Popover>
                     <PopoverTrigger asChild>
                         <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !expiryDate && "text-muted-foreground", errors.expiryDate && "border-destructive")}>
-                            <CalendarIcon className="mr-2 h-4 w-4" />{expiryDate ? format(expiryDate, "PPP") : <span>Elegir fecha</span>}
+                            <CalendarIcon className="mr-2 h-4 w-4" />{expiryDate ? format(expiryDate, "PPP", { locale: es }) : <span>Elegir fecha</span>}
                         </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
@@ -433,7 +440,7 @@ function CouponsTab({ coupons, isLoading, onAdd, onEdit, onDelete, onExport }: {
                                 <TableCell className="font-medium text-primary">{coupon.code}</TableCell>
                                 <TableCell>{coupon.discountType === 'percentage' ? 'Porcentaje' : 'Monto Fijo'}</TableCell>
                                 <TableCell>{coupon.discountType === 'percentage' ? `${coupon.discountValue}%` : `$${coupon.discountValue.toLocaleString('es-AR')}`}</TableCell>
-                                <TableCell>{coupon.expiryDate ? format(new Date(coupon.expiryDate), 'PPP') : 'Nunca'}</TableCell>
+                                <TableCell>{coupon.expiryDate ? format(new Date(coupon.expiryDate), 'PPP', { locale: es }) : 'Nunca'}</TableCell>
                                 <TableCell className="text-center">
                                     {isCouponActive(coupon)
                                       ? <CheckCircle className="h-5 w-5 text-green-500 inline-block" />
@@ -468,12 +475,109 @@ function CouponsTab({ coupons, isLoading, onAdd, onEdit, onDelete, onExport }: {
 }
 
 // ############################################################################
+// Component: OrdersTab
+// ############################################################################
+function OrdersTab({ orders, isLoading, onExport }: { orders: Order[], isLoading: boolean, onExport: () => void }) {
+    
+    const getStatusBadge = (status: Order['status']) => {
+        switch (status) {
+            case 'paid': return <Badge className="bg-green-100 text-green-800">Pagado</Badge>;
+            case 'pending': return <Badge className="bg-yellow-100 text-yellow-800">Pendiente</Badge>;
+            case 'failed': return <Badge variant="destructive">Fallido</Badge>;
+            case 'cancelled': return <Badge variant="secondary">Cancelado</Badge>;
+            case 'refunded': return <Badge className="bg-blue-100 text-blue-800">Reintegrado</Badge>;
+            case 'shipped': return <Badge className="bg-purple-100 text-purple-800">Enviado</Badge>;
+            default: return <Badge variant="outline">Desconocido</Badge>;
+        }
+    }
+
+    return (
+        <Card className="shadow-lg">
+            <CardHeader className="flex flex-row items-center justify-between">
+                <div><CardTitle>Historial de Órdenes</CardTitle><CardDescription>Visualiza y gestiona todas las órdenes de tus clientes.</CardDescription></div>
+                <Button onClick={onExport} variant="outline" disabled={isLoading}><Download className="mr-2 h-4 w-4" />Exportar a CSV</Button>
+            </CardHeader>
+            <CardContent className='p-0'>
+                {isLoading ? <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div> : (
+                    <Collapsible asChild>
+                        <>
+                            <Table><TableHeader><TableRow><TableHead>ID</TableHead><TableHead>Cliente</TableHead><TableHead>Fecha</TableHead><TableHead>Total</TableHead><TableHead>Estado</TableHead><TableHead className="w-12"></TableHead></TableRow></TableHeader>
+                            <TableBody>
+                                {orders.map(order => (
+                                    <Collapsible key={order.id}>
+                                        <CollapsibleTrigger asChild>
+                                            <TableRow className="cursor-pointer hover:bg-muted/80">
+                                                <TableCell className="font-mono text-sm">#{order.id}</TableCell>
+                                                <TableCell className="font-medium">{order.customerName}</TableCell>
+                                                <TableCell>{format(new Date(order.createdAt), "dd MMM yyyy, HH:mm", { locale: es })}</TableCell>
+                                                <TableCell className="font-semibold">${order.total.toLocaleString('es-AR')}</TableCell>
+                                                <TableCell>{getStatusBadge(order.status)}</TableCell>
+                                                <TableCell>
+                                                    <Button variant="ghost" size="sm" className="data-[state=open]:rotate-90">
+                                                        <ChevronRight className="h-4 w-4" />
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        </CollapsibleTrigger>
+                                        <CollapsibleContent asChild>
+                                            <tr>
+                                                <td colSpan={6} className="p-0">
+                                                    <div className="bg-muted/50 p-4">
+                                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                                            <div className="md:col-span-2 space-y-4">
+                                                                <h4 className="font-semibold text-lg">Productos Comprados</h4>
+                                                                {order.items.map(item => (
+                                                                    <div key={item.product.id} className="flex items-center gap-4">
+                                                                        <Image src={item.product.images[0]} alt={item.product.name} width={50} height={50} className="rounded-md border object-cover" data-ai-hint={item.product.aiHint}/>
+                                                                        <div className="flex-1">
+                                                                            <p className="font-semibold">{item.product.name}</p>
+                                                                            <p className="text-sm text-muted-foreground">Cantidad: {item.quantity} | Precio Unit.: ${item.product.price.toLocaleString('es-AR')}</p>
+                                                                        </div>
+                                                                        <p className="font-semibold">${(item.product.price * item.quantity).toLocaleString('es-AR')}</p>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                            <div className="space-y-4">
+                                                                <h4 className="font-semibold text-lg">Información del Cliente</h4>
+                                                                <div className="space-y-2 text-sm">
+                                                                    <div className="flex items-center gap-2"><User className="h-4 w-4 text-muted-foreground" /> <span>{order.customerName}</span></div>
+                                                                    <div className="flex items-center gap-2"><Mail className="h-4 w-4 text-muted-foreground" /> <a href={`mailto:${order.customerEmail}`} className="text-primary hover:underline">{order.customerEmail}</a></div>
+                                                                </div>
+                                                                <h4 className="font-semibold text-lg">Envío</h4>
+                                                                <div className="space-y-2 text-sm">
+                                                                    <div className="flex items-start gap-2"><HomeIcon className="h-4 w-4 text-muted-foreground mt-1"/><span>{order.shippingAddress}, {order.shippingCity}, {order.shippingPostalCode}</span></div>
+                                                                </div>
+                                                                <h4 className="font-semibold text-lg">Pago</h4>
+                                                                <div className="space-y-2 text-sm">
+                                                                    <div className="flex items-center gap-2"><Wallet className="h-4 w-4 text-muted-foreground" /><span>ID de Pago: <span className="font-mono">{order.paymentId || 'N/A'}</span></span></div>
+                                                                    {order.couponCode && <div className="flex items-center gap-2"><Ticket className="h-4 w-4 text-muted-foreground" /><span>Cupón: <span className="font-semibold">{order.couponCode}</span> (-${order.discountAmount?.toLocaleString('es-AR')})</span></div>}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </CollapsibleContent>
+                                    </Collapsible>
+                                ))}
+                            </TableBody>
+                            </Table>
+                        </>
+                    </Collapsible>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
+
+// ############################################################################
 // Component: AdminDashboard
 // ############################################################################
 function AdminDashboard({ onLogout, dbConnected }: { onLogout: () => void, dbConnected: boolean }) {
     const [products, setProducts] = useState<Product[]>([]);
     const [coupons, setCoupons] = useState<Coupon[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
+    const [orders, setOrders] = useState<Order[]>([]);
     const [salesMetrics, setSalesMetrics] = useState<SalesMetrics | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [dialogType, setDialogType] = useState<'product' | 'coupon' | null>(null);
@@ -489,16 +593,18 @@ function AdminDashboard({ onLogout, dbConnected }: { onLogout: () => void, dbCon
     const fetchData = async () => {
         setIsLoading(true);
         try {
-            const [fetchedProducts, fetchedCoupons, fetchedMetrics, fetchedCategories] = await Promise.all([
+            const [fetchedProducts, fetchedCoupons, fetchedMetrics, fetchedCategories, fetchedOrders] = await Promise.all([
                 getProducts(),
                 getCoupons(),
                 getSalesMetrics(),
                 getCategories(),
+                getOrders(),
             ]);
             setProducts(fetchedProducts);
             setCoupons(fetchedCoupons);
             setSalesMetrics(fetchedMetrics);
             setCategories(fetchedCategories);
+            setOrders(fetchedOrders);
         } catch (error) {
             toast({ title: 'Error al cargar los datos del panel', description: (error as Error).message, variant: 'destructive' });
         }
@@ -635,6 +741,30 @@ function AdminDashboard({ onLogout, dbConnected }: { onLogout: () => void, dbCon
         toast({ title: 'Éxito', description: 'Datos de cupones exportados a CSV.' });
     };
 
+    const exportOrdersToCSV = () => {
+        const headers = ['ID de Orden', 'Fecha', 'Cliente', 'Email', 'Total', 'Estado', 'Cupón', 'Descuento', 'ID de Pago', 'Dirección de Envío', 'Productos'];
+        const rows = orders.map(o => {
+            const productList = o.items.map(item => `${item.quantity}x ${item.product.name}`).join('; ');
+            return [
+                o.id,
+                format(new Date(o.createdAt), 'yyyy-MM-dd HH:mm'),
+                `"${o.customerName}"`,
+                o.customerEmail,
+                o.total,
+                o.status,
+                o.couponCode || '',
+                o.discountAmount || 0,
+                o.paymentId || '',
+                `"${o.shippingAddress}, ${o.shippingCity}, ${o.shippingPostalCode}"`,
+                `"${productList}"`
+            ].join(',');
+        });
+
+        const csvContent = [headers.join(','), ...rows].join('\n');
+        downloadCSV(csvContent, 'orders.csv');
+        toast({ title: 'Éxito', description: 'Datos de órdenes exportados a CSV.' });
+    }
+
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-start">
@@ -670,11 +800,12 @@ function AdminDashboard({ onLogout, dbConnected }: { onLogout: () => void, dbCon
             </div>
 
             <Tabs defaultValue="overview">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-5">
                     <TabsTrigger value="overview">Visión General</TabsTrigger>
                     <TabsTrigger value="products">Productos</TabsTrigger>
                     <TabsTrigger value="categories">Categorías</TabsTrigger>
                     <TabsTrigger value="coupons">Cupones</TabsTrigger>
+                    <TabsTrigger value="orders">Órdenes</TabsTrigger>
                 </TabsList>
                 <TabsContent value="overview" className="mt-6">
                     <MetricsTab products={products} salesMetrics={salesMetrics} isLoading={isLoading} categories={categories} />
@@ -687,6 +818,9 @@ function AdminDashboard({ onLogout, dbConnected }: { onLogout: () => void, dbCon
                 </TabsContent>
                 <TabsContent value="coupons" className="mt-6">
                     <CouponsTab coupons={coupons} isLoading={isLoading} onAdd={() => handleOpenCouponDialog()} onEdit={handleOpenCouponDialog} onDelete={handleDeleteCoupon} onExport={exportCouponsToCSV} />
+                </TabsContent>
+                <TabsContent value="orders" className="mt-6">
+                    <OrdersTab orders={orders} isLoading={isLoading} onExport={exportOrdersToCSV} />
                 </TabsContent>
             </Tabs>
 
